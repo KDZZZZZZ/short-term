@@ -18,8 +18,8 @@ Kubernetes 或服务网格。
 
 四个业务库使用不同登录角色，并撤销 `PUBLIC` 的数据库连接权限。应用容器以
 UID/GID `65532:65532`、只读根文件系统、移除 capabilities、`no-new-privileges`
-和进程数上限运行。Gateway 和管理端口当前都只绑定主机回环地址，外部验收通过
-SSH 隧道访问；接入用户流量前应由带 TLS 的反向代理转发到 Gateway。
+和进程数上限运行。Gateway 和管理端口当前都只绑定主机回环地址，CI 通过 SSH
+在服务器本机执行真实验收；接入用户流量前应由带 TLS 的反向代理转发到 Gateway。
 
 ## 一次性主机初始化
 
@@ -67,8 +67,8 @@ OpenAPI、Proto breaking/drift、Go vet 和 `go test -race` 是同一 Backend wo
 4. 依次执行 Account、Marketplace、Messaging、Favorite 的显式迁移；
 5. 启动四个服务、两个 worker 和 Gateway，等待标准 gRPC Health 与 `/readyz`；
 6. 更新 Swagger UI；
-7. 从 GitHub runner 通过 SSH 隧道连接真实服务器 REST 接口，创建真实用户、商品、
-   收藏、会话、消息和完整交易；再在服务器验证同一 Trace 跨
+7. GitHub runner 通过 SSH 在真实服务器上执行同一 SHA 的 E2E 脚本，创建真实用户、
+   商品、收藏、会话、消息和完整交易；再验证同一 Trace 跨
    Gateway/gRPC/Outbox 串联且积压归零。
 
 主机前置校验、迁移、启动、readiness、服务器 E2E、Trace 或 Outbox 任一验收失败都会让 workflow
