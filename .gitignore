@@ -9,3 +9,6 @@ Thumbs.db
 .vscode/
 coverage/
 dist/
+
+# Project-local agent skill payloads; restore them from skills-lock.json.
+.agents/skills/
