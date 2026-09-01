@@ -79,6 +79,7 @@ jobs:
           test -d /opt/short-term
           test ! -L /opt/short-term
           test -w /opt/short-term
+          /usr/bin/python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 6) else 1)'
           test "$(/usr/bin/podman info --format '{{.Host.Security.Rootless}}')" = true
           test "$(/usr/bin/loginctl show-user "$(id -u)" -p Linger --value)" = yes
           if ! /usr/bin/podman container exists short-term-gateway; then

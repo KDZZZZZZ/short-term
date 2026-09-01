@@ -33,7 +33,8 @@ sudo deploy/backend/bootstrap-host.sh "$(id -un)"
 脚本只创建部署账号拥有的 `/opt/short-term` 目录并启用 systemd linger，使 rootless
 Podman 用户服务在退出登录和主机重启后仍能自动运行；它不保存 sudo 密码，也不写
 sudoers。当前 Swagger UI 仍是既有的 root system service，CI 只保留精确白名单的
-`systemctl restart short-term-openapi.service` 权限。
+`systemctl restart short-term-openapi.service` 权限。自动发布还会在上传前验证主机具有
+Python 3.6 或更高版本；Python 只用于本机验收与日志 JSON 解析，不进入 Go 服务容器。
 
 ## 镜像与 CI
 
@@ -52,7 +53,8 @@ scripts/build-backend-images.sh <40位Git SHA> /tmp/backend-images.tar.gz
 ```
 
 Pull Request 的 `Backend / containers` 检查会验证脚本与 Compose、构建全部镜像、
-检查非 root 用户和镜像文件边界，然后用真实 PostgreSQL 跑完整 REST 主流程。
+检查非 root 用户和镜像文件边界，然后使用与当前生产主机一致、按摘要固定的
+Python 3.6.8 运行时和真实 PostgreSQL 跑完整 REST 主流程。
 OpenAPI、Proto breaking/drift、Go vet 和 `go test -race` 是同一 Backend workflow
 的前置门禁。
 

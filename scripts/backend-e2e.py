@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Run the real REST journey against a deployed short-term Gateway."""
+"""Run the real REST journey against a deployed short-term Gateway.
 
-from __future__ import annotations
+This script intentionally remains compatible with Python 3.6, which is the
+version available on the production host.
+"""
 
 import argparse
 import json
@@ -11,49 +13,47 @@ import statistics
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
-from typing import Any
 
 
-@dataclass
 class Response:
-    status: int
-    headers: Any
-    body: bytes
-    elapsed_ms: float
+    def __init__(self, status, headers, body, elapsed_ms):
+        self.status = status
+        self.headers = headers
+        self.body = body
+        self.elapsed_ms = elapsed_ms
 
-    def json(self) -> dict[str, Any]:
+    def json(self):
         return json.loads(self.body.decode("utf-8"))
 
 
 class Client:
-    def __init__(self, base_url: str, timeout: float) -> None:
+    def __init__(self, base_url, timeout):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
     def request(
         self,
-        method: str,
-        path: str,
+        method,
+        path,
         *,
-        token: str | None = None,
-        json_body: Any | None = None,
-        form: dict[str, str] | None = None,
-        headers: dict[str, str] | None = None,
-    ) -> Response:
+        token=None,
+        json_body=None,
+        form=None,
+        headers=None,
+    ):
         request_headers = {"Accept": "application/json"}
         if token:
             request_headers["Authorization"] = f"Bearer {token}"
         if headers:
             request_headers.update(headers)
 
-        data: bytes | None = None
+        data = None
         if json_body is not None:
             data = json.dumps(json_body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
             request_headers["Content-Type"] = "application/json"
         elif form is not None:
             boundary = f"shortterm-{secrets.token_hex(12)}"
-            chunks: list[bytes] = []
+            chunks = []
             for name, value in form.items():
                 chunks.extend(
                     [
@@ -82,7 +82,7 @@ class Client:
             return Response(error.code, error.headers, error.read(), (time.perf_counter() - started) * 1000)
 
 
-def expect(response: Response, status: int, label: str) -> dict[str, Any]:
+def expect(response, status, label):
     if response.status != status:
         safe_body = response.body.decode("utf-8", errors="replace")[:1000]
         raise RuntimeError(f"{label}: status {response.status}, want {status}: {safe_body}")
@@ -92,17 +92,17 @@ def expect(response: Response, status: int, label: str) -> dict[str, Any]:
     return payload
 
 
-def idempotency_key(tag: str, operation: str) -> str:
+def idempotency_key(tag, operation):
     return f"m6-{tag[:24]}-{operation}-{secrets.token_hex(8)}"[:128]
 
 
-def percentile(values: list[float], fraction: float) -> float:
+def percentile(values, fraction):
     ordered = sorted(values)
     index = max(0, math.ceil(len(ordered) * fraction) - 1)
     return ordered[index]
 
 
-def run(args: argparse.Namespace) -> dict[str, Any]:
+def run(args):
     client = Client(args.base_url, args.timeout)
     suffix = secrets.token_hex(6)
     student_seller = f"m6s_{suffix}"
@@ -265,7 +265,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if not conversation_item or conversation_item["product"].get("status") != "SOLD":
         raise RuntimeError("conversation projection did not expose current SOLD status")
 
-    latencies: list[float] = []
+    latencies = []
     for _ in range(args.baseline_samples):
         response = client.request("GET", "/api/v1/products?page=1&page_size=20", token=buyer_token)
         expect(response, 200, "baseline list products")
@@ -294,7 +294,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--tag", required=True)

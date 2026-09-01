@@ -134,6 +134,8 @@ jobs:
       - go
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      PRODUCTION_PYTHON_IMAGE: python:3.6.8-slim@sha256:0d095570901e7cf0dac93ba4d0ee75ee2364715338b0396874589c9cc23343b6
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -152,7 +154,11 @@ jobs:
             echo "backend runtime must remain rootless" >&2
             exit 1
           fi
-          python3 -m py_compile scripts/backend-e2e.py
+          docker run --rm --network none --read-only --user 65532:65532 \
+            --cap-drop all --security-opt no-new-privileges \
+            --volume "$PWD/scripts/backend-e2e.py:/backend-e2e.py:ro" \
+            "$PRODUCTION_PYTHON_IMAGE" \
+            python3 -c 'compile(open("/backend-e2e.py", "rb").read(), "/backend-e2e.py", "exec")'
           backend_media_dir="$(mktemp -d)"
           BACKEND_RELEASE="$GITHUB_SHA" BACKEND_MEDIA_DIR="$backend_media_dir" \
             docker compose -f deploy/backend/compose.ci.yml config --quiet
@@ -218,7 +224,10 @@ jobs:
             fi
             sleep 2
           done
-          python3 scripts/backend-e2e.py \
+          docker run --rm --network host --read-only --user 65532:65532 \
+            --cap-drop all --security-opt no-new-privileges \
+            --volume "$PWD/scripts/backend-e2e.py:/backend-e2e.py:ro" \
+            "$PRODUCTION_PYTHON_IMAGE" python3 /backend-e2e.py \
             --base-url http://127.0.0.1:28080 \
             --tag "$GITHUB_SHA" \
             --baseline-samples 5
