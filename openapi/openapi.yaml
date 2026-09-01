@@ -1,0 +1,103 @@
+openapi: 3.1.0
+
+info:
+  title: 校园二手交易平台 API
+  version: 1.0.0
+  description: |
+    校园二手交易平台 MVP 的唯一公开 HTTP API 契约。
+
+    用户没有固定买家或卖家角色。用户在自己发布的商品中是卖家，
+    在自己发起的交易中是买家。推荐算法和邮件通知不在 MVP 范围内。
+
+    跨资源状态变化及并发约束见 `docs/state-machines.md`。
+  contact:
+    name: short-term maintainers
+    url: https://github.com/KDZZZZZZ/short-term
+
+servers:
+  - url: /api/v1
+    description: 当前站点 API 根路径
+
+tags:
+  - name: Authentication
+    description: 注册、登录和退出登录。
+  - name: Users
+    description: 当前用户资料和卖家商品管理。
+  - name: Products
+    description: 商品发布、浏览、搜索、图片和上下架。
+  - name: Favorites
+    description: 当前用户的商品收藏。
+  - name: Conversations
+    description: 以商品为上下文的买卖双方文字会话。
+  - name: Trades
+    description: 购买意向和受控的交易状态动作。
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    $ref: ./paths/auth.yaml#/register
+  /auth/login:
+    $ref: ./paths/auth.yaml#/login
+  /auth/logout:
+    $ref: ./paths/auth.yaml#/logout
+
+  /users/me:
+    $ref: ./paths/users.yaml#/me
+  /users/me/password:
+    $ref: ./paths/users.yaml#/password
+  /users/me/products:
+    $ref: ./paths/users.yaml#/products
+
+  /products:
+    $ref: ./paths/products.yaml#/collection
+  /products/{productId}:
+    $ref: ./paths/products.yaml#/item
+  /products/{productId}/images:
+    $ref: ./paths/products.yaml#/images
+  /products/{productId}/images/{imageId}:
+    $ref: ./paths/products.yaml#/image
+  /products/{productId}/off-shelf:
+    $ref: ./paths/products.yaml#/offShelf
+  /products/{productId}/relist:
+    $ref: ./paths/products.yaml#/relist
+
+  /favorites:
+    $ref: ./paths/favorites.yaml#/collection
+  /favorites/{productId}:
+    $ref: ./paths/favorites.yaml#/item
+
+  /products/{productId}/conversations:
+    $ref: ./paths/conversations.yaml#/productConversation
+  /conversations:
+    $ref: ./paths/conversations.yaml#/collection
+  /conversations/unread-count:
+    $ref: ./paths/conversations.yaml#/unreadCount
+  /conversations/{conversationId}/messages:
+    $ref: ./paths/conversations.yaml#/messages
+  /conversations/{conversationId}/read:
+    $ref: ./paths/conversations.yaml#/read
+
+  /products/{productId}/trades:
+    $ref: ./paths/trades.yaml#/productTrade
+  /trades:
+    $ref: ./paths/trades.yaml#/collection
+  /trades/{tradeId}:
+    $ref: ./paths/trades.yaml#/item
+  /trades/{tradeId}/accept:
+    $ref: ./paths/trades.yaml#/accept
+  /trades/{tradeId}/reject:
+    $ref: ./paths/trades.yaml#/reject
+  /trades/{tradeId}/cancel:
+    $ref: ./paths/trades.yaml#/cancel
+  /trades/{tradeId}/confirm:
+    $ref: ./paths/trades.yaml#/confirm
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 登录或注册接口签发的访问令牌。

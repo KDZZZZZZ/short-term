@@ -1,0 +1,18 @@
+[Unit]
+Description=short-term OpenAPI Swagger UI
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/local/sbin/short-term-openapi-stage
+ExecStartPre=-/usr/bin/podman rm -f short-term-openapi
+ExecStart=/usr/bin/podman run --rm --name short-term-openapi --publish 18082:8080 --env SWAGGER_JSON=/spec/openapi.bundle.json --env DISPLAY_OPERATION_ID=true --env DEEP_LINKING=true --env TRY_IT_OUT_ENABLED=false --volume /var/lib/short-term-openapi/openapi.bundle.json:/spec/openapi.bundle.json:ro m.daocloud.io/docker.io/swaggerapi/swagger-ui@sha256:3d93169968848d371a6a56ca1ab18b47a8906ba461b8eba0688866354f5431d5
+ExecStop=-/usr/bin/podman stop --time 10 short-term-openapi
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=5min
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

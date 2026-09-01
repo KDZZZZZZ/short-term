@@ -1,0 +1,91 @@
+me:
+  get:
+    tags:
+      - Users
+    summary: 获取当前用户资料
+    operationId: getCurrentUser
+    responses:
+      '200':
+        description: 当前用户完整资料。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/UserMeSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+  patch:
+    tags:
+      - Users
+    summary: 修改当前用户资料
+    operationId: updateCurrentUser
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/UpdateProfileRequest
+    responses:
+      '200':
+        description: 修改后的当前用户资料。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/UserMeSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+password:
+  put:
+    tags:
+      - Users
+    summary: 修改当前用户密码
+    operationId: changeCurrentUserPassword
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/ChangePasswordRequest
+    responses:
+      '200':
+        description: 密码修改成功。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/EmptySuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+products:
+  get:
+    tags:
+      - Users
+      - Products
+    summary: 获取当前用户发布的商品
+    operationId: listCurrentUserProducts
+    parameters:
+      - $ref: ../components/parameters.yaml#/ProductStatus
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 当前用户发布的商品分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductPageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError

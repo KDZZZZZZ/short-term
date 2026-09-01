@@ -1,0 +1,945 @@
+Identifier:
+  type: string
+  minLength: 1
+  maxLength: 64
+  description: 服务端生成的不透明标识，客户端不得解析其结构。
+  examples:
+    - p_01J7R3YQ7CFQ8J2DQK7JG4A1KT
+
+StudentNumber:
+  type: string
+  minLength: 4
+  maxLength: 32
+  pattern: '^[A-Za-z0-9_-]+$'
+  examples:
+    - '20260001'
+
+PasswordInput:
+  type: string
+  minLength: 8
+  maxLength: 64
+  writeOnly: true
+  examples:
+    - correct-horse-battery-staple
+
+Nickname:
+  type: string
+  minLength: 1
+  maxLength: 50
+  examples:
+    - 小明
+
+Wechat:
+  type:
+    - string
+    - 'null'
+  minLength: 1
+  maxLength: 64
+  examples:
+    - wx_xiaoming
+
+QQ:
+  type:
+    - string
+    - 'null'
+  pattern: '^[0-9]{5,20}$'
+  examples:
+    - '123456789'
+
+Price:
+  type: string
+  pattern: '^(0|[1-9][0-9]{0,7})(\.[0-9]{1,2})?$'
+  description: 十进制金额字符串，避免二进制浮点精度损失。
+  examples:
+    - '20.00'
+
+ProductCategory:
+  type: string
+  enum:
+    - TEXTBOOK
+    - DIGITAL
+    - LIFE
+    - OTHER
+
+ProductStatus:
+  type: string
+  enum:
+    - ON_SALE
+    - RESERVED
+    - SOLD
+    - OFF_SHELF
+
+TradeStatus:
+  type: string
+  enum:
+    - PENDING
+    - ACCEPTED
+    - COMPLETED
+    - CANCELLED
+
+ErrorCode:
+  type: string
+  enum:
+    - VALIDATION_ERROR
+    - CONTACT_REQUIRED
+    - IMAGE_LIMIT_EXCEEDED
+    - PAYLOAD_TOO_LARGE
+    - UNAUTHORIZED
+    - FORBIDDEN
+    - RESOURCE_NOT_FOUND
+    - STUDENT_NO_EXISTS
+    - PRODUCT_NOT_AVAILABLE
+    - TRADE_STATE_CONFLICT
+    - PRODUCT_STATE_CONFLICT
+    - SELF_ACTION_NOT_ALLOWED
+    - INTERNAL_ERROR
+
+ErrorResponse:
+  type: object
+  additionalProperties: false
+  required:
+    - code
+    - message
+  properties:
+    code:
+      $ref: '#/ErrorCode'
+    message:
+      type: string
+      minLength: 1
+      maxLength: 500
+    details:
+      type:
+        - object
+        - 'null'
+      additionalProperties: true
+
+SuccessBase:
+  type: object
+  required:
+    - code
+    - message
+    - data
+  properties:
+    code:
+      type: string
+      const: OK
+    message:
+      type: string
+      const: success
+    data: {}
+
+EmptyData:
+  type: object
+  maxProperties: 0
+
+EmptySuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/EmptyData'
+
+UserPublic:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - nickname
+  properties:
+    id:
+      $ref: '#/Identifier'
+    nickname:
+      $ref: '#/Nickname'
+
+SellerContact:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - nickname
+    - wechat
+    - qq
+  properties:
+    id:
+      $ref: '#/Identifier'
+    nickname:
+      $ref: '#/Nickname'
+    wechat:
+      $ref: '#/Wechat'
+    qq:
+      $ref: '#/QQ'
+
+UserMe:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - student_no
+    - nickname
+    - wechat
+    - qq
+    - created_at
+    - updated_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    student_no:
+      $ref: '#/StudentNumber'
+    nickname:
+      $ref: '#/Nickname'
+    wechat:
+      $ref: '#/Wechat'
+    qq:
+      $ref: '#/QQ'
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+RegisterRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - student_no
+    - password
+  properties:
+    student_no:
+      $ref: '#/StudentNumber'
+    password:
+      $ref: '#/PasswordInput'
+    nickname:
+      $ref: '#/Nickname'
+    wechat:
+      $ref: '#/Wechat'
+    qq:
+      $ref: '#/QQ'
+
+LoginRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - student_no
+    - password
+  properties:
+    student_no:
+      $ref: '#/StudentNumber'
+    password:
+      $ref: '#/PasswordInput'
+
+UpdateProfileRequest:
+  type: object
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    nickname:
+      $ref: '#/Nickname'
+    wechat:
+      $ref: '#/Wechat'
+    qq:
+      $ref: '#/QQ'
+
+ChangePasswordRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - old_password
+    - new_password
+  properties:
+    old_password:
+      $ref: '#/PasswordInput'
+    new_password:
+      $ref: '#/PasswordInput'
+
+AuthData:
+  type: object
+  additionalProperties: false
+  required:
+    - access_token
+    - token_type
+    - expires_in
+    - user
+  properties:
+    access_token:
+      type: string
+      minLength: 1
+      description: JWT 访问令牌。
+    token_type:
+      type: string
+      const: Bearer
+    expires_in:
+      type: integer
+      minimum: 1
+      description: 令牌剩余有效秒数。
+    user:
+      $ref: '#/UserMe'
+
+AuthSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/AuthData'
+
+UserMeSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/UserMe'
+
+ProductImage:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - url
+    - sort_order
+    - created_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    url:
+      type: string
+      format: uri-reference
+      maxLength: 500
+    sort_order:
+      type: integer
+      minimum: 1
+      maximum: 3
+    created_at:
+      type: string
+      format: date-time
+
+ProductSummary:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - price
+    - category
+    - cover_url
+    - status
+    - seller
+    - created_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    price:
+      $ref: '#/Price'
+    category:
+      $ref: '#/ProductCategory'
+    cover_url:
+      type:
+        - string
+        - 'null'
+      format: uri-reference
+      maxLength: 500
+    status:
+      $ref: '#/ProductStatus'
+    seller:
+      $ref: '#/UserPublic'
+    created_at:
+      type: string
+      format: date-time
+
+ProductDetail:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - price
+    - category
+    - description
+    - status
+    - images
+    - seller
+    - is_favorited
+    - created_at
+    - updated_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    price:
+      $ref: '#/Price'
+    category:
+      $ref: '#/ProductCategory'
+    description:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    status:
+      $ref: '#/ProductStatus'
+    images:
+      type: array
+      maxItems: 3
+      items:
+        $ref: '#/ProductImage'
+    seller:
+      $ref: '#/SellerContact'
+    is_favorited:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+ProductCreateRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - title
+    - price
+    - category
+    - description
+  properties:
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    price:
+      $ref: '#/Price'
+    category:
+      $ref: '#/ProductCategory'
+    description:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    images:
+      type: array
+      maxItems: 3
+      items:
+        type: string
+        format: binary
+
+ProductUpdateRequest:
+  type: object
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    price:
+      $ref: '#/Price'
+    category:
+      $ref: '#/ProductCategory'
+    description:
+      type: string
+      minLength: 1
+      maxLength: 2000
+
+ImageUploadRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - images
+  properties:
+    images:
+      type: array
+      minItems: 1
+      maxItems: 3
+      items:
+        type: string
+        format: binary
+
+ProductPage:
+  type: object
+  additionalProperties: false
+  required:
+    - items
+    - page
+    - page_size
+    - total
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/ProductSummary'
+    page:
+      type: integer
+      minimum: 1
+    page_size:
+      type: integer
+      minimum: 1
+      maximum: 100
+    total:
+      type: integer
+      minimum: 0
+
+ProductSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/ProductDetail'
+
+ProductPageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/ProductPage'
+
+ProductImageListData:
+  type: object
+  additionalProperties: false
+  required:
+    - images
+  properties:
+    images:
+      type: array
+      minItems: 1
+      maxItems: 3
+      items:
+        $ref: '#/ProductImage'
+
+ProductImageListSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/ProductImageListData'
+
+FavoriteItem:
+  type: object
+  additionalProperties: false
+  required:
+    - product
+    - favorited_at
+  properties:
+    product:
+      $ref: '#/ProductSummary'
+    favorited_at:
+      type: string
+      format: date-time
+
+FavoritePage:
+  type: object
+  additionalProperties: false
+  required:
+    - items
+    - page
+    - page_size
+    - total
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/FavoriteItem'
+    page:
+      type: integer
+      minimum: 1
+    page_size:
+      type: integer
+      minimum: 1
+      maximum: 100
+    total:
+      type: integer
+      minimum: 0
+
+FavoritePageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/FavoritePage'
+
+ConversationProduct:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - cover_url
+    - status
+  properties:
+    id:
+      $ref: '#/Identifier'
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    cover_url:
+      type:
+        - string
+        - 'null'
+      format: uri-reference
+      maxLength: 500
+    status:
+      $ref: '#/ProductStatus'
+
+LastMessage:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - sender_id
+    - content
+    - created_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    sender_id:
+      $ref: '#/Identifier'
+    content:
+      type: string
+      minLength: 1
+      maxLength: 1000
+    created_at:
+      type: string
+      format: date-time
+
+Conversation:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - product
+    - buyer
+    - seller
+    - other_user
+    - last_message
+    - unread_count
+    - created_at
+    - last_message_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    product:
+      $ref: '#/ConversationProduct'
+    buyer:
+      $ref: '#/UserPublic'
+    seller:
+      $ref: '#/UserPublic'
+    other_user:
+      $ref: '#/UserPublic'
+    last_message:
+      oneOf:
+        - $ref: '#/LastMessage'
+        - type: 'null'
+    unread_count:
+      type: integer
+      minimum: 0
+    created_at:
+      type: string
+      format: date-time
+    last_message_at:
+      type:
+        - string
+        - 'null'
+      format: date-time
+
+ConversationPage:
+  type: object
+  additionalProperties: false
+  required:
+    - items
+    - page
+    - page_size
+    - total
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/Conversation'
+    page:
+      type: integer
+      minimum: 1
+    page_size:
+      type: integer
+      minimum: 1
+      maximum: 100
+    total:
+      type: integer
+      minimum: 0
+
+ConversationSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/Conversation'
+
+ConversationPageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/ConversationPage'
+
+Message:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - conversation_id
+    - sender
+    - content
+    - read_at
+    - created_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    conversation_id:
+      $ref: '#/Identifier'
+    sender:
+      $ref: '#/UserPublic'
+    content:
+      type: string
+      minLength: 1
+      maxLength: 1000
+    read_at:
+      type:
+        - string
+        - 'null'
+      format: date-time
+    created_at:
+      type: string
+      format: date-time
+
+SendMessageRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - content
+  properties:
+    content:
+      type: string
+      minLength: 1
+      maxLength: 1000
+
+MarkReadRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - last_message_id
+  properties:
+    last_message_id:
+      $ref: '#/Identifier'
+
+MessagePage:
+  type: object
+  additionalProperties: false
+  required:
+    - items
+    - next_before
+  properties:
+    items:
+      type: array
+      description: 按创建时间倒序返回。
+      items:
+        $ref: '#/Message'
+    next_before:
+      type:
+        - string
+        - 'null'
+      maxLength: 256
+
+MessageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/Message'
+
+MessagePageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/MessagePage'
+
+UnreadCountData:
+  type: object
+  additionalProperties: false
+  required:
+    - unread_count
+  properties:
+    unread_count:
+      type: integer
+      minimum: 0
+
+UnreadCountSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/UnreadCountData'
+
+TradeProduct:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - cover_url
+    - status
+  properties:
+    id:
+      $ref: '#/Identifier'
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    cover_url:
+      type:
+        - string
+        - 'null'
+      format: uri-reference
+      maxLength: 500
+    status:
+      $ref: '#/ProductStatus'
+
+Trade:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - product
+    - buyer
+    - seller
+    - conversation_id
+    - price_snapshot
+    - status
+    - buyer_confirmed
+    - seller_confirmed
+    - cancel_reason
+    - created_at
+    - accepted_at
+    - completed_at
+    - cancelled_at
+    - updated_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    product:
+      $ref: '#/TradeProduct'
+    buyer:
+      $ref: '#/UserPublic'
+    seller:
+      $ref: '#/UserPublic'
+    conversation_id:
+      oneOf:
+        - $ref: '#/Identifier'
+        - type: 'null'
+    price_snapshot:
+      $ref: '#/Price'
+    status:
+      $ref: '#/TradeStatus'
+    buyer_confirmed:
+      type: boolean
+    seller_confirmed:
+      type: boolean
+    cancel_reason:
+      type:
+        - string
+        - 'null'
+      maxLength: 200
+    created_at:
+      type: string
+      format: date-time
+    accepted_at:
+      type:
+        - string
+        - 'null'
+      format: date-time
+    completed_at:
+      type:
+        - string
+        - 'null'
+      format: date-time
+    cancelled_at:
+      type:
+        - string
+        - 'null'
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+TradeCreateRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    conversation_id:
+      oneOf:
+        - $ref: '#/Identifier'
+        - type: 'null'
+
+ReasonRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 200
+
+TradePage:
+  type: object
+  additionalProperties: false
+  required:
+    - items
+    - page
+    - page_size
+    - total
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/Trade'
+    page:
+      type: integer
+      minimum: 1
+    page_size:
+      type: integer
+      minimum: 1
+      maximum: 100
+    total:
+      type: integer
+      minimum: 0
+
+TradeSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/Trade'
+
+TradePageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/TradePage'

@@ -1,0 +1,122 @@
+ProductId:
+  name: productId
+  in: path
+  required: true
+  description: 不透明商品标识。
+  schema:
+    $ref: ./schemas.yaml#/Identifier
+
+ImageId:
+  name: imageId
+  in: path
+  required: true
+  description: 不透明图片标识。
+  schema:
+    $ref: ./schemas.yaml#/Identifier
+
+ConversationId:
+  name: conversationId
+  in: path
+  required: true
+  description: 不透明会话标识。
+  schema:
+    $ref: ./schemas.yaml#/Identifier
+
+TradeId:
+  name: tradeId
+  in: path
+  required: true
+  description: 不透明交易标识。
+  schema:
+    $ref: ./schemas.yaml#/Identifier
+
+Page:
+  name: page
+  in: query
+  description: 从 1 开始的页码。
+  schema:
+    type: integer
+    minimum: 1
+    default: 1
+
+PageSize:
+  name: page_size
+  in: query
+  description: 每页记录数。
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+
+Keyword:
+  name: keyword
+  in: query
+  description: 商品标题包含的关键词，忽略前后空白。
+  schema:
+    type: string
+    minLength: 1
+    maxLength: 100
+
+Category:
+  name: category
+  in: query
+  description: 商品分类过滤条件。
+  schema:
+    $ref: ./schemas.yaml#/ProductCategory
+
+ProductStatus:
+  name: status
+  in: query
+  description: 当前用户发布商品的状态过滤条件。
+  schema:
+    $ref: ./schemas.yaml#/ProductStatus
+
+TradeRole:
+  name: as
+  in: query
+  required: true
+  description: 当前用户在返回交易中的关系，不是固定用户角色。
+  schema:
+    type: string
+    enum:
+      - buyer
+      - seller
+
+TradeStatus:
+  name: status
+  in: query
+  description: 交易状态过滤条件。
+  schema:
+    $ref: ./schemas.yaml#/TradeStatus
+
+Before:
+  name: before
+  in: query
+  description: 获取此不透明游标之前的消息；首次请求省略。
+  schema:
+    type: string
+    minLength: 1
+    maxLength: 256
+
+MessageLimit:
+  name: limit
+  in: query
+  description: 单次返回消息数。
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 30
+
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  required: false
+  description: |
+    客户端生成的不透明幂等键。同一用户、接口和键的重复请求必须返回首次成功结果，
+    建议使用 UUID。
+  schema:
+    type: string
+    minLength: 16
+    maxLength: 128
