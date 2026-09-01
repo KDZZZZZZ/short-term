@@ -16,6 +16,7 @@
 - 源文件：`openapi/openapi.yaml`
 - 生成文件：`openapi/openapi.bundle.json`
 - 状态机：`docs/state-machines.md`
+- 微服务架构设计：`docs/software-design.md`
 - Git 协作规范：`CONTRIBUTING.md`
 
 本地校验：
