@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   validate:
-    name: validate
+    name: OpenAPI contract / validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
