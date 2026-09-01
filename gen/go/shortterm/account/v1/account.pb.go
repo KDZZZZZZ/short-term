@@ -608,6 +608,94 @@ func (x *GetUserResponse) GetUser() *UserContact {
 	return nil
 }
 
+type GetProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfileRequest) Reset() {
+	*x = GetProfileRequest{}
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfileRequest) ProtoMessage() {}
+
+func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetProfileRequest) Descriptor() ([]byte, []int) {
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetProfileRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *UserMe                `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfileResponse) Reset() {
+	*x = GetProfileResponse{}
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfileResponse) ProtoMessage() {}
+
+func (x *GetProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfileResponse.ProtoReflect.Descriptor instead.
+func (*GetProfileResponse) Descriptor() ([]byte, []int) {
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetProfileResponse) GetUser() *UserMe {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 type BatchGetUsersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
@@ -617,7 +705,7 @@ type BatchGetUsersRequest struct {
 
 func (x *BatchGetUsersRequest) Reset() {
 	*x = BatchGetUsersRequest{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[10]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -629,7 +717,7 @@ func (x *BatchGetUsersRequest) String() string {
 func (*BatchGetUsersRequest) ProtoMessage() {}
 
 func (x *BatchGetUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[10]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -642,7 +730,7 @@ func (x *BatchGetUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetUsersRequest.ProtoReflect.Descriptor instead.
 func (*BatchGetUsersRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{10}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BatchGetUsersRequest) GetUserIds() []string {
@@ -663,7 +751,7 @@ type BatchGetUsersResponse struct {
 
 func (x *BatchGetUsersResponse) Reset() {
 	*x = BatchGetUsersResponse{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[11]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -675,7 +763,7 @@ func (x *BatchGetUsersResponse) String() string {
 func (*BatchGetUsersResponse) ProtoMessage() {}
 
 func (x *BatchGetUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[11]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -688,7 +776,7 @@ func (x *BatchGetUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetUsersResponse.ProtoReflect.Descriptor instead.
 func (*BatchGetUsersResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{11}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *BatchGetUsersResponse) GetUsers() map[string]*UserPublic {
@@ -713,7 +801,7 @@ type NullableStringPatch struct {
 
 func (x *NullableStringPatch) Reset() {
 	*x = NullableStringPatch{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[12]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -725,7 +813,7 @@ func (x *NullableStringPatch) String() string {
 func (*NullableStringPatch) ProtoMessage() {}
 
 func (x *NullableStringPatch) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[12]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -738,7 +826,7 @@ func (x *NullableStringPatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NullableStringPatch.ProtoReflect.Descriptor instead.
 func (*NullableStringPatch) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{12}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *NullableStringPatch) GetValue() isNullableStringPatch_Value {
@@ -794,7 +882,7 @@ type UpdateProfileRequest struct {
 
 func (x *UpdateProfileRequest) Reset() {
 	*x = UpdateProfileRequest{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[13]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -806,7 +894,7 @@ func (x *UpdateProfileRequest) String() string {
 func (*UpdateProfileRequest) ProtoMessage() {}
 
 func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[13]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -819,7 +907,7 @@ func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{13}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateProfileRequest) GetUserId() string {
@@ -859,7 +947,7 @@ type UpdateProfileResponse struct {
 
 func (x *UpdateProfileResponse) Reset() {
 	*x = UpdateProfileResponse{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[14]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -871,7 +959,7 @@ func (x *UpdateProfileResponse) String() string {
 func (*UpdateProfileResponse) ProtoMessage() {}
 
 func (x *UpdateProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[14]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -884,7 +972,7 @@ func (x *UpdateProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileResponse.ProtoReflect.Descriptor instead.
 func (*UpdateProfileResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{14}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateProfileResponse) GetUser() *UserMe {
@@ -905,7 +993,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[15]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +1005,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[15]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +1018,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{15}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ChangePasswordRequest) GetUserId() string {
@@ -962,7 +1050,7 @@ type ChangePasswordResponse struct {
 
 func (x *ChangePasswordResponse) Reset() {
 	*x = ChangePasswordResponse{}
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[16]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -974,7 +1062,7 @@ func (x *ChangePasswordResponse) String() string {
 func (*ChangePasswordResponse) ProtoMessage() {}
 
 func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_account_v1_account_proto_msgTypes[16]
+	mi := &file_shortterm_account_v1_account_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -987,7 +1075,7 @@ func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
 func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{16}
+	return file_shortterm_account_v1_account_proto_rawDescGZIP(), []int{18}
 }
 
 var File_shortterm_account_v1_account_proto protoreflect.FileDescriptor
@@ -1047,7 +1135,11 @@ const file_shortterm_account_v1_account_proto_rawDesc = "" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"H\n" +
 	"\x0fGetUserResponse\x125\n" +
-	"\x04user\x18\x01 \x01(\v2!.shortterm.account.v1.UserContactR\x04user\"1\n" +
+	"\x04user\x18\x01 \x01(\v2!.shortterm.account.v1.UserContactR\x04user\",\n" +
+	"\x11GetProfileRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"F\n" +
+	"\x12GetProfileResponse\x120\n" +
+	"\x04user\x18\x01 \x01(\v2\x1c.shortterm.account.v1.UserMeR\x04user\"1\n" +
 	"\x14BatchGetUsersRequest\x12\x19\n" +
 	"\buser_ids\x18\x01 \x03(\tR\auserIds\"\xc1\x01\n" +
 	"\x15BatchGetUsersResponse\x12L\n" +
@@ -1073,11 +1165,13 @@ const file_shortterm_account_v1_account_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fold_password\x18\x02 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"\x18\n" +
-	"\x16ChangePasswordResponse2\xd6\x04\n" +
+	"\x16ChangePasswordResponse2\xb7\x05\n" +
 	"\x0eAccountService\x12Y\n" +
 	"\bRegister\x12%.shortterm.account.v1.RegisterRequest\x1a&.shortterm.account.v1.RegisterResponse\x12P\n" +
 	"\x05Login\x12\".shortterm.account.v1.LoginRequest\x1a#.shortterm.account.v1.LoginResponse\x12V\n" +
-	"\aGetUser\x12$.shortterm.account.v1.GetUserRequest\x1a%.shortterm.account.v1.GetUserResponse\x12h\n" +
+	"\aGetUser\x12$.shortterm.account.v1.GetUserRequest\x1a%.shortterm.account.v1.GetUserResponse\x12_\n" +
+	"\n" +
+	"GetProfile\x12'.shortterm.account.v1.GetProfileRequest\x1a(.shortterm.account.v1.GetProfileResponse\x12h\n" +
 	"\rBatchGetUsers\x12*.shortterm.account.v1.BatchGetUsersRequest\x1a+.shortterm.account.v1.BatchGetUsersResponse\x12h\n" +
 	"\rUpdateProfile\x12*.shortterm.account.v1.UpdateProfileRequest\x1a+.shortterm.account.v1.UpdateProfileResponse\x12k\n" +
 	"\x0eChangePassword\x12+.shortterm.account.v1.ChangePasswordRequest\x1a,.shortterm.account.v1.ChangePasswordResponseBFZDgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1;accountv1b\x06proto3"
@@ -1094,7 +1188,7 @@ func file_shortterm_account_v1_account_proto_rawDescGZIP() []byte {
 	return file_shortterm_account_v1_account_proto_rawDescData
 }
 
-var file_shortterm_account_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_shortterm_account_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_shortterm_account_v1_account_proto_goTypes = []any{
 	(*UserPublic)(nil),             // 0: shortterm.account.v1.UserPublic
 	(*UserContact)(nil),            // 1: shortterm.account.v1.UserContact
@@ -1106,47 +1200,52 @@ var file_shortterm_account_v1_account_proto_goTypes = []any{
 	(*LoginResponse)(nil),          // 7: shortterm.account.v1.LoginResponse
 	(*GetUserRequest)(nil),         // 8: shortterm.account.v1.GetUserRequest
 	(*GetUserResponse)(nil),        // 9: shortterm.account.v1.GetUserResponse
-	(*BatchGetUsersRequest)(nil),   // 10: shortterm.account.v1.BatchGetUsersRequest
-	(*BatchGetUsersResponse)(nil),  // 11: shortterm.account.v1.BatchGetUsersResponse
-	(*NullableStringPatch)(nil),    // 12: shortterm.account.v1.NullableStringPatch
-	(*UpdateProfileRequest)(nil),   // 13: shortterm.account.v1.UpdateProfileRequest
-	(*UpdateProfileResponse)(nil),  // 14: shortterm.account.v1.UpdateProfileResponse
-	(*ChangePasswordRequest)(nil),  // 15: shortterm.account.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil), // 16: shortterm.account.v1.ChangePasswordResponse
-	nil,                            // 17: shortterm.account.v1.BatchGetUsersResponse.UsersEntry
-	(*timestamppb.Timestamp)(nil),  // 18: google.protobuf.Timestamp
-	(structpb.NullValue)(0),        // 19: google.protobuf.NullValue
+	(*GetProfileRequest)(nil),      // 10: shortterm.account.v1.GetProfileRequest
+	(*GetProfileResponse)(nil),     // 11: shortterm.account.v1.GetProfileResponse
+	(*BatchGetUsersRequest)(nil),   // 12: shortterm.account.v1.BatchGetUsersRequest
+	(*BatchGetUsersResponse)(nil),  // 13: shortterm.account.v1.BatchGetUsersResponse
+	(*NullableStringPatch)(nil),    // 14: shortterm.account.v1.NullableStringPatch
+	(*UpdateProfileRequest)(nil),   // 15: shortterm.account.v1.UpdateProfileRequest
+	(*UpdateProfileResponse)(nil),  // 16: shortterm.account.v1.UpdateProfileResponse
+	(*ChangePasswordRequest)(nil),  // 17: shortterm.account.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil), // 18: shortterm.account.v1.ChangePasswordResponse
+	nil,                            // 19: shortterm.account.v1.BatchGetUsersResponse.UsersEntry
+	(*timestamppb.Timestamp)(nil),  // 20: google.protobuf.Timestamp
+	(structpb.NullValue)(0),        // 21: google.protobuf.NullValue
 }
 var file_shortterm_account_v1_account_proto_depIdxs = []int32{
-	18, // 0: shortterm.account.v1.UserMe.created_at:type_name -> google.protobuf.Timestamp
-	18, // 1: shortterm.account.v1.UserMe.updated_at:type_name -> google.protobuf.Timestamp
+	20, // 0: shortterm.account.v1.UserMe.created_at:type_name -> google.protobuf.Timestamp
+	20, // 1: shortterm.account.v1.UserMe.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 2: shortterm.account.v1.AuthData.user:type_name -> shortterm.account.v1.UserMe
 	4,  // 3: shortterm.account.v1.RegisterResponse.auth:type_name -> shortterm.account.v1.AuthData
 	4,  // 4: shortterm.account.v1.LoginResponse.auth:type_name -> shortterm.account.v1.AuthData
 	1,  // 5: shortterm.account.v1.GetUserResponse.user:type_name -> shortterm.account.v1.UserContact
-	17, // 6: shortterm.account.v1.BatchGetUsersResponse.users:type_name -> shortterm.account.v1.BatchGetUsersResponse.UsersEntry
-	19, // 7: shortterm.account.v1.NullableStringPatch.null_value:type_name -> google.protobuf.NullValue
-	12, // 8: shortterm.account.v1.UpdateProfileRequest.wechat:type_name -> shortterm.account.v1.NullableStringPatch
-	12, // 9: shortterm.account.v1.UpdateProfileRequest.qq:type_name -> shortterm.account.v1.NullableStringPatch
-	2,  // 10: shortterm.account.v1.UpdateProfileResponse.user:type_name -> shortterm.account.v1.UserMe
-	0,  // 11: shortterm.account.v1.BatchGetUsersResponse.UsersEntry.value:type_name -> shortterm.account.v1.UserPublic
-	3,  // 12: shortterm.account.v1.AccountService.Register:input_type -> shortterm.account.v1.RegisterRequest
-	6,  // 13: shortterm.account.v1.AccountService.Login:input_type -> shortterm.account.v1.LoginRequest
-	8,  // 14: shortterm.account.v1.AccountService.GetUser:input_type -> shortterm.account.v1.GetUserRequest
-	10, // 15: shortterm.account.v1.AccountService.BatchGetUsers:input_type -> shortterm.account.v1.BatchGetUsersRequest
-	13, // 16: shortterm.account.v1.AccountService.UpdateProfile:input_type -> shortterm.account.v1.UpdateProfileRequest
-	15, // 17: shortterm.account.v1.AccountService.ChangePassword:input_type -> shortterm.account.v1.ChangePasswordRequest
-	5,  // 18: shortterm.account.v1.AccountService.Register:output_type -> shortterm.account.v1.RegisterResponse
-	7,  // 19: shortterm.account.v1.AccountService.Login:output_type -> shortterm.account.v1.LoginResponse
-	9,  // 20: shortterm.account.v1.AccountService.GetUser:output_type -> shortterm.account.v1.GetUserResponse
-	11, // 21: shortterm.account.v1.AccountService.BatchGetUsers:output_type -> shortterm.account.v1.BatchGetUsersResponse
-	14, // 22: shortterm.account.v1.AccountService.UpdateProfile:output_type -> shortterm.account.v1.UpdateProfileResponse
-	16, // 23: shortterm.account.v1.AccountService.ChangePassword:output_type -> shortterm.account.v1.ChangePasswordResponse
-	18, // [18:24] is the sub-list for method output_type
-	12, // [12:18] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	2,  // 6: shortterm.account.v1.GetProfileResponse.user:type_name -> shortterm.account.v1.UserMe
+	19, // 7: shortterm.account.v1.BatchGetUsersResponse.users:type_name -> shortterm.account.v1.BatchGetUsersResponse.UsersEntry
+	21, // 8: shortterm.account.v1.NullableStringPatch.null_value:type_name -> google.protobuf.NullValue
+	14, // 9: shortterm.account.v1.UpdateProfileRequest.wechat:type_name -> shortterm.account.v1.NullableStringPatch
+	14, // 10: shortterm.account.v1.UpdateProfileRequest.qq:type_name -> shortterm.account.v1.NullableStringPatch
+	2,  // 11: shortterm.account.v1.UpdateProfileResponse.user:type_name -> shortterm.account.v1.UserMe
+	0,  // 12: shortterm.account.v1.BatchGetUsersResponse.UsersEntry.value:type_name -> shortterm.account.v1.UserPublic
+	3,  // 13: shortterm.account.v1.AccountService.Register:input_type -> shortterm.account.v1.RegisterRequest
+	6,  // 14: shortterm.account.v1.AccountService.Login:input_type -> shortterm.account.v1.LoginRequest
+	8,  // 15: shortterm.account.v1.AccountService.GetUser:input_type -> shortterm.account.v1.GetUserRequest
+	10, // 16: shortterm.account.v1.AccountService.GetProfile:input_type -> shortterm.account.v1.GetProfileRequest
+	12, // 17: shortterm.account.v1.AccountService.BatchGetUsers:input_type -> shortterm.account.v1.BatchGetUsersRequest
+	15, // 18: shortterm.account.v1.AccountService.UpdateProfile:input_type -> shortterm.account.v1.UpdateProfileRequest
+	17, // 19: shortterm.account.v1.AccountService.ChangePassword:input_type -> shortterm.account.v1.ChangePasswordRequest
+	5,  // 20: shortterm.account.v1.AccountService.Register:output_type -> shortterm.account.v1.RegisterResponse
+	7,  // 21: shortterm.account.v1.AccountService.Login:output_type -> shortterm.account.v1.LoginResponse
+	9,  // 22: shortterm.account.v1.AccountService.GetUser:output_type -> shortterm.account.v1.GetUserResponse
+	11, // 23: shortterm.account.v1.AccountService.GetProfile:output_type -> shortterm.account.v1.GetProfileResponse
+	13, // 24: shortterm.account.v1.AccountService.BatchGetUsers:output_type -> shortterm.account.v1.BatchGetUsersResponse
+	16, // 25: shortterm.account.v1.AccountService.UpdateProfile:output_type -> shortterm.account.v1.UpdateProfileResponse
+	18, // 26: shortterm.account.v1.AccountService.ChangePassword:output_type -> shortterm.account.v1.ChangePasswordResponse
+	20, // [20:27] is the sub-list for method output_type
+	13, // [13:20] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_shortterm_account_v1_account_proto_init() }
@@ -1157,18 +1256,18 @@ func file_shortterm_account_v1_account_proto_init() {
 	file_shortterm_account_v1_account_proto_msgTypes[1].OneofWrappers = []any{}
 	file_shortterm_account_v1_account_proto_msgTypes[2].OneofWrappers = []any{}
 	file_shortterm_account_v1_account_proto_msgTypes[3].OneofWrappers = []any{}
-	file_shortterm_account_v1_account_proto_msgTypes[12].OneofWrappers = []any{
+	file_shortterm_account_v1_account_proto_msgTypes[14].OneofWrappers = []any{
 		(*NullableStringPatch_StringValue)(nil),
 		(*NullableStringPatch_NullValue)(nil),
 	}
-	file_shortterm_account_v1_account_proto_msgTypes[13].OneofWrappers = []any{}
+	file_shortterm_account_v1_account_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shortterm_account_v1_account_proto_rawDesc), len(file_shortterm_account_v1_account_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -14,12 +14,11 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/KDZZZZZZ/short-term/platform/logging"
@@ -48,10 +47,13 @@ func Setup(ctx context.Context, opts Options) (Shutdown, error) {
 		opts.ExportTimeout = 10 * time.Second
 	}
 
+	// The schema URL must match the one resource.Default() carries, otherwise
+	// Merge refuses to combine them; keep the semconv import in step with the
+	// OpenTelemetry SDK version in go.mod.
 	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceName(opts.Service),
-		attribute.String("deployment.environment", opts.Environment),
+		semconv.DeploymentEnvironmentNameKey.String(opts.Environment),
 	))
 	if err != nil {
 		return nil, fmt.Errorf("observability: build resource: %w", err)

@@ -22,6 +22,7 @@ const (
 	AccountService_Register_FullMethodName       = "/shortterm.account.v1.AccountService/Register"
 	AccountService_Login_FullMethodName          = "/shortterm.account.v1.AccountService/Login"
 	AccountService_GetUser_FullMethodName        = "/shortterm.account.v1.AccountService/GetUser"
+	AccountService_GetProfile_FullMethodName     = "/shortterm.account.v1.AccountService/GetProfile"
 	AccountService_BatchGetUsers_FullMethodName  = "/shortterm.account.v1.AccountService/BatchGetUsers"
 	AccountService_UpdateProfile_FullMethodName  = "/shortterm.account.v1.AccountService/UpdateProfile"
 	AccountService_ChangePassword_FullMethodName = "/shortterm.account.v1.AccountService/ChangePassword"
@@ -37,6 +38,10 @@ type AccountServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	// GetProfile returns the owner's own view, including the student number.
+	// It is separate from GetUser so that no aggregation path can reach the
+	// student number by mistake: GetUser cannot return one.
+	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 	BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
@@ -74,6 +79,16 @@ func (c *accountServiceClient) GetUser(ctx context.Context, in *GetUserRequest, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUserResponse)
 	err := c.cc.Invoke(ctx, AccountService_GetUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetProfileResponse)
+	err := c.cc.Invoke(ctx, AccountService_GetProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +135,10 @@ type AccountServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	// GetProfile returns the owner's own view, including the student number.
+	// It is separate from GetUser so that no aggregation path can reach the
+	// student number by mistake: GetUser cannot return one.
+	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
 	BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
@@ -140,6 +159,9 @@ func (UnimplementedAccountServiceServer) Login(context.Context, *LoginRequest) (
 }
 func (UnimplementedAccountServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedAccountServiceServer) GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProfile not implemented")
 }
 func (UnimplementedAccountServiceServer) BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUsers not implemented")
@@ -224,6 +246,24 @@ func _AccountService_GetUser_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).GetProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_GetProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).GetProfile(ctx, req.(*GetProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AccountService_BatchGetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BatchGetUsersRequest)
 	if err := dec(in); err != nil {
@@ -296,6 +336,10 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser",
 			Handler:    _AccountService_GetUser_Handler,
+		},
+		{
+			MethodName: "GetProfile",
+			Handler:    _AccountService_GetProfile_Handler,
 		},
 		{
 			MethodName: "BatchGetUsers",

@@ -13,6 +13,10 @@ service AccountService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // GetProfile returns the owner's own view, including the student number.
+  // It is separate from GetUser so that no aggregation path can reach the
+  // student number by mistake: GetUser cannot return one.
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
   rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
@@ -75,6 +79,14 @@ message GetUserRequest {
 
 message GetUserResponse {
   UserContact user = 1;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message GetProfileResponse {
+  UserMe user = 1;
 }
 
 message BatchGetUsersRequest {
