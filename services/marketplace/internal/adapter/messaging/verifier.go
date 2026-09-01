@@ -26,7 +26,9 @@ var _ application.ConversationVerifier = (*Verifier)(nil)
 
 // Get returns the minimal projection needed to validate an intent binding.
 func (v *Verifier) Get(ctx context.Context, actorID, conversationID string) (application.Conversation, error) {
-	resp, err := v.client.GetConversation(grpcx.WithActor(ctx, actorID), &messagingv1.GetConversationRequest{
+	downstream := grpcx.WithActor(ctx, actorID)
+	downstream = grpcx.WithRequestID(downstream, grpcx.RequestID(ctx))
+	resp, err := v.client.GetConversation(downstream, &messagingv1.GetConversationRequest{
 		ActorId: actorID, ConversationId: conversationID,
 	})
 	if err != nil {

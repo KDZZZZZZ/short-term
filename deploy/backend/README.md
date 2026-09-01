@@ -9,7 +9,7 @@ Kubernetes 或服务网格。
 
 | 单元 | 容器入口 | 网络/端口 | 持久化 |
 | --- | --- | --- | --- |
-| Gateway | `server` | 主机回环 `127.0.0.1:18083 -> 8080`；指标 `127.0.0.1:19090 -> 9090` | 只读媒体卷 |
+| Gateway | `server` | 公网 API `0.0.0.0:18083 -> 8080`；指标 `127.0.0.1:19090 -> 9090` | 只读媒体卷 |
 | Account | `server` | 私有网络 `account:9001` | `account_db` |
 | Marketplace | `server`、独立 `worker` | 私有网络 `marketplace:9002` | `marketplace_db`、媒体目录 |
 | Messaging | `server`、独立 `worker` | 私有网络 `messaging:9003` | `messaging_db` |
@@ -18,8 +18,9 @@ Kubernetes 或服务网格。
 
 四个业务库使用不同登录角色，并撤销 `PUBLIC` 的数据库连接权限。应用容器以
 UID/GID `65532:65532`、只读根文件系统、移除 capabilities、`no-new-privileges`
-和进程数上限运行。Gateway 和管理端口当前都只绑定主机回环地址，CI 通过 SSH
-在服务器本机执行真实验收；接入用户流量前应由带 TLS 的反向代理转发到 Gateway。
+和进程数上限运行。仅 Gateway API 的 `18083/TCP` 绑定所有 IPv4 地址，管理指标
+`19090/TCP` 仍只绑定主机回环。CI 从 GitHub runner 直接走公网 API 执行真实验收，
+再通过 SSH 核验 Trace、Outbox 与指标。
 
 ## 一次性主机初始化
 
@@ -35,6 +36,11 @@ Podman 用户服务在退出登录和主机重启后仍能自动运行；它不�
 sudoers。当前 Swagger UI 仍是既有的 root system service，CI 只保留精确白名单的
 `systemctl restart short-term-openapi.service` 权限。自动发布还会在上传前验证主机具有
 Python 3.6 或更高版本；Python 只用于本机验收与日志 JSON 解析，不进入 Go 服务容器。
+
+阿里云安全组必须显式放行入方向 `TCP/18083`，并继续禁止公网访问 `19090`、PostgreSQL
+和内部 gRPC 端口。当前 `18083` 是学习验收使用的明文 HTTP 入口，只允许随机生成的
+合成账号和测试数据；接入真实用户或长期凭据前，必须配置域名和可信 TLS 反向代理，
+随后关闭公网直连 `18083`。
 
 ## 镜像与 CI
 
@@ -69,13 +75,14 @@ OpenAPI、Proto breaking/drift、Go vet 和 `go test -race` 是同一 Backend wo
 4. 依次执行 Account、Marketplace、Messaging、Favorite 的显式迁移；
 5. 启动四个服务、两个 worker 和 Gateway，等待标准 gRPC Health 与 `/readyz`；
 6. 更新 Swagger UI；
-7. GitHub runner 通过 SSH 在真实服务器上执行同一 SHA 的 E2E 脚本，创建真实用户、
-   商品、收藏、会话、消息和完整交易；再验证同一 Trace 跨
-   Gateway/gRPC/Outbox 串联且积压归零。
+7. GitHub runner 直接请求服务器公网 `18083`，执行所检出 SHA 的三角色 E2E 脚本，
+   创建合成用户、商品、收藏、会话、消息和完整交易；随后通过 SSH 验证同一 Trace
+   跨 Gateway/gRPC/Outbox 串联且积压归零。
 
-主机前置校验、迁移、启动、readiness、服务器 E2E、Trace 或 Outbox 任一验收失败都会让 workflow
-失败。已有上一版本时，脚本交换 release manifest 并重启旧应用镜像；数据库迁移
-不会回滚，因此迁移必须遵循 expand/contract。首次发布没有可回滚的旧应用版本。
+主机前置校验、迁移、启动、readiness、公网 E2E、Trace 或 Outbox 任一验收失败都会让
+workflow 失败。公网验收步骤也持有失败回滚陷阱；已有上一版本时，脚本交换 release
+manifest 并重启旧应用镜像。数据库迁移不会回滚，因此迁移必须遵循 expand/contract。
+首次发布没有可回滚的旧应用版本。
 
 ## 运维命令
 
@@ -99,7 +106,7 @@ Gateway 的固定路由/方法/状态计数可计算交易动作成功、409 冲
 
 - 这是单节点部署；主机、Podman 网络或 PostgreSQL 故障都会导致整体不可用。
 - 当前 Outbox 发布器把版本化事件信封写入结构化日志，尚未连接消息代理。
-- Gateway 当前只在服务器回环地址提供 HTTP `18083`，尚未作为公网业务入口；接入
-  正式前端前必须配置域名和可信 TLS 终止层，由反向代理访问这个回环端口。
+- Gateway 当前通过公网明文 HTTP `18083` 支持学习和自动验收；它不是正式用户入口。
+  接入正式前端前必须配置域名和可信 TLS 终止层，并关闭安全组对 `18083` 的公网直连。
 - 限流器是单 Gateway 进程内的固定窗口实现；扩为多副本前必须换成共享限流状态。
 - 媒体使用主机持久目录；迁移到对象存储时应保持公开 URL 和所有权边界。
