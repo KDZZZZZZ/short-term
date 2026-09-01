@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本/状态 | 0.1 / 草案，待人类评审 |
+| 版本/状态 | 0.2 / 草案，待人类评审 |
 | 日期 | 2026-09-01 |
 | 责任角色 | 项目维护者批准；Codex 起草 |
 | 目标读者 | 后端、前端、测试、运维与后续架构评审人员 |
@@ -15,6 +15,7 @@
 
 | 版本 | 日期 | 修订人/责任角色 | 修订内容 | 状态 |
 | --- | --- | --- | --- | --- |
+| 0.2 | 2026-09-01 | Codex / 项目维护者待评审 | 补全交易命令幂等结果与 Product/Trade 原子状态转换 | 草案 |
 | 0.1 | 2026-09-01 | Codex / 项目维护者待评审 | 建立微服务、REST/gRPC、DTO、数据一致性及部署目标设计 | 草案 |
 
 ### 事实状态
@@ -67,7 +68,7 @@
 | --- | --- | --- |
 | 已确认约束 | 前端使用 REST/JSON | API Gateway 必须稳定实现现有 OpenAPI |
 | 已确认约束 | 公开 API 以 OpenAPI 为唯一真源 | 不从 Protobuf 反向生成或覆盖公开 OpenAPI |
-| 已确认约束 | 商品和交易接受动作必须原子联动 | Product 与 Trade 放在同一个 Marketplace Service 和本地事务中 |
+| 已确认约束 | 商品与交易的耦合状态转换必须原子联动 | 接受、已接受交易取消和双方确认完成均在 Marketplace Service 本地事务中更新 Product 与 Trade |
 | 已确认约束 | 用户没有固定买家/卖家角色 | 权限根据 seller_id、buyer_id 和当前用户动态判断 |
 | 已确认约束 | 商品列表和详情返回 status | 所有 ProductSummary、ProductDetail 和嵌套商品投影保留状态字段 |
 | 建议 | Go 微服务内部使用 gRPC | 需要建立 Protobuf、Buf 和生成代码治理 |
@@ -87,7 +88,7 @@
 | FR-06 | 站内聊天 | 仅商品买卖双方访问会话；消息已读单向且幂等 | 已确认，OpenAPI 与状态机 |
 | FR-07 | 交易流转 | 状态动作、操作者权限和商品副作用符合状态机 | 已确认，状态机 |
 | NFR-01 | 契约兼容 | OpenAPI lint/bundle 无漂移；Proto lint、breaking 和生成代码无漂移 | OpenAPI 已建立；Proto 为建议目标 |
-| NFR-02 | 一致性 | 同一商品最多一笔 ACCEPTED 交易，商品与交易状态不分裂 | 已确认，状态机 |
+| NFR-02 | 一致性 | 同一商品最多一笔 ACCEPTED 交易，商品与交易状态不分裂；重复幂等请求返回首次成功结果 | 已确认，OpenAPI 与状态机 |
 | NFR-03 | 安全 | 内部服务不直接公网暴露；资源级授权在拥有资源的服务中执行 | 建议目标 |
 | NFR-04 | 可观测性 | REST、gRPC、数据库和异步事件共享可关联的 trace_id | 建议目标 |
 | NFR-05 | 性能 | 不虚构 SLA；先建立真实负载模型和同环境基线，再确定目标 | 待确认 |
@@ -274,7 +275,7 @@ stateDiagram-v2
 
 Marketplace 是商品状态的唯一事实源。Gateway 不缓存状态，除非后续定义了明确的最大陈旧时间和失效策略。
 
-### 5.3 接受交易的强一致流程
+### 5.3 接受交易的强一致与幂等流程
 
 ~~~mermaid
 sequenceDiagram
@@ -288,28 +289,53 @@ sequenceDiagram
 
     Seller->>GW: POST /trades/{id}/accept
     GW->>MK: AcceptTrade(actor_id, trade_id, idempotency_key)
-    MK->>DB: BEGIN + 锁定商品和目标交易
-    MK->>DB: 校验卖家、PENDING、商品 ON_SALE
-    alt 校验通过
-        MK->>DB: 目标交易 -> ACCEPTED
-        MK->>DB: 商品 -> RESERVED
-        MK->>DB: 其他 PENDING 交易 -> CANCELLED
-        MK->>DB: 写入 Outbox 事件
+    MK->>DB: BEGIN
+    MK->>DB: 若携带 key，查询或声明幂等记录
+    alt 已存在 SUCCESS 结果
+        DB-->>MK: 首次成功的规范化命令结果
         MK->>DB: COMMIT
-        MK-->>GW: ACCEPTED + 商品 RESERVED
-        GW-->>Seller: HTTP 200
-        OB->>DB: 读取已提交事件
-        OB->>BUS: 发布 TradeAccepted / ProductReserved
-    else 状态或权限冲突
-        MK->>DB: ROLLBACK
-        MK-->>GW: 领域错误
-        GW-->>Seller: HTTP 403 / 409
+        MK-->>GW: 重放首次成功结果
+        GW-->>Seller: 与首次成功等价的 HTTP 响应
+    else 首次请求或未携带 key
+        MK->>DB: 按 Product -> Trade 顺序加锁
+        MK->>DB: 校验卖家、PENDING、商品 ON_SALE
+        alt 校验通过
+            MK->>DB: 目标交易 -> ACCEPTED
+            MK->>DB: 商品 -> RESERVED
+            MK->>DB: 其他 PENDING 交易 -> CANCELLED
+            MK->>DB: 写入 Outbox 事件
+            MK->>DB: 若携带 key，保存 SUCCESS 与规范化命令结果
+            MK->>DB: COMMIT
+            MK-->>GW: ACCEPTED + 商品 RESERVED
+            GW-->>Seller: HTTP 200
+            OB->>DB: 读取已提交事件
+            OB->>BUS: 发布 TradeAccepted / ProductReserved
+        else 状态或权限冲突
+            MK->>DB: ROLLBACK
+            MK-->>GW: 领域错误
+            GW-->>Seller: HTTP 403 / 409
+        end
     end
 ~~~
 
-事务内必须完成目标交易、商品状态、其他待处理交易和 Outbox 写入。事件只能在提交后投递。Outbox 允许至少一次投递，因此消费者必须根据 event_id 或业务幂等键去重。
+事务内必须完成目标交易、商品状态、其他待处理交易、Outbox 以及本次成功响应对应的 Idempotency 写入。幂等键由 `(actor_id, operation, idempotency_key)` 唯一约束串行化；并发同键请求在首个事务完成后读取其结果。Marketplace 不保存 HTTP DTO，而是保存带 schema_version 的规范化命令结果快照和 result_code，Gateway 据此确定性重建首次 HTTP 状态与响应体。重放检查发生在当前交易状态校验之前，因此即使交易后来已进入其他状态，也必须返回首次成功结果。失败事务不保留成功结果，领域写入与幂等记录任一失败都整体回滚。
 
-### 5.4 聊天和收藏
+事件只能在提交后投递。Outbox 允许至少一次投递，因此消费者必须根据 event_id 或业务幂等键去重。
+
+### 5.4 取消与确认完成的强一致流程
+
+所有同时改变 Product 与 Trade 的动作都使用 Marketplace DB 的单个本地事务，并统一按 **Product -> Trade** 顺序加锁：
+
+| 动作 | 前置状态 | 同一事务中的领域写入 |
+| --- | --- | --- |
+| 卖家接受 | `Product.ON_SALE`、`Trade.PENDING` | 目标 Trade -> `ACCEPTED`，Product -> `RESERVED`，其他 PENDING Trade -> `CANCELLED` |
+| 取消已接受交易 | `Product.RESERVED`、`Trade.ACCEPTED` | Trade -> `CANCELLED`，Product -> `ON_SALE` |
+| 第一次确认 | `Trade.ACCEPTED` 且另一方未确认 | 只记录当前用户确认时间，Trade 保持 `ACCEPTED` |
+| 第二次确认 | `Product.RESERVED`、`Trade.ACCEPTED` 且另一方已确认 | 记录当前用户确认时间，Trade -> `COMPLETED`，Product -> `SOLD` |
+
+事务还必须写入该动作产生的 Outbox；请求携带幂等键时，还必须在同一事务写入首次成功的规范化命令结果。任何校验、领域更新、Outbox 或 Idempotency 写入失败都回滚整个动作，不允许出现 `CANCELLED + RESERVED`、`COMPLETED + RESERVED` 或 `ACCEPTED + SOLD`。取消与第二次确认并发时，只有先取得锁并满足前置状态的一方提交，另一方返回状态冲突且不得产生部分副作用。
+
+### 5.5 聊天和收藏
 
 - 创建会话前，Messaging Service 通过 Marketplace gRPC 获取 product_id 对应的 seller_id，拒绝自我会话；相同 product_id、buyer_id、seller_id 使用唯一约束保证只有一个会话。
 - 发送和标记已读只依赖 Messaging Service 本地参与者数据，不在每条消息上同步调用 Account 或 Marketplace。
@@ -398,7 +424,7 @@ erDiagram
 | Conversation | product_id、buyer_id、seller_id 联合唯一 |
 | Message | sender_id 必须是会话参与者；只能把对方发给自己的消息标记已读 |
 | Favorite | user_id、product_id 联合主键；PUT 和 DELETE 均幂等 |
-| Idempotency | actor_id、operation、idempotency_key 联合唯一；保存首次成功结果摘要 |
+| Idempotency | actor_id、operation、idempotency_key 联合唯一；保存 result_code、schema_version 与首次成功的规范化命令结果快照；与对应领域写入同事务 |
 | Outbox | event_id 唯一；与领域写入同事务；发布器可重复投递 |
 
 公开 HTTP 金额继续使用十进制字符串。领域层建议使用最小货币单位整数，Gateway 和 transport mapper 负责无损转换，禁止使用二进制浮点。
@@ -535,11 +561,12 @@ erDiagram
 
 | 风险/场景 | 测试层级 | 验证点 | 当前证据 |
 | --- | --- | --- | --- |
-| OpenAPI 漂移 | 契约 CI | lint、bundle、Git diff | 已有 npm scripts；本次文档变更未修改 OpenAPI |
+| OpenAPI 漂移 | 契约 CI | lint、bundle、Git diff | 已有 npm scripts；源契约和生成 bundle 同步维护 |
 | Proto 破坏性变更 | 契约 CI | buf lint、buf breaking、buf generate drift | 待 Proto 建立 |
 | 商品状态返回 | 契约/集成/E2E | 所有 ProductSummary、ProductDetail、ConversationProduct、TradeProduct 返回当前 status | OpenAPI Schema 已定义；实现待建 |
 | 并发接受交易 | 数据库集成测试 | 并发请求只有一个成功；商品 RESERVED；其他交易 CANCELLED | 状态规则已定义；实现待建 |
-| 重复命令 | 集成测试 | 同 actor、operation、idempotency_key 返回首次成功结果 | OpenAPI 部分动作已定义；实现待建 |
+| 响应丢失后的重复命令 | 数据库集成测试 | 首次事务提交但响应丢失后，同 actor、operation、idempotency_key 返回首次成功的 HTTP 状态与响应体，不因当前状态变化返回 409 | OpenAPI 已定义重放语义；实现待建 |
+| 取消与完成原子性 | 数据库集成/并发测试 | 任一步骤失败时 Product、Trade、Outbox、Idempotency 全部回滚；取消与第二次确认并发时仅一个合法转换提交 | 状态规则已定义；实现待建 |
 | 越权访问 | 安全测试 | 非卖家不能改商品，非参与者不能读消息/交易 | 契约已定义；实现待建 |
 | 密码和联系方式泄漏 | 契约/日志检查 | 响应、日志、trace 不出现禁泄漏字段 | 实现待建 |
 | Outbox 故障恢复 | 集成测试 | 提交后发布失败可恢复；重复投递无重复副作用 | 设计建议；实现待建 |
@@ -563,11 +590,12 @@ erDiagram
 | ADR-01 | 前端 REST，内部 gRPC | 保持浏览器友好契约，并让内部接口强类型；增加双契约及 Mapper 成本 | Human Design + Agent Self-Claimed；待批准 |
 | ADR-02 | Gateway 是唯一公网业务入口 | 隐藏服务拆分并集中通用策略；需防止业务逻辑堆积 | Agent Self-Claimed |
 | ADR-03 | Account 合并认证和资料 | 避免注册的分布式事务；认证形成独立团队或合规边界时复审 | Agent Self-Claimed |
-| ADR-04 | Product 与 Trade 同属 Marketplace | 满足接受交易的本地原子事务；交易规模或团队边界改变时复审 | Agent Self-Claimed |
+| ADR-04 | Product 与 Trade 同属 Marketplace | 满足接受、已接受交易取消和双方确认完成的本地原子事务；交易规模或团队边界改变时复审 | Agent Self-Claimed |
 | ADR-05 | DTO 只存在于传输边界 | 防止协议、数据库和领域模型耦合；需要显式 Mapper | Agent Self-Claimed |
 | ADR-06 | 每服务独占逻辑数据 | 允许独立演进；跨服务查询需要 Gateway 聚合或事件 | Agent Self-Claimed |
 | ADR-07 | 所有商品投影返回当前 status | 满足用户可见交易中状态，避免过期快照 | Human Design |
 | ADR-08 | 本地事务加 Outbox | 避免数据库与事件双写不一致；增加 Worker 和幂等消费成本 | Agent Self-Claimed |
+| ADR-09 | 幂等成功结果与领域写入同事务 | 满足响应丢失后的安全重试，避免领域状态已提交但幂等结果缺失；增加结果存储与保留成本 | Agent Self-Claimed；实现前复审保留周期 |
 
 ### 11.2 风险
 
@@ -605,7 +633,7 @@ erDiagram
 | FR-06 聊天 | Messaging、Marketplace、Gateway | /conversations、Conversation、Message | 参与者、幂等、已读测试 |
 | FR-07 交易流转 | Marketplace、Gateway | /trades、Trade、Product | 状态机、事务、并发测试 |
 | NFR-01 契约兼容 | OpenAPI、Proto、CI | openapi、proto、gen | lint、breaking、drift |
-| NFR-02 一致性 | Marketplace、Outbox | Product、Trade、Outbox | 并发事务和故障恢复 |
+| NFR-02 一致性 | Marketplace、Outbox | Product、Trade、Idempotency、Outbox | 并发事务、响应丢失重试和故障恢复 |
 | NFR-03 安全 | Gateway、各服务 | JWT、授权、日志和上传 | 安全测试与日志检查 |
 | NFR-04 可观测性 | 全部运行单元 | trace context、指标、日志 | 跨 REST/gRPC/事件追踪测试 |
 
@@ -621,6 +649,7 @@ erDiagram
 | gRPC 调用必须设置 deadline | Agent Self-Claimed | [gRPC: Deadlines](https://grpc.io/docs/guides/deadlines/)，检索于 2026-09-01 | 具体时长必须通过真实链路测量 |
 | Proto 破坏性变更检查 | Agent Self-Claimed | [Buf: Detecting breaking changes](https://buf.build/docs/breaking/)，检索于 2026-09-01 | Buf 版本在引入工具时固定 |
 | 数据库与事件双写使用 Outbox | Agent Self-Claimed | [AWS Prescriptive Guidance: Transactional outbox](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)，检索于 2026-09-01 | 借鉴模式，不绑定 AWS 服务 |
+| 幂等令牌与领域写入构成单个 ACID 操作 | Agent Self-Claimed | [AWS Builders' Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)，检索于 2026-09-01 | 用于响应丢失后的结果重放；本项目键空间额外包含 actor_id 与 operation |
 | 密码使用慢速加盐哈希并在真实主机调参 | Agent Self-Claimed | [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)，检索于 2026-09-01 | 算法和参数实施前需安全评审与基准 |
 | JWT 实现遵守当前最佳实践 | Agent Self-Claimed | [RFC 8725: JSON Web Token Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725.html)，检索于 2026-09-01 | 退出和撤销策略仍待产品确认 |
 | 跨进程传播 Trace Context | Agent Self-Claimed | [OpenTelemetry: Context propagation](https://opentelemetry.io/docs/concepts/context-propagation/)，检索于 2026-09-01 | SDK 与版本在 Go 工程建立后固定 |
