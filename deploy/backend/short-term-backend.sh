@@ -242,16 +242,19 @@ start_postgres() {
     --network-alias postgres \
     --env-file "$state_dir/postgres.env" \
     --volume "$postgres_volume:/var/lib/postgresql:Z" \
-    --health-cmd 'pg_isready -U postgres -d postgres' \
+    --health-cmd 'pg_isready -h 127.0.0.1 -U postgres -d postgres' \
     --health-interval 5s \
     --health-timeout 5s \
     --health-retries 20 \
     --restart always \
     "$POSTGRES_IMAGE" >/dev/null
 
+  # The image's initialization server only listens on a Unix socket. Requiring
+  # TCP avoids continuing while that temporary server is about to restart.
   local attempt
   for attempt in $(seq 1 60); do
-    if "$podman" exec "$postgres_container" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+    if "$podman" exec "$postgres_container" \
+      pg_isready -h 127.0.0.1 -U postgres -d postgres >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
