@@ -1,0 +1,68 @@
+collection:
+  get:
+    tags:
+      - Favorites
+    summary: 获取当前用户的收藏列表
+    operationId: listFavorites
+    description: 已下架、已预留或已售商品仍可返回，并携带当前商品状态。
+    parameters:
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 收藏商品分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/FavoritePageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+item:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  put:
+    tags:
+      - Favorites
+    summary: 收藏商品
+    operationId: addFavorite
+    description: 接口幂等；用户不能收藏自己发布的商品。
+    responses:
+      '200':
+        description: 商品处于已收藏状态。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/EmptySuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+  delete:
+    tags:
+      - Favorites
+    summary: 取消收藏商品
+    operationId: removeFavorite
+    description: 接口幂等，收藏记录不存在时也返回成功。
+    responses:
+      '200':
+        description: 商品处于未收藏状态。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/EmptySuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError

@@ -1,0 +1,19 @@
+{
+  "name": "short-term-api-contract",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenAPI contract and deployment tooling for the campus second-hand marketplace MVP",
+  "scripts": {
+    "openapi:config": "redocly check-config",
+    "openapi:lint": "redocly lint campus-market@v1",
+    "openapi:bundle": "redocly bundle campus-market@v1 --output openapi/openapi.bundle.json --ext json --remove-unused-components --component-renaming-conflicts-severity error",
+    "openapi:check": "npm run openapi:config && npm run openapi:lint && npm run openapi:bundle && git diff --exit-code -- openapi/openapi.bundle.json"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.49.0"
+  }
+}

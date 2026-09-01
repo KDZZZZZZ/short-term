@@ -1,0 +1,226 @@
+productTrade:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  post:
+    tags:
+      - Trades
+    summary: 针对商品发起交易
+    operationId: createTrade
+    description: |
+      当前用户成为买家，商品发布者成为卖家。价格快照由服务端读取商品价格，
+      创建后交易为 `PENDING`，商品仍为 `ON_SALE`。用户不能购买自己的商品。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/TradeCreateRequest
+    responses:
+      '201':
+        description: 已创建的待处理交易。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+collection:
+  get:
+    tags:
+      - Trades
+    summary: 获取当前用户的交易列表
+    operationId: listTrades
+    description: "`as` 仅表示当前用户在结果中的关系，不是用户固定角色。"
+    parameters:
+      - $ref: ../components/parameters.yaml#/TradeRole
+      - $ref: ../components/parameters.yaml#/TradeStatus
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 当前用户作为买家或卖家的交易分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradePageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+item:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TradeId
+  get:
+    tags:
+      - Trades
+    summary: 获取交易详情
+    operationId: getTrade
+    description: 只有交易买卖双方可以访问。
+    responses:
+      '200':
+        description: 交易详情。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+accept:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TradeId
+  post:
+    tags:
+      - Trades
+    summary: 卖家接受待处理交易
+    operationId: acceptTrade
+    description: |
+      仅卖家可执行 `PENDING -> ACCEPTED`。服务端必须在同一数据库事务中将商品
+      `ON_SALE -> RESERVED`，并取消该商品的其他 `PENDING` 交易。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    responses:
+      '200':
+        description: 已接受的交易。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+reject:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TradeId
+  post:
+    tags:
+      - Trades
+    summary: 卖家拒绝待处理交易
+    operationId: rejectTrade
+    description: 仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/ReasonRequest
+    responses:
+      '200':
+        description: 已拒绝并取消的交易。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+cancel:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TradeId
+  post:
+    tags:
+      - Trades
+    summary: 取消交易
+    operationId: cancelTrade
+    description: |
+      `PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，
+      商品必须从 `RESERVED` 恢复为 `ON_SALE`。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/ReasonRequest
+    responses:
+      '200':
+        description: 已取消的交易。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+confirm:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TradeId
+  post:
+    tags:
+      - Trades
+    summary: 确认线下交易完成
+    operationId: confirmTrade
+    description: |
+      仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持
+      `ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品
+      `RESERVED -> SOLD`。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    responses:
+      '200':
+        description: 更新确认状态后的交易。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError

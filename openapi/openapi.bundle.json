@@ -1,0 +1,2979 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "校园二手交易平台 API",
+    "version": "1.0.0",
+    "description": "校园二手交易平台 MVP 的唯一公开 HTTP API 契约。\n\n用户没有固定买家或卖家角色。用户在自己发布的商品中是卖家，\n在自己发起的交易中是买家。推荐算法和邮件通知不在 MVP 范围内。\n\n跨资源状态变化及并发约束见 `docs/state-machines.md`。\n",
+    "contact": {
+      "name": "short-term maintainers",
+      "url": "https://github.com/KDZZZZZZ/short-term"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "当前站点 API 根路径"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "注册、登录和退出登录。"
+    },
+    {
+      "name": "Users",
+      "description": "当前用户资料和卖家商品管理。"
+    },
+    {
+      "name": "Products",
+      "description": "商品发布、浏览、搜索、图片和上下架。"
+    },
+    {
+      "name": "Favorites",
+      "description": "当前用户的商品收藏。"
+    },
+    {
+      "name": "Conversations",
+      "description": "以商品为上下文的买卖双方文字会话。"
+    },
+    {
+      "name": "Trades",
+      "description": "购买意向和受控的交易状态动作。"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "注册学生账号",
+        "operationId": "registerUser",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功并签发访问令牌。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "使用学号和密码登录",
+        "operationId": "loginUser",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功并签发访问令牌。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "退出当前登录会话",
+        "operationId": "logoutUser",
+        "responses": {
+          "200": {
+            "description": "当前访问令牌已失效或客户端会话已结束。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "获取当前用户资料",
+        "operationId": "getCurrentUser",
+        "responses": {
+          "200": {
+            "description": "当前用户完整资料。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMeSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "修改当前用户资料",
+        "operationId": "updateCurrentUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改后的当前用户资料。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMeSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/users/me/password": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "修改当前用户密码",
+        "operationId": "changeCurrentUserPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "密码修改成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/users/me/products": {
+      "get": {
+        "tags": [
+          "Users",
+          "Products"
+        ],
+        "summary": "获取当前用户发布的商品",
+        "operationId": "listCurrentUserProducts",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductStatus"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户发布的商品分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "浏览和搜索在售商品",
+        "operationId": "listProducts",
+        "description": "仅返回 `ON_SALE` 商品，并固定按发布时间倒序排列。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Keyword"
+          },
+          {
+            "$ref": "#/components/parameters/Category"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "在售商品分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "发布商品",
+        "operationId": "createProduct",
+        "description": "当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateRequest"
+              },
+              "encoding": {
+                "images": {
+                  "style": "form",
+                  "explode": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "商品已发布，初始状态为 `ON_SALE`。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "获取商品详情和卖家联系方式",
+        "operationId": "getProduct",
+        "description": "返回卖家昵称、微信和 QQ，但不返回卖家学号。",
+        "responses": {
+          "200": {
+            "description": "商品详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "修改自己发布的商品",
+        "operationId": "updateProduct",
+        "description": "仅商品卖家可操作，且不能借此接口修改商品状态。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改后的商品详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}/images": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "为自己的商品补充图片",
+        "operationId": "addProductImages",
+        "description": "新增后商品图片总数不能超过三张。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadRequest"
+              },
+              "encoding": {
+                "images": {
+                  "style": "form",
+                  "explode": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "商品当前全部图片。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductImageListSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}/images/{imageId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        },
+        {
+          "$ref": "#/components/parameters/ImageId"
+        }
+      ],
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "删除自己商品的一张图片",
+        "operationId": "deleteProductImage",
+        "responses": {
+          "200": {
+            "description": "图片已删除。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}/off-shelf": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "下架自己的商品",
+        "operationId": "offShelfProduct",
+        "description": "仅允许 `ON_SALE -> OFF_SHELF`。",
+        "responses": {
+          "200": {
+            "description": "下架后的商品详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}/relist": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "重新上架自己的商品",
+        "operationId": "relistProduct",
+        "description": "仅允许 `OFF_SHELF -> ON_SALE`。",
+        "responses": {
+          "200": {
+            "description": "重新上架后的商品详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/favorites": {
+      "get": {
+        "tags": [
+          "Favorites"
+        ],
+        "summary": "获取当前用户的收藏列表",
+        "operationId": "listFavorites",
+        "description": "已下架、已预留或已售商品仍可返回，并携带当前商品状态。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "收藏商品分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritePageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/favorites/{productId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "Favorites"
+        ],
+        "summary": "收藏商品",
+        "operationId": "addFavorite",
+        "description": "接口幂等；用户不能收藏自己发布的商品。",
+        "responses": {
+          "200": {
+            "description": "商品处于已收藏状态。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Favorites"
+        ],
+        "summary": "取消收藏商品",
+        "operationId": "removeFavorite",
+        "description": "接口幂等，收藏记录不存在时也返回成功。",
+        "responses": {
+          "200": {
+            "description": "商品处于未收藏状态。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}/conversations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "创建或获取商品会话",
+        "operationId": "getOrCreateProductConversation",
+        "description": "当前用户作为买家，商品发布者作为卖家。相同商品、买家和卖家的会话只存在一个；\n重复调用返回原会话。用户不能针对自己的商品创建会话。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "新建或已经存在的会话。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/conversations": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "获取当前用户的会话列表",
+        "operationId": "listConversations",
+        "description": "按最后消息时间倒序排列，无消息会话按创建时间倒序排列。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户参与的会话分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationPageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/conversations/unread-count": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "获取当前用户的未读消息总数",
+        "operationId": "getConversationUnreadCount",
+        "responses": {
+          "200": {
+            "description": "所有会话的未读消息总数。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/conversations/{conversationId}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConversationId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "获取会话消息",
+        "operationId": "listConversationMessages",
+        "description": "只有会话买卖双方可以访问，使用不透明游标向前分页。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Before"
+          },
+          {
+            "$ref": "#/components/parameters/MessageLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "按创建时间倒序排列的消息。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "发送文字消息",
+        "operationId": "sendConversationMessage",
+        "description": "MVP 仅支持 1 至 1000 字的文字消息。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建的消息。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/conversations/{conversationId}/read": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConversationId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "将对方消息标记为已读",
+        "operationId": "markConversationRead",
+        "description": "将指定消息及其之前由对方发送的消息标记为已读，接口幂等。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已读状态更新完成。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/products/{productId}/trades": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProductId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "针对商品发起交易",
+        "operationId": "createTrade",
+        "description": "当前用户成为买家，商品发布者成为卖家。价格快照由服务端读取商品价格，\n创建后交易为 `PENDING`，商品仍为 `ON_SALE`。用户不能购买自己的商品。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建的待处理交易。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/trades": {
+      "get": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "获取当前用户的交易列表",
+        "operationId": "listTrades",
+        "description": "`as` 仅表示当前用户在结果中的关系，不是用户固定角色。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TradeRole"
+          },
+          {
+            "$ref": "#/components/parameters/TradeStatus"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户作为买家或卖家的交易分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradePageSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/trades/{tradeId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TradeId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "获取交易详情",
+        "operationId": "getTrade",
+        "description": "只有交易买卖双方可以访问。",
+        "responses": {
+          "200": {
+            "description": "交易详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/trades/{tradeId}/accept": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TradeId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "卖家接受待处理交易",
+        "operationId": "acceptTrade",
+        "description": "仅卖家可执行 `PENDING -> ACCEPTED`。服务端必须在同一数据库事务中将商品\n`ON_SALE -> RESERVED`，并取消该商品的其他 `PENDING` 交易。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已接受的交易。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/trades/{tradeId}/reject": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TradeId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "卖家拒绝待处理交易",
+        "operationId": "rejectTrade",
+        "description": "仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已拒绝并取消的交易。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/trades/{tradeId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TradeId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "取消交易",
+        "operationId": "cancelTrade",
+        "description": "`PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，\n商品必须从 `RESERVED` 恢复为 `ON_SALE`。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已取消的交易。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/trades/{tradeId}/confirm": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TradeId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Trades"
+        ],
+        "summary": "确认线下交易完成",
+        "operationId": "confirmTrade",
+        "description": "仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持\n`ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品\n`RESERVED -> SOLD`。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "更新确认状态后的交易。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录或注册接口签发的访问令牌。"
+      }
+    },
+    "schemas": {
+      "StudentNumber": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 32,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "examples": [
+          "20260001"
+        ]
+      },
+      "PasswordInput": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 64,
+        "writeOnly": true,
+        "examples": [
+          "correct-horse-battery-staple"
+        ]
+      },
+      "Nickname": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50,
+        "examples": [
+          "小明"
+        ]
+      },
+      "Wechat": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "minLength": 1,
+        "maxLength": 64,
+        "examples": [
+          "wx_xiaoming"
+        ]
+      },
+      "QQ": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[0-9]{5,20}$",
+        "examples": [
+          "123456789"
+        ]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "student_no",
+          "password"
+        ],
+        "properties": {
+          "student_no": {
+            "$ref": "#/components/schemas/StudentNumber"
+          },
+          "password": {
+            "$ref": "#/components/schemas/PasswordInput"
+          },
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          },
+          "wechat": {
+            "$ref": "#/components/schemas/Wechat"
+          },
+          "qq": {
+            "$ref": "#/components/schemas/QQ"
+          }
+        }
+      },
+      "SuccessBase": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "OK"
+          },
+          "message": {
+            "type": "string",
+            "const": "success"
+          },
+          "data": {}
+        }
+      },
+      "Identifier": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "description": "服务端生成的不透明标识，客户端不得解析其结构。",
+        "examples": [
+          "p_01J7R3YQ7CFQ8J2DQK7JG4A1KT"
+        ]
+      },
+      "UserMe": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "student_no",
+          "nickname",
+          "wechat",
+          "qq",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "student_no": {
+            "$ref": "#/components/schemas/StudentNumber"
+          },
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          },
+          "wechat": {
+            "$ref": "#/components/schemas/Wechat"
+          },
+          "qq": {
+            "$ref": "#/components/schemas/QQ"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuthData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "user"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "JWT 访问令牌。"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "令牌剩余有效秒数。"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserMe"
+          }
+        }
+      },
+      "AuthSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AuthData"
+              }
+            }
+          }
+        ]
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "VALIDATION_ERROR",
+          "CONTACT_REQUIRED",
+          "IMAGE_LIMIT_EXCEEDED",
+          "PAYLOAD_TOO_LARGE",
+          "UNAUTHORIZED",
+          "FORBIDDEN",
+          "RESOURCE_NOT_FOUND",
+          "STUDENT_NO_EXISTS",
+          "PRODUCT_NOT_AVAILABLE",
+          "TRADE_STATE_CONFLICT",
+          "PRODUCT_STATE_CONFLICT",
+          "SELF_ACTION_NOT_ALLOWED",
+          "INTERNAL_ERROR"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "details": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "student_no",
+          "password"
+        ],
+        "properties": {
+          "student_no": {
+            "$ref": "#/components/schemas/StudentNumber"
+          },
+          "password": {
+            "$ref": "#/components/schemas/PasswordInput"
+          }
+        }
+      },
+      "EmptyData": {
+        "type": "object",
+        "maxProperties": 0
+      },
+      "EmptySuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/EmptyData"
+              }
+            }
+          }
+        ]
+      },
+      "UserMeSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UserMe"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          },
+          "wechat": {
+            "$ref": "#/components/schemas/Wechat"
+          },
+          "qq": {
+            "$ref": "#/components/schemas/QQ"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "old_password",
+          "new_password"
+        ],
+        "properties": {
+          "old_password": {
+            "$ref": "#/components/schemas/PasswordInput"
+          },
+          "new_password": {
+            "$ref": "#/components/schemas/PasswordInput"
+          }
+        }
+      },
+      "ProductStatus": {
+        "type": "string",
+        "enum": [
+          "ON_SALE",
+          "RESERVED",
+          "SOLD",
+          "OFF_SHELF"
+        ]
+      },
+      "Price": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]{0,7})(\\.[0-9]{1,2})?$",
+        "description": "十进制金额字符串，避免二进制浮点精度损失。",
+        "examples": [
+          "20.00"
+        ]
+      },
+      "ProductCategory": {
+        "type": "string",
+        "enum": [
+          "TEXTBOOK",
+          "DIGITAL",
+          "LIFE",
+          "OTHER"
+        ]
+      },
+      "UserPublic": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "nickname"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          }
+        }
+      },
+      "ProductSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "price",
+          "category",
+          "cover_url",
+          "status",
+          "seller",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference",
+            "maxLength": 500
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProductStatus"
+          },
+          "seller": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSummary"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ProductPageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ProductPage"
+              }
+            }
+          }
+        ]
+      },
+      "ProductCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "price",
+          "category",
+          "description"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "images": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        }
+      },
+      "ProductImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "url",
+          "sort_order",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri-reference",
+            "maxLength": 500
+          },
+          "sort_order": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SellerContact": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "nickname",
+          "wechat",
+          "qq"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          },
+          "wechat": {
+            "$ref": "#/components/schemas/Wechat"
+          },
+          "qq": {
+            "$ref": "#/components/schemas/QQ"
+          }
+        }
+      },
+      "ProductDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "price",
+          "category",
+          "description",
+          "status",
+          "images",
+          "seller",
+          "is_favorited",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProductStatus"
+          },
+          "images": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProductImage"
+            }
+          },
+          "seller": {
+            "$ref": "#/components/schemas/SellerContact"
+          },
+          "is_favorited": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ProductDetail"
+              }
+            }
+          }
+        ]
+      },
+      "ProductUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "ImageUploadRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "images"
+        ],
+        "properties": {
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        }
+      },
+      "ProductImageListData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "images"
+        ],
+        "properties": {
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProductImage"
+            }
+          }
+        }
+      },
+      "ProductImageListSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ProductImageListData"
+              }
+            }
+          }
+        ]
+      },
+      "FavoriteItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "product",
+          "favorited_at"
+        ],
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductSummary"
+          },
+          "favorited_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FavoritePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FavoriteItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "FavoritePageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/FavoritePage"
+              }
+            }
+          }
+        ]
+      },
+      "ConversationProduct": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "cover_url",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference",
+            "maxLength": 500
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProductStatus"
+          }
+        }
+      },
+      "LastMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "sender_id",
+          "content",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "sender_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Conversation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "product",
+          "buyer",
+          "seller",
+          "other_user",
+          "last_message",
+          "unread_count",
+          "created_at",
+          "last_message_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ConversationProduct"
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "seller": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "other_user": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "last_message": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LastMessage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unread_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_message_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ConversationSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Conversation"
+              }
+            }
+          }
+        ]
+      },
+      "ConversationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Conversation"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ConversationPageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ConversationPage"
+              }
+            }
+          }
+        ]
+      },
+      "UnreadCountData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unread_count"
+        ],
+        "properties": {
+          "unread_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "UnreadCountSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UnreadCountData"
+              }
+            }
+          }
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "conversation_id",
+          "sender",
+          "content",
+          "read_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "conversation_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "read_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MessagePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "next_before"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "按创建时间倒序返回。",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "next_before": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 256
+          }
+        }
+      },
+      "MessagePageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/MessagePage"
+              }
+            }
+          }
+        ]
+      },
+      "SendMessageRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "MessageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Message"
+              }
+            }
+          }
+        ]
+      },
+      "MarkReadRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "last_message_id"
+        ],
+        "properties": {
+          "last_message_id": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      },
+      "TradeCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "TradeProduct": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "cover_url",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference",
+            "maxLength": 500
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProductStatus"
+          }
+        }
+      },
+      "TradeStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "ACCEPTED",
+          "COMPLETED",
+          "CANCELLED"
+        ]
+      },
+      "Trade": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "product",
+          "buyer",
+          "seller",
+          "conversation_id",
+          "price_snapshot",
+          "status",
+          "buyer_confirmed",
+          "seller_confirmed",
+          "cancel_reason",
+          "created_at",
+          "accepted_at",
+          "completed_at",
+          "cancelled_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "product": {
+            "$ref": "#/components/schemas/TradeProduct"
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "seller": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "conversation_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_snapshot": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TradeStatus"
+          },
+          "buyer_confirmed": {
+            "type": "boolean"
+          },
+          "seller_confirmed": {
+            "type": "boolean"
+          },
+          "cancel_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accepted_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "cancelled_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TradeSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Trade"
+              }
+            }
+          }
+        ]
+      },
+      "TradePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trade"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "TradePageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/TradePage"
+              }
+            }
+          }
+        ]
+      },
+      "ReasonRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数或业务前置条件无效。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "validationError": {
+                "value": {
+                  "code": "VALIDATION_ERROR",
+                  "message": "请求参数不合法"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "唯一约束、商品状态或交易状态发生冲突。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "stateConflict": {
+                "value": {
+                  "code": "TRADE_STATE_CONFLICT",
+                  "message": "当前交易状态不允许执行该操作"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "服务端未预期错误。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "internalError": {
+                "value": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "服务暂时不可用"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未提供有效访问令牌。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "unauthorized": {
+                "value": {
+                  "code": "UNAUTHORIZED",
+                  "message": "请先登录"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "上传文件或请求体超过服务限制。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "tooLarge": {
+                "value": {
+                  "code": "PAYLOAD_TOO_LARGE",
+                  "message": "上传内容超过限制"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "目标资源不存在或对当前用户不可见。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "notFound": {
+                "value": {
+                  "code": "RESOURCE_NOT_FOUND",
+                  "message": "资源不存在"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "当前用户无权访问或执行该操作。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "forbidden": {
+                "value": {
+                  "code": "FORBIDDEN",
+                  "message": "无权执行该操作"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "ProductStatus": {
+        "name": "status",
+        "in": "query",
+        "description": "当前用户发布商品的状态过滤条件。",
+        "schema": {
+          "$ref": "#/components/schemas/ProductStatus"
+        }
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "description": "从 1 开始的页码。",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "PageSize": {
+        "name": "page_size",
+        "in": "query",
+        "description": "每页记录数。",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "Keyword": {
+        "name": "keyword",
+        "in": "query",
+        "description": "商品标题包含的关键词，忽略前后空白。",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "Category": {
+        "name": "category",
+        "in": "query",
+        "description": "商品分类过滤条件。",
+        "schema": {
+          "$ref": "#/components/schemas/ProductCategory"
+        }
+      },
+      "ProductId": {
+        "name": "productId",
+        "in": "path",
+        "required": true,
+        "description": "不透明商品标识。",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
+      "ImageId": {
+        "name": "imageId",
+        "in": "path",
+        "required": true,
+        "description": "不透明图片标识。",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "description": "客户端生成的不透明幂等键。同一用户、接口和键的重复请求必须返回首次成功结果，\n建议使用 UUID。\n",
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128
+        }
+      },
+      "ConversationId": {
+        "name": "conversationId",
+        "in": "path",
+        "required": true,
+        "description": "不透明会话标识。",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
+      "Before": {
+        "name": "before",
+        "in": "query",
+        "description": "获取此不透明游标之前的消息；首次请求省略。",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "MessageLimit": {
+        "name": "limit",
+        "in": "query",
+        "description": "单次返回消息数。",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 30
+        }
+      },
+      "TradeRole": {
+        "name": "as",
+        "in": "query",
+        "required": true,
+        "description": "当前用户在返回交易中的关系，不是固定用户角色。",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "buyer",
+            "seller"
+          ]
+        }
+      },
+      "TradeStatus": {
+        "name": "status",
+        "in": "query",
+        "description": "交易状态过滤条件。",
+        "schema": {
+          "$ref": "#/components/schemas/TradeStatus"
+        }
+      },
+      "TradeId": {
+        "name": "tradeId",
+        "in": "path",
+        "required": true,
+        "description": "不透明交易标识。",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+apis:
+  campus-market@v1:
+    root: ./openapi/openapi.yaml
+
+extends:
+  - recommended-strict
+
+rules:
+  info-license: off
+  no-server-example.com: off
+  operation-4xx-response: error
+  operation-operationId: error
+  operation-summary: error
+  security-defined: error
+  no-unused-components: error

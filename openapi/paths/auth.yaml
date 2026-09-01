@@ -1,0 +1,70 @@
+register:
+  post:
+    tags:
+      - Authentication
+    summary: 注册学生账号
+    operationId: registerUser
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/RegisterRequest
+    responses:
+      '201':
+        description: 注册成功并签发访问令牌。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/AuthSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+login:
+  post:
+    tags:
+      - Authentication
+    summary: 使用学号和密码登录
+    operationId: loginUser
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/LoginRequest
+    responses:
+      '200':
+        description: 登录成功并签发访问令牌。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/AuthSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+logout:
+  post:
+    tags:
+      - Authentication
+    summary: 退出当前登录会话
+    operationId: logoutUser
+    responses:
+      '200':
+        description: 当前访问令牌已失效或客户端会话已结束。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/EmptySuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError

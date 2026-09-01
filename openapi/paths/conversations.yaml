@@ -1,0 +1,167 @@
+productConversation:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  post:
+    tags:
+      - Conversations
+    summary: 创建或获取商品会话
+    operationId: getOrCreateProductConversation
+    description: |
+      当前用户作为买家，商品发布者作为卖家。相同商品、买家和卖家的会话只存在一个；
+      重复调用返回原会话。用户不能针对自己的商品创建会话。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    responses:
+      '200':
+        description: 新建或已经存在的会话。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ConversationSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+collection:
+  get:
+    tags:
+      - Conversations
+    summary: 获取当前用户的会话列表
+    operationId: listConversations
+    description: 按最后消息时间倒序排列，无消息会话按创建时间倒序排列。
+    parameters:
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 当前用户参与的会话分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ConversationPageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+unreadCount:
+  get:
+    tags:
+      - Conversations
+    summary: 获取当前用户的未读消息总数
+    operationId: getConversationUnreadCount
+    responses:
+      '200':
+        description: 所有会话的未读消息总数。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/UnreadCountSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+messages:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ConversationId
+  get:
+    tags:
+      - Conversations
+    summary: 获取会话消息
+    operationId: listConversationMessages
+    description: 只有会话买卖双方可以访问，使用不透明游标向前分页。
+    parameters:
+      - $ref: ../components/parameters.yaml#/Before
+      - $ref: ../components/parameters.yaml#/MessageLimit
+    responses:
+      '200':
+        description: 按创建时间倒序排列的消息。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/MessagePageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+  post:
+    tags:
+      - Conversations
+    summary: 发送文字消息
+    operationId: sendConversationMessage
+    description: MVP 仅支持 1 至 1000 字的文字消息。
+    parameters:
+      - $ref: ../components/parameters.yaml#/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/SendMessageRequest
+    responses:
+      '201':
+        description: 已创建的消息。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/MessageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+read:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ConversationId
+  post:
+    tags:
+      - Conversations
+    summary: 将对方消息标记为已读
+    operationId: markConversationRead
+    description: 将指定消息及其之前由对方发送的消息标记为已读，接口幂等。
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/MarkReadRequest
+    responses:
+      '200':
+        description: 已读状态更新完成。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/EmptySuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError

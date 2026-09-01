@@ -1,0 +1,231 @@
+collection:
+  get:
+    tags:
+      - Products
+    summary: 浏览和搜索在售商品
+    operationId: listProducts
+    description: 仅返回 `ON_SALE` 商品，并固定按发布时间倒序排列。
+    parameters:
+      - $ref: ../components/parameters.yaml#/Keyword
+      - $ref: ../components/parameters.yaml#/Category
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 在售商品分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductPageSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+  post:
+    tags:
+      - Products
+    summary: 发布商品
+    operationId: createProduct
+    description: 当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: ../components/schemas.yaml#/ProductCreateRequest
+          encoding:
+            images:
+              style: form
+              explode: true
+    responses:
+      '201':
+        description: 商品已发布，初始状态为 `ON_SALE`。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '413':
+        $ref: ../components/responses.yaml#/PayloadTooLarge
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+item:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  get:
+    tags:
+      - Products
+    summary: 获取商品详情和卖家联系方式
+    operationId: getProduct
+    description: 返回卖家昵称、微信和 QQ，但不返回卖家学号。
+    responses:
+      '200':
+        description: 商品详情。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+  patch:
+    tags:
+      - Products
+    summary: 修改自己发布的商品
+    operationId: updateProduct
+    description: 仅商品卖家可操作，且不能借此接口修改商品状态。
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/ProductUpdateRequest
+    responses:
+      '200':
+        description: 修改后的商品详情。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+images:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  post:
+    tags:
+      - Products
+    summary: 为自己的商品补充图片
+    operationId: addProductImages
+    description: 新增后商品图片总数不能超过三张。
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: ../components/schemas.yaml#/ImageUploadRequest
+          encoding:
+            images:
+              style: form
+              explode: true
+    responses:
+      '201':
+        description: 商品当前全部图片。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductImageListSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '413':
+        $ref: ../components/responses.yaml#/PayloadTooLarge
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+image:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+    - $ref: ../components/parameters.yaml#/ImageId
+  delete:
+    tags:
+      - Products
+    summary: 删除自己商品的一张图片
+    operationId: deleteProductImage
+    responses:
+      '200':
+        description: 图片已删除。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/EmptySuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+offShelf:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  post:
+    tags:
+      - Products
+    summary: 下架自己的商品
+    operationId: offShelfProduct
+    description: 仅允许 `ON_SALE -> OFF_SHELF`。
+    responses:
+      '200':
+        description: 下架后的商品详情。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+relist:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  post:
+    tags:
+      - Products
+    summary: 重新上架自己的商品
+    operationId: relistProduct
+    description: 仅允许 `OFF_SHELF -> ON_SALE`。
+    responses:
+      '200':
+        description: 重新上架后的商品详情。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
