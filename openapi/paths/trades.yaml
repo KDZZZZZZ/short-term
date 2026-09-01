@@ -4,11 +4,20 @@ productTrade:
   post:
     tags:
       - Trades
-    summary: 针对商品发起交易
+    summary: 创建或获取商品购买意向
     operationId: createTrade
     description: |
-      当前用户成为买家，商品发布者成为卖家。价格快照由服务端读取商品价格，
-      创建后交易为 `PENDING`，商品仍为 `ON_SALE`。用户不能购买自己的商品。
+      当前用户成为买家，商品发布者成为卖家。一个 `(product_id, buyer_id)` 在商品
+      整个生命周期内只对应一个 Trade 购买意向，数据库必须以该组合唯一约束并在
+      并发请求中执行 create-or-get：首次创建返回 `201`；已经存在时不创建、不改变
+      状态，返回该意向当前表示和 `200`，即使旧意向已经 `CANCELLED` 或 `COMPLETED`。
+      更换 `Idempotency-Key` 不能创建第二个意向；使用同一 key 重试仍按幂等规则重放
+      首次成功的 HTTP 状态与响应体。首次创建时价格快照由服务端读取商品价格，状态为
+      `PENDING`，商品保持 `ON_SALE`。用户不能购买自己的商品，该情况返回
+      `409 / SELF_ACTION_NOT_ALLOWED`。请求携带 `conversation_id` 时必须验证会话商品
+      与买卖双方完全一致；已有 Trade 时，显式提供的值还必须与已存绑定完全相同
+      （`null` 也视为显式值）。任一不匹配返回 `409 / CONVERSATION_MISMATCH`，省略该
+      字段则只返回既有意向而不修改绑定。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     requestBody:
@@ -18,6 +27,12 @@ productTrade:
           schema:
             $ref: ../components/schemas.yaml#/TradeCreateRequest
     responses:
+      '200':
+        description: 已存在的同一购买意向；未创建新记录，也未改变其当前状态。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeSuccess
       '201':
         description: 已创建的待处理交易。
         content:
@@ -32,6 +47,8 @@ productTrade:
         $ref: ../components/responses.yaml#/NotFound
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
@@ -41,7 +58,9 @@ collection:
       - Trades
     summary: 获取当前用户的交易列表
     operationId: listTrades
-    description: "`as` 仅表示当前用户在结果中的关系，不是用户固定角色。"
+    description: |
+      `as` 仅表示当前用户在结果中的关系，不是用户固定角色。固定按
+      `created_at DESC, id DESC` 排列；页码分页不提供跨请求快照。
     parameters:
       - $ref: ../components/parameters.yaml#/TradeRole
       - $ref: ../components/parameters.yaml#/TradeStatus
@@ -69,7 +88,9 @@ item:
       - Trades
     summary: 获取交易详情
     operationId: getTrade
-    description: 只有交易买卖双方可以访问。
+    description: |
+      只有交易买卖双方可以访问。非参与者与不存在的交易均返回
+      `404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露交易是否存在。
     responses:
       '200':
         description: 交易详情。
@@ -79,8 +100,6 @@ item:
               $ref: ../components/schemas.yaml#/TradeSuccess
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
-      '403':
-        $ref: ../components/responses.yaml#/Forbidden
       '404':
         $ref: ../components/responses.yaml#/NotFound
       '500':
@@ -97,6 +116,8 @@ accept:
     description: |
       仅卖家可执行 `PENDING -> ACCEPTED`。服务端必须在同一数据库事务中将商品
       `ON_SALE -> RESERVED`，并取消该商品的其他 `PENDING` 交易。
+      非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`；交易买家调用此卖家
+      专用动作返回 `403 / FORBIDDEN`。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     responses:
@@ -114,6 +135,8 @@ accept:
         $ref: ../components/responses.yaml#/NotFound
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
@@ -125,7 +148,11 @@ reject:
       - Trades
     summary: 卖家拒绝待处理交易
     operationId: rejectTrade
-    description: 仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。
+    description: |
+      仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。该 Trade 是该买家对商品
+      的唯一购买意向，拒绝后再次调用创建意向接口只返回同一 `CANCELLED` Trade，
+      不产生新意向或新通知。非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`；
+      交易买家调用此卖家专用动作返回 `403 / FORBIDDEN`。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     requestBody:
@@ -151,6 +178,8 @@ reject:
         $ref: ../components/responses.yaml#/NotFound
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
@@ -166,6 +195,7 @@ cancel:
       `PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，
       商品必须从 `RESERVED` 恢复为 `ON_SALE`。`ACCEPTED` 交易取消时，交易和
       商品的状态变化必须原子提交，任一变化失败都不得保留另一项变化。
+      非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     requestBody:
@@ -191,6 +221,8 @@ cancel:
         $ref: ../components/responses.yaml#/NotFound
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
@@ -207,6 +239,7 @@ confirm:
       `ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品
       `RESERVED -> SOLD`。双方完成确认时，确认时间、交易和商品的状态变化必须
       原子提交，任一变化失败都不得保留其他变化。
+      非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     responses:
@@ -218,11 +251,11 @@ confirm:
               $ref: ../components/schemas.yaml#/TradeSuccess
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
-      '403':
-        $ref: ../components/responses.yaml#/Forbidden
       '404':
         $ref: ../components/responses.yaml#/NotFound
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError

@@ -9,6 +9,14 @@ BadRequest:
           value:
             code: VALIDATION_ERROR
             message: 请求参数不合法
+        contactRequired:
+          value:
+            code: CONTACT_REQUIRED
+            message: 发布商品前请至少填写微信或 QQ
+        imageLimitExceeded:
+          value:
+            code: IMAGE_LIMIT_EXCEEDED
+            message: 商品图片不能超过三张
 
 Unauthorized:
   description: 未提供有效访问令牌。
@@ -47,16 +55,37 @@ NotFound:
             message: 资源不存在
 
 Conflict:
-  description: 唯一约束、商品状态或交易状态发生冲突。
+  description: |
+    唯一约束、自我操作、商品状态或交易状态发生冲突；具体操作描述决定可返回的业务码。
   content:
     application/json:
       schema:
         $ref: ./schemas.yaml#/ErrorResponse
       examples:
-        stateConflict:
+        tradeStateConflict:
           value:
             code: TRADE_STATE_CONFLICT
             message: 当前交易状态不允许执行该操作
+        productStateConflict:
+          value:
+            code: PRODUCT_STATE_CONFLICT
+            message: 当前商品状态不允许修改
+        conversationMismatch:
+          value:
+            code: CONVERSATION_MISMATCH
+            message: 会话与本次购买意向的商品或参与者不匹配
+        productNotAvailable:
+          value:
+            code: PRODUCT_NOT_AVAILABLE
+            message: 商品当前不可交易
+        selfActionNotAllowed:
+          value:
+            code: SELF_ACTION_NOT_ALLOWED
+            message: 不能对自己发布的商品执行该操作
+        studentNumberExists:
+          value:
+            code: STUDENT_NO_EXISTS
+            message: 该学号已注册
 
 PayloadTooLarge:
   description: 上传文件或请求体超过服务限制。
@@ -69,6 +98,24 @@ PayloadTooLarge:
           value:
             code: PAYLOAD_TOO_LARGE
             message: 上传内容超过限制
+
+TooManyRequests:
+  description: 当前用户或客户端在限流窗口内请求过多；响应不得被缓存。
+  headers:
+    Retry-After:
+      description: 建议客户端等待的秒数。
+      schema:
+        type: integer
+        minimum: 1
+  content:
+    application/json:
+      schema:
+        $ref: ./schemas.yaml#/ErrorResponse
+      examples:
+        rateLimited:
+          value:
+            code: RATE_LIMITED
+            message: 请求过于频繁，请稍后重试
 
 InternalServerError:
   description: 服务端未预期错误。

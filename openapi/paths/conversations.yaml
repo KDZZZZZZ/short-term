@@ -8,7 +8,8 @@ productConversation:
     operationId: getOrCreateProductConversation
     description: |
       当前用户作为买家，商品发布者作为卖家。相同商品、买家和卖家的会话只存在一个；
-      重复调用返回原会话。用户不能针对自己的商品创建会话。
+      重复调用返回原会话。用户不能针对自己的商品创建会话，该情况固定返回
+      `409 / SELF_ACTION_NOT_ALLOWED`；`400` 仅用于请求格式或参数值无效。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     responses:
@@ -34,7 +35,9 @@ collection:
       - Conversations
     summary: 获取当前用户的会话列表
     operationId: listConversations
-    description: 按最后消息时间倒序排列，无消息会话按创建时间倒序排列。
+    description: |
+      固定按 `coalesce(last_message_at, created_at) DESC, id DESC` 排列。页码分页
+      不提供跨请求快照，并发消息可能改变会话顺序并导致后续页面漂移。
     parameters:
       - $ref: ../components/parameters.yaml#/Page
       - $ref: ../components/parameters.yaml#/PageSize
@@ -78,7 +81,9 @@ messages:
       - Conversations
     summary: 获取会话消息
     operationId: listConversationMessages
-    description: 只有会话买卖双方可以访问，使用不透明游标向前分页。
+    description: |
+      只有会话买卖双方可以访问，使用不透明游标向前分页。非参与者与不存在的会话
+      均返回 `404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露会话是否存在。
     parameters:
       - $ref: ../components/parameters.yaml#/Before
       - $ref: ../components/parameters.yaml#/MessageLimit
@@ -93,8 +98,6 @@ messages:
         $ref: ../components/responses.yaml#/BadRequest
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
-      '403':
-        $ref: ../components/responses.yaml#/Forbidden
       '404':
         $ref: ../components/responses.yaml#/NotFound
       '500':
@@ -104,7 +107,9 @@ messages:
       - Conversations
     summary: 发送文字消息
     operationId: sendConversationMessage
-    description: MVP 仅支持 1 至 1000 字的文字消息。
+    description: |
+      MVP 仅支持 1 至 1000 字的文字消息。非参与者与不存在的会话均返回
+      `404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露会话是否存在。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     requestBody:
@@ -124,12 +129,12 @@ messages:
         $ref: ../components/responses.yaml#/BadRequest
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
-      '403':
-        $ref: ../components/responses.yaml#/Forbidden
       '404':
         $ref: ../components/responses.yaml#/NotFound
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
@@ -141,7 +146,9 @@ read:
       - Conversations
     summary: 将对方消息标记为已读
     operationId: markConversationRead
-    description: 将指定消息及其之前由对方发送的消息标记为已读，接口幂等。
+    description: |
+      将指定消息及其之前由对方发送的消息标记为已读，接口幂等。非参与者与不存在
+      的会话均返回 `404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露会话是否存在。
     requestBody:
       required: true
       content:
@@ -159,8 +166,6 @@ read:
         $ref: ../components/responses.yaml#/BadRequest
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
-      '403':
-        $ref: ../components/responses.yaml#/Forbidden
       '404':
         $ref: ../components/responses.yaml#/NotFound
       '500':

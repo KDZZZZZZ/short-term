@@ -4,7 +4,9 @@ collection:
       - Favorites
     summary: 获取当前用户的收藏列表
     operationId: listFavorites
-    description: 已下架、已预留或已售商品仍可返回，并携带当前商品状态。
+    description: |
+      已下架、已预留或已售商品仍可返回，并携带当前商品状态。固定按
+      `favorited_at DESC, product.id DESC` 排列；页码分页不提供跨请求快照。
     parameters:
       - $ref: ../components/parameters.yaml#/Page
       - $ref: ../components/parameters.yaml#/PageSize
@@ -29,7 +31,10 @@ item:
       - Favorites
     summary: 收藏商品
     operationId: addFavorite
-    description: 接口幂等；用户不能收藏自己发布的商品。
+    description: |
+      接口幂等；任意状态的现存商品均可收藏，包括 `OFF_SHELF`、`RESERVED` 和
+      `SOLD`。用户不能收藏自己发布的商品；该情况固定返回
+      `409 / SELF_ACTION_NOT_ALLOWED`。`400` 仅用于请求格式或参数值无效。
     responses:
       '200':
         description: 商品处于已收藏状态。

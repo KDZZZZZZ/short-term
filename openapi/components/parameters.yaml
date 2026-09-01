@@ -33,7 +33,9 @@ TradeId:
 Page:
   name: page
   in: query
-  description: 从 1 开始的页码。
+  description: |
+    从 1 开始的页码。页码分页不提供跨请求快照；并发新增、删除或排序字段变化可能
+    导致跨页重复或遗漏，客户端刷新列表时应从第一页重新读取。此行为是 MVP 的已知取舍。
   schema:
     type: integer
     minimum: 1

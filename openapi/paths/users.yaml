@@ -20,6 +20,9 @@ me:
       - Users
     summary: 修改当前用户资料
     operationId: updateCurrentUser
+    description: |
+      仅修改请求中出现的字段。微信和 QQ 只允许设置或修改为非空值；显式 `null`
+      或空字符串返回 `400 / VALIDATION_ERROR`，省略字段表示保持原值。
     requestBody:
       required: true
       content:
@@ -72,6 +75,9 @@ products:
       - Products
     summary: 获取当前用户发布的商品
     operationId: listCurrentUserProducts
+    description: |
+      固定按 `created_at DESC, id DESC` 排列。页码分页不提供跨请求快照，并发变更
+      可能导致后续页面漂移。
     parameters:
       - $ref: ../components/parameters.yaml#/ProductStatus
       - $ref: ../components/parameters.yaml#/Page
