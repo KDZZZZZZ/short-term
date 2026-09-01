@@ -1,0 +1,36 @@
+# Local backend development infrastructure.
+#
+# Each service owns its own database and its own database account, matching the
+# ownership boundary in docs/software-design.md section 9.2. The init script
+# revokes CONNECT from PUBLIC, so a service account that tries to reach another
+# service's database is refused by PostgreSQL rather than by convention.
+#
+# This file is for local development only. Production topology, image digests
+# and secrets are a separate concern (backend deployment, milestone M6).
+
+name: short-term-local
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: short-term-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      # Deterministic collation keeps ORDER BY stable across machines.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=und-x-icu --encoding=UTF8"
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/10-databases.sql:ro
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

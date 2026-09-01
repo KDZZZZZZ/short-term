@@ -14,8 +14,3 @@ CREATE TABLE accounts (
     CONSTRAINT accounts_wechat_len CHECK (wechat IS NULL OR char_length(wechat) BETWEEN 1 AND 64),
     CONSTRAINT accounts_qq_format CHECK (qq IS NULL OR qq ~ '^[0-9]{5,20}$')
 );
-
-CREATE TABLE schema_migrations (
-    version    text PRIMARY KEY,
-    applied_at timestamptz NOT NULL DEFAULT now()
-);

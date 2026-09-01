@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package shortterm.account.v1;
 
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1;accountv1";
 
