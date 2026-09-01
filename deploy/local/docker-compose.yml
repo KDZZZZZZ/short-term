@@ -25,7 +25,8 @@ services:
       - ./postgres-init.sql:/docker-entrypoint-initdb.d/10-databases.sql:ro
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      # TCP is unavailable while the official entrypoint runs its socket-only init server.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 20
