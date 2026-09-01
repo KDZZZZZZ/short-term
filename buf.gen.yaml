@@ -1,0 +1,11 @@
+version: v2
+clean: true
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.36.12
+    out: gen/go/shortterm
+    opt: module=github.com/KDZZZZZZ/short-term/gen/go/shortterm
+  - remote: buf.build/grpc/go:v1.5.1
+    out: gen/go/shortterm
+    opt:
+      - module=github.com/KDZZZZZZ/short-term/gen/go/shortterm
+      - require_unimplemented_servers=false

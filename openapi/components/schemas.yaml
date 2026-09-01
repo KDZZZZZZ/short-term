@@ -465,9 +465,11 @@ ProductCreateRequest:
     images:
       type: array
       maxItems: 3
+      description: |
+        商品图片，最多三张。每张不超过 5 MiB，且必须是 JPEG、PNG 或 WebP；
+        服务端按真实字节内容判定类型，不信任客户端声明的 Content-Type。
       items:
-        type: string
-        format: binary
+        $ref: '#/ImageFile'
 
 ProductUpdateRequest:
   type: object
@@ -487,6 +489,17 @@ ProductUpdateRequest:
       minLength: 1
       maxLength: 2000
 
+ImageFile:
+  type: string
+  format: binary
+  maxLength: 5242880
+  contentMediaType: image/*
+  description: |
+    单张图片文件，最大 5 MiB（5242880 字节）。允许的实际内容类型为
+    `image/jpeg`、`image/png` 和 `image/webp`。超过大小上限返回 413
+    `PAYLOAD_TOO_LARGE`；类型不被允许或内容不是有效图片返回 400
+    `VALIDATION_ERROR`。
+
 ImageUploadRequest:
   type: object
   additionalProperties: false
@@ -497,9 +510,11 @@ ImageUploadRequest:
       type: array
       minItems: 1
       maxItems: 3
+      description: |
+        本次新增的图片，新增后商品图片总数不能超过三张。每张不超过 5 MiB，
+        且必须是 JPEG、PNG 或 WebP。
       items:
-        type: string
-        format: binary
+        $ref: '#/ImageFile'
 
 ProductPage:
   type: object

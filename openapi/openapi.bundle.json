@@ -361,7 +361,7 @@
         ],
         "summary": "发布商品",
         "operationId": "createProduct",
-        "description": "当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。图片按 multipart 中的\n出现顺序获得连续 `sort_order`，第一张图片成为封面。\n",
+        "description": "当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。图片按 multipart 中的\n出现顺序获得连续 `sort_order`，第一张图片成为封面。整个请求体不超过\n16 MiB，单张图片不超过 5 MiB。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -372,7 +372,8 @@
               "encoding": {
                 "images": {
                   "style": "form",
-                  "explode": true
+                  "explode": true,
+                  "contentType": "image/jpeg, image/png, image/webp"
                 }
               }
             }
@@ -503,7 +504,7 @@
         ],
         "summary": "为自己的商品补充图片",
         "operationId": "addProductImages",
-        "description": "只有商品卖家可以操作，且商品必须为 `ON_SALE` 或 `OFF_SHELF`；\n商品还不得存在 `PENDING` 购买意向。存在 `PENDING` 意向时返回\n`409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回\n`409 / PRODUCT_STATE_CONFLICT`。新增后商品图片总数不能超过三张；新图片按\n上传顺序追加到现有图片之后并取得连续 `sort_order`，仅当此前没有图片时第一张\n新图片成为封面。\n",
+        "description": "只有商品卖家可以操作，且商品必须为 `ON_SALE` 或 `OFF_SHELF`；\n商品还不得存在 `PENDING` 购买意向。存在 `PENDING` 意向时返回\n`409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回\n`409 / PRODUCT_STATE_CONFLICT`。新增后商品图片总数不能超过三张；新图片按\n上传顺序追加到现有图片之后并取得连续 `sort_order`，仅当此前没有图片时第一张\n新图片成为封面。超过三张时返回 `400 / IMAGE_LIMIT_EXCEEDED`。整个请求体不超过\n16 MiB，单张图片不超过 5 MiB。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -514,7 +515,8 @@
               "encoding": {
                 "images": {
                   "style": "form",
-                  "explode": true
+                  "explode": true,
+                  "contentType": "image/jpeg, image/png, image/webp"
                 }
               }
             }
@@ -1919,6 +1921,13 @@
           }
         ]
       },
+      "ImageFile": {
+        "type": "string",
+        "format": "binary",
+        "maxLength": 5242880,
+        "contentMediaType": "image/*",
+        "description": "单张图片文件，最大 5 MiB（5242880 字节）。允许的实际内容类型为\n`image/jpeg`、`image/png` 和 `image/webp`。超过大小上限返回 413\n`PAYLOAD_TOO_LARGE`；类型不被允许或内容不是有效图片返回 400\n`VALIDATION_ERROR`。\n"
+      },
       "ProductCreateRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -1948,9 +1957,9 @@
           "images": {
             "type": "array",
             "maxItems": 3,
+            "description": "商品图片，最多三张。每张不超过 5 MiB，且必须是 JPEG、PNG 或 WebP；\n服务端按真实字节内容判定类型，不信任客户端声明的 Content-Type。\n",
             "items": {
-              "type": "string",
-              "format": "binary"
+              "$ref": "#/components/schemas/ImageFile"
             }
           }
         }
@@ -2121,9 +2130,9 @@
             "type": "array",
             "minItems": 1,
             "maxItems": 3,
+            "description": "本次新增的图片，新增后商品图片总数不能超过三张。每张不超过 5 MiB，\n且必须是 JPEG、PNG 或 WebP。\n",
             "items": {
-              "type": "string",
-              "format": "binary"
+              "$ref": "#/components/schemas/ImageFile"
             }
           }
         }

@@ -32,7 +32,8 @@ collection:
     operationId: createProduct
     description: |
       当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。图片按 multipart 中的
-      出现顺序获得连续 `sort_order`，第一张图片成为封面。
+      出现顺序获得连续 `sort_order`，第一张图片成为封面。整个请求体不超过
+      16 MiB，单张图片不超过 5 MiB。
     requestBody:
       required: true
       content:
@@ -43,6 +44,7 @@ collection:
             images:
               style: form
               explode: true
+              contentType: image/jpeg, image/png, image/webp
     responses:
       '201':
         description: 商品已发布，初始状态为 `ON_SALE`。
@@ -136,7 +138,8 @@ images:
       `409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回
       `409 / PRODUCT_STATE_CONFLICT`。新增后商品图片总数不能超过三张；新图片按
       上传顺序追加到现有图片之后并取得连续 `sort_order`，仅当此前没有图片时第一张
-      新图片成为封面。
+      新图片成为封面。超过三张时返回 `400 / IMAGE_LIMIT_EXCEEDED`。整个请求体不超过
+      16 MiB，单张图片不超过 5 MiB。
     requestBody:
       required: true
       content:
@@ -147,6 +150,7 @@ images:
             images:
               style: form
               explode: true
+              contentType: image/jpeg, image/png, image/webp
     responses:
       '201':
         description: 商品当前全部图片。

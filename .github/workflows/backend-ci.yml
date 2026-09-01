@@ -1,0 +1,216 @@
+name: Backend
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  openapi:
+    name: Backend / OpenAPI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate public contract
+        run: npm run openapi:check
+
+  proto:
+    name: Backend / proto contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate proto contract and generated code
+        run: npm run proto:check
+
+      - name: Reject breaking proto changes against main
+        if: github.event_name == 'pull_request'
+        run: npm run proto:breaking
+
+  go:
+    name: Backend / go
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Integration tests create one throwaway database per test through
+    # platform/pgtest, so the service account must be able to CREATE DATABASE.
+    # The image major version matches deploy/local/docker-compose.yml.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      SHORTTERM_TEST_POSTGRES_DSN: postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            gen/go/go.sum
+            platform/go.sum
+            services/*/go.sum
+
+      - name: Verify formatting
+        run: |
+          unformatted="$(gofmt -l gen/go platform services)"
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-formatted:" >&2
+            echo "$unformatted" >&2
+            exit 1
+          fi
+
+      - name: Vet
+        run: npm run go:vet
+
+      - name: Test with the race detector
+        run: npm run go:test:race
+
+  containers:
+    name: Backend / containers
+    needs:
+      - openapi
+      - proto
+      - go
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate deployment sources
+        run: |
+          bash -n scripts/build-backend-images.sh deploy/backend/short-term-backend.sh
+          python3 -m py_compile scripts/backend-e2e.py
+          backend_media_dir="$(mktemp -d)"
+          BACKEND_RELEASE="$GITHUB_SHA" BACKEND_MEDIA_DIR="$backend_media_dir" \
+            docker compose -f deploy/backend/compose.ci.yml config --quiet
+          rmdir "$backend_media_dir"
+
+      - name: Build independent service images
+        env:
+          BACKEND_GOPROXY: https://proxy.golang.org|https://goproxy.cn|direct
+        run: scripts/build-backend-images.sh "$GITHUB_SHA"
+
+      - name: Verify runtime image boundaries
+        run: |
+          set -euo pipefail
+          for service in account marketplace messaging favorite gateway; do
+            image="localhost/short-term/$service:$GITHUB_SHA"
+            test "$(docker image inspect "$image" --format '{{.Config.User}}')" = "65532:65532"
+            test "$(docker image inspect "$image" --format '{{index .Config.Entrypoint 0}}')" = "/usr/local/bin/server"
+            container_id="$(docker create "$image")"
+            docker export "$container_id" | tar -tf - >"$RUNNER_TEMP/$service-files.txt"
+            docker rm "$container_id" >/dev/null
+            grep -qx 'usr/local/bin/server' "$RUNNER_TEMP/$service-files.txt"
+            if [ "$service" != gateway ]; then
+              grep -qx 'usr/local/bin/migrate' "$RUNNER_TEMP/$service-files.txt"
+            fi
+            if [ "$service" = marketplace ] || [ "$service" = messaging ]; then
+              grep -qx 'usr/local/bin/worker' "$RUNNER_TEMP/$service-files.txt"
+            fi
+          done
+
+      - name: Run the containerized REST journey
+        run: |
+          set -euo pipefail
+          export BACKEND_RELEASE="$GITHUB_SHA"
+          export BACKEND_MEDIA_DIR="$(mktemp -d)"
+          chmod 0777 "$BACKEND_MEDIA_DIR"
+
+          cleanup() {
+            exit_code=$?
+            if [ "$exit_code" -ne 0 ]; then
+              docker compose -f deploy/backend/compose.ci.yml logs --no-color || true
+            fi
+            docker compose -f deploy/backend/compose.ci.yml down --volumes --remove-orphans || true
+            rm -rf "$BACKEND_MEDIA_DIR"
+            exit "$exit_code"
+          }
+          trap cleanup EXIT
+
+          docker compose -f deploy/backend/compose.ci.yml up --detach postgres
+          docker compose -f deploy/backend/compose.ci.yml run --rm account-migrate
+          docker compose -f deploy/backend/compose.ci.yml run --rm marketplace-migrate
+          docker compose -f deploy/backend/compose.ci.yml run --rm messaging-migrate
+          docker compose -f deploy/backend/compose.ci.yml run --rm favorite-migrate
+          docker compose -f deploy/backend/compose.ci.yml up --detach \
+            account marketplace messaging favorite marketplace-worker messaging-worker gateway
+
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:28080/readyz >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Gateway readiness timed out" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          python3 scripts/backend-e2e.py \
+            --base-url http://127.0.0.1:28080 \
+            --tag "$GITHUB_SHA" \
+            --baseline-samples 5
+          curl --fail --silent --show-error http://127.0.0.1:29090/metrics >"$RUNNER_TEMP/gateway-metrics.txt"
+          grep -F 'route="POST /products/{productId}/trades",status="201"} 2' "$RUNNER_TEMP/gateway-metrics.txt"
+          grep -F 'route="POST /trades/{tradeId}/confirm",status="200"} 2' "$RUNNER_TEMP/gateway-metrics.txt"

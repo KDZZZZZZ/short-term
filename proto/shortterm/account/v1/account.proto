@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package shortterm.account.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1;accountv1";
+
+// AccountService 负责学生凭据、令牌和公开资料。
+// 账户的资源级授权在此处执行。
+service AccountService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // GetProfile 返回所有者自己的视图，其中包含学号。
+  // 它与 GetUser 分开，因此任何聚合路径都不会误取学号：
+  // GetUser 无法返回学号。
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+}
+
+message UserPublic {
+  string id = 1;
+  string nickname = 2;
+}
+
+// UserContact 增加微信/QQ；可选字段用于区分未设置和空值。
+message UserContact {
+  string id = 1;
+  string nickname = 2;
+  optional string wechat = 3;
+  optional string qq = 4;
+}
+
+message UserMe {
+  string id = 1;
+  string student_no = 2;
+  string nickname = 3;
+  optional string wechat = 4;
+  optional string qq = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message RegisterRequest {
+  string student_no = 1;
+  string password = 2;
+  optional string nickname = 3;
+  optional string wechat = 4;
+  optional string qq = 5;
+}
+
+message AuthData {
+  string access_token = 1;
+  string token_type = 2;
+  int64 expires_in = 3;
+  UserMe user = 4;
+}
+
+message RegisterResponse {
+  AuthData auth = 1;
+}
+
+message LoginRequest {
+  string student_no = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  AuthData auth = 1;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  UserContact user = 1;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message GetProfileResponse {
+  UserMe user = 1;
+}
+
+message BatchGetUsersRequest {
+  repeated string user_ids = 1;
+}
+
+message BatchGetUsersResponse {
+  // 批量聚合只需要公开资料。联系方式被有意排除，使列表查询保持最小权限的数据形状。
+  map<string, UserPublic> users = 1;
+}
+
+// NullableStringPatch 保留 PATCH 字段的线路兼容性：字段不存在表示不变，
+// string_value 设置值。公开契约不再接受 null_value；服务端仍会明确拒绝它，
+// 而不是把旧客户端的删除请求静默当成“保持不变”。
+message NullableStringPatch {
+  oneof value {
+    string string_value = 1;
+    google.protobuf.NullValue null_value = 2;
+  }
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;
+  optional string nickname = 2;
+  NullableStringPatch wechat = 3;
+  NullableStringPatch qq = 4;
+}
+
+message UpdateProfileResponse {
+  UserMe user = 1;
+}
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {}

@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本/状态 | 0.3 / 草案，待人类评审 |
+| 版本/状态 | 0.4 / 已实现基线；架构取舍仍可评审 |
 | 日期 | 2026-09-01 |
 | 责任角色 | 项目维护者批准；Codex 起草 |
 | 目标读者 | 后端、前端、测试、运维与后续架构评审人员 |
@@ -15,6 +15,7 @@
 
 | 版本 | 日期 | 修订人/责任角色 | 修订内容 | 状态 |
 | --- | --- | --- | --- | --- |
+| 0.4 | 2026-09-01 | Codex / 项目维护者 | 同步 M0–M6 实现、独立容器、CI/部署/回滚、就绪、限流、指标和验收现状 | 实现基线 |
 | 0.3 | 2026-09-01 | Codex / 项目维护者 | 明确商品可见性、联系方式不可删除、PENDING 下架保护、商品编辑状态和唯一购买意向；补齐会话校验、错误、图片、分页及限流契约 | 已确认产品语义；代理细节见下文 |
 | 0.2 | 2026-09-01 | Codex / 项目维护者待评审 | 补全交易命令幂等结果与 Product/Trade 原子状态转换 | 草案 |
 | 0.1 | 2026-09-01 | Codex / 项目维护者待评审 | 建立微服务、REST/gRPC、DTO、数据一致性及部署目标设计 | 草案 |
@@ -23,7 +24,7 @@
 
 - **Human Design**：系统采用微服务；前端继续使用 REST；同一用户可同时作为买家和卖家；实现收藏、站内文字聊天和交易状态流转；商品列表与商品详情返回商品状态；任意状态商品详情保持可见；联系方式只允许新增或修改、不得删除；存在 `PENDING` 意向时商品不得下架；`RESERVED`/`SOLD` 商品不得编辑字段或图片；同一买家对同一商品的重复请求归入同一购买意向。
 - **已批准基线**：OpenAPI 是公开 HTTP API 唯一真源；[状态机文档](state-machines.md)治理商品与交易的跨资源状态变化。
-- **Agent Self-Claimed**：API Gateway、内部 gRPC、服务边界、DTO 分层、数据库所有权、Outbox、目标目录和部署拓扑均为本设计提出的方案，尚未视为已实现或已批准。此次纠错中，`(product_id, buyer_id)` 终生唯一及 create-or-get 的 `200/201` 细节、PENDING 期间冻结商品内容、默认昵称、任意状态可收藏、403/404 隐藏规则、图片连续排序、页码漂移说明和 429 映射由代理补充。
+- **Agent Self-Claimed**：API Gateway、内部 gRPC、DTO 分层、数据库所有权、Outbox、五个独立镜像、单机 Podman/systemd 拓扑、服务器本地生成密钥、进程内固定窗口限流、主机回环指标端口与 release manifest 回滚均为代理选择的实现方案。`(product_id, buyer_id)` 终生唯一及 create-or-get 的 `200/201` 细节、PENDING 期间冻结商品内容、默认昵称、任意状态可收藏、403/404 隐藏规则、图片连续排序、页码漂移说明和 429 映射亦由代理补充。
 
 ## 1. 背景、目标与范围
 
@@ -31,7 +32,10 @@
 
 校园二手交易平台需要支持学生账号、商品发布与检索、收藏、商品上下文聊天以及线下交易协商。前端需要稳定且易调试的 REST/JSON 契约，后端则希望从项目初期按独立业务能力拆分，为独立部署、故障隔离和后续扩展保留边界。
 
-当前仓库只包含公开 OpenAPI、状态机、契约 CI 和 OpenAPI 文档部署配置，尚无 Go 服务、内部 RPC 契约、数据库迁移或后端运行时。本文因此描述目标设计，不描述既有实现。
+当前仓库已经实现 Gateway、Account、Marketplace、Messaging、Favorite 五个 Go 服务，
+版本化内部 gRPC、独立数据库迁移、事务型 Outbox worker、容器级 CI 和单机生产部署。
+本文同时描述已实现基线与仍明确后置的能力；具体上线事实必须以对应 GitHub deployment
+run 和远端验收证据为准。
 
 ### 1.2 建设目标
 
@@ -576,13 +580,18 @@ erDiagram
 
 ### 9.1 现状
 
-当前 main 更新后的 GitHub Actions 只部署 Swagger UI/OpenAPI 文档。仓库尚无后端容器、数据库、事件总线或 gRPC 部署配置。
+仓库提供五个独立的非 root `scratch` 服务镜像；Marketplace 和 Messaging 各自再用
+同一镜像启动独立 Outbox worker。生产工作流只消费已经在 `main` 的 Backend workflow
+验证成功的精确 SHA，通过带 SHA-256 校验的离线镜像 bundle 发布到当前阿里云 ECS。
+服务器使用 Podman 私有网络、一个持久化 PostgreSQL 18 实例内的四个隔离数据库账号、
+持久媒体目录和 systemd 生命周期管理。密钥首次部署时在服务器本地生成并以 root 0600
+文件保存，不进入仓库、GitHub 日志或 release bundle。
 
 ### 9.2 目标初始拓扑
 
-建议先在现有阿里云 ECS 上部署多个独立容器：
+当前在现有阿里云 ECS 上部署多个独立容器：
 
-- 一个 Gateway 容器对公网开放 HTTPS；
+- 一个 Gateway 容器当前对公网开放 HTTP 18080；管理指标仅绑定主机回环 19090。正式用户凭据进入系统前仍须补可信 TLS 终止层；
 - Account、Marketplace、Messaging、Favorite 只加入私有容器网络；
 - 每个服务使用独立数据库或独立 Schema 和独立数据库账号，禁止跨 Schema 查询；
 - 对象存储只由 Marketplace 的 OSS Adapter 访问；
@@ -600,29 +609,34 @@ erDiagram
 5. 观察错误率、交易冲突、Outbox 积压和关键延迟。
 6. 回滚只回滚应用镜像；不可逆 Schema 变更必须采用 expand/contract 分阶段迁移。
 
-后端自动部署工作流、数据库迁移工具、镜像仓库和回滚命令尚未建立，不能把本节目标拓扑视为当前能力。
+自动部署按上述顺序执行显式迁移和 readiness，随后从 GitHub runner 运行真实公开 REST
+主流程，并在服务器验证同一 Trace 跨 Gateway、Marketplace、Messaging、Account 和
+Marketplace Outbox worker 串联，等待两个 Outbox 积压归零。迁移、启动、E2E、Trace
+或 Outbox 任一失败都会使 workflow 失败；存在上一 release 时自动回滚应用镜像。
+当前不使用镜像仓库，而是传输校验后的离线 bundle；这是单节点规模下减少外部依赖的
+取舍，不改变每个服务的独立镜像和容器边界。
 
 ## 10. 测试与验收
 
 | 风险/场景 | 测试层级 | 验证点 | 当前证据 |
 | --- | --- | --- | --- |
 | OpenAPI 漂移 | 契约 CI | lint、bundle、Git diff | 已有 npm scripts；源契约和生成 bundle 同步维护 |
-| Proto 破坏性变更 | 契约 CI | buf lint、buf breaking、buf generate drift | 待 Proto 建立 |
-| 商品状态返回 | 契约/集成/E2E | 所有 ProductSummary、ProductDetail、ConversationProduct、TradeProduct 返回当前 status | OpenAPI Schema 已定义；实现待建 |
-| 非在售详情可见 | 契约/E2E | 非卖家访问 OFF_SHELF、RESERVED、SOLD 商品详情均为 200；不存在才为 404 | OpenAPI 已定义；实现待建 |
-| 联系方式不可删除 | 契约/Account 集成 | 已填写或未填写联系方式都不能通过 null/空字符串删除；非空新增和修改成功 | OpenAPI 已定义；实现待建 |
-| PENDING 与下架/编辑并发 | 数据库集成/并发测试 | 创建意向与下架或内容变更只有一个合法顺序提交；永不出现 OFF_SHELF + PENDING 或交错商品版本 | 状态规则已定义；实现待建 |
-| 唯一购买意向 | 数据库集成/并发测试 | 同一 buyer/product 并发及换 key 请求只产生一个 Trade；首次 201，后续 200；终态不重开 | OpenAPI 与状态规则已定义；实现待建 |
-| 会话绑定校验 | 契约/集成测试 | conversation 的商品或任一参与者不匹配时不创建 Trade 并返回 409/CONVERSATION_MISMATCH | OpenAPI 已定义；实现待建 |
-| 并发接受交易 | 数据库集成测试 | 并发请求只有一个成功；商品 RESERVED；其他交易 CANCELLED | 状态规则已定义；实现待建 |
-| 响应丢失后的重复命令 | 数据库集成测试 | 首次事务提交但响应丢失后，同 actor、operation、idempotency_key 返回首次成功的 HTTP 状态与响应体，不因当前状态变化返回 409 | OpenAPI 已定义重放语义；实现待建 |
-| 取消与完成原子性 | 数据库集成/并发测试 | 任一步骤失败时 Product、Trade、Outbox、Idempotency 全部回滚；取消与第二次确认并发时仅一个合法转换提交 | 状态规则已定义；实现待建 |
-| 越权访问 | 安全测试 | 非卖家不能改商品，非参与者不能读消息/交易 | 契约已定义；实现待建 |
-| 图片顺序与封面 | 数据库/对象存储集成测试 | 上传按顺序追加；删除后连续重排；cover_url 始终对应第一张或 null | OpenAPI 已定义；实现待建 |
-| 限流响应 | Gateway 集成测试 | 登录、注册、消息、上传和交易动作触发阈值后返回 429/RATE_LIMITED 与可用 Retry-After | OpenAPI 已定义；阈值待压测 |
-| 密码和联系方式泄漏 | 契约/日志检查 | 响应、日志、trace 不出现禁泄漏字段 | 实现待建 |
-| Outbox 故障恢复 | 集成测试 | 提交后发布失败可恢复；重复投递无重复副作用 | 设计建议；实现待建 |
-| 依赖故障 | E2E/故障注入 | deadline 生效，不无限等待，不产生半完成交易 | 设计建议；实现待建 |
+| Proto 破坏性变更 | 契约 CI | buf lint、buf breaking、buf generate drift | `proto:check` 与 PR 对 main breaking 门禁已接入 Backend workflow |
+| 商品状态返回 | 契约/集成/E2E | 所有 ProductSummary、ProductDetail、ConversationProduct、TradeProduct 返回当前 status | Gateway 聚合测试、真实 PostgreSQL 测试与容器 REST E2E 已覆盖 |
+| 非在售详情可见 | 契约/E2E | 非卖家访问 OFF_SHELF、RESERVED、SOLD 商品详情均为 200；不存在才为 404 | Marketplace/Gateway 测试与 SOLD 生产验收路径已覆盖 |
+| 联系方式不可删除 | 契约/Account 集成 | 已填写或未填写联系方式都不能通过 null/空字符串删除；非空新增和修改成功 | Account domain/application/PostgreSQL/gRPC 测试已覆盖 |
+| PENDING 与下架/编辑并发 | 数据库集成/并发测试 | 创建意向与下架或内容变更只有一个合法顺序提交；永不出现 OFF_SHELF + PENDING 或交错商品版本 | 真实 PostgreSQL 并发与 race 测试已覆盖 Product→Trade 锁序 |
+| 唯一购买意向 | 数据库集成/并发测试 | 同一 buyer/product 并发及换 key 请求只产生一个 Trade；首次 201，后续 200；终态不重开 | 唯一索引、create-or-get gRPC/Gateway 与并发测试已覆盖 |
+| 会话绑定校验 | 契约/集成测试 | conversation 的商品或任一参与者不匹配时不创建 Trade 并返回 409/CONVERSATION_MISMATCH | Marketplace 经 Messaging verifier 的网络 gRPC 测试已覆盖 |
+| 并发接受交易 | 数据库集成测试 | 并发请求只有一个成功；商品 RESERVED；其他交易 CANCELLED | 真实 PostgreSQL 并发与事务测试已覆盖 |
+| 响应丢失后的重复命令 | 数据库集成测试 | 首次事务提交但响应丢失后，同 actor、operation、idempotency_key 返回首次成功的 HTTP 状态与响应体，不因当前状态变化返回 409 | schema v2 命令结果和 Product 投影快照测试已覆盖 |
+| 取消与完成原子性 | 数据库集成/并发测试 | 任一步骤失败时 Product、Trade、Outbox、Idempotency 全部回滚；取消与第二次确认并发时仅一个合法转换提交 | 故障注入、并发和 Outbox 原子性测试已覆盖 |
+| 越权访问 | 安全测试 | 非卖家不能改商品，非参与者不能读消息/交易 | 各服务网络 gRPC 与 Gateway REST 权限测试已覆盖 403/隐藏式 404 |
+| 图片顺序与封面 | 数据库/对象存储集成测试 | 上传按顺序追加；删除后连续重排；cover_url 始终对应第一张或 null | Marketplace 真实 PostgreSQL/文件存储测试已覆盖 |
+| 限流响应 | Gateway 集成测试 | 登录、注册、消息、上传和交易动作触发阈值后返回 429/RATE_LIMITED 与可用 Retry-After | 有界进程内固定窗口实现和路由集成测试已覆盖；阈值仍待真实流量校准 |
+| 密码和联系方式泄漏 | 契约/日志检查 | 响应、日志、trace 不出现禁泄漏字段 | 日志强制脱敏、DTO/聚合测试和容器 E2E 的学号泄漏断言已覆盖 |
+| Outbox 故障恢复 | 集成测试 | 提交后发布失败可恢复；重复投递无重复副作用 | Marketplace/Messaging 真实 PostgreSQL 重试与原子性测试；消费者去重留给未来 Broker |
+| 依赖故障 | E2E/故障注入 | deadline 生效，不无限等待，不产生半完成交易 | gRPC deadline、标准 Health readiness 与事务失败测试已覆盖；整栈网络分区注入仍后置 |
 
 商品状态专项验收：
 

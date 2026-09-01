@@ -1,0 +1,118 @@
+// Package aggregation 使用其他服务拥有的数据补全列表和详情响应。
+//
+// 每次补全都是批量调用。docs/software-design.md 第 3.3 节禁止每行执行一次 RPC；
+// 从所属服务读取当前商品状态，而不是读取缓存副本，才能保证收藏、会话或交易投影
+// 中的状态在响应时刻真实有效。
+package aggregation
+
+import (
+	"context"
+
+	accountv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1"
+	favoritev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/favorite/v1"
+	marketplacev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1"
+	"github.com/KDZZZZZZ/short-term/platform/grpcx"
+)
+
+// Aggregator 执行 REST 响应所需的跨服务数据补全。
+type Aggregator struct {
+	accounts  accountv1.AccountServiceClient
+	products  marketplacev1.MarketplaceServiceClient
+	favorites FavoriteChecker
+}
+
+// FavoriteChecker 返回当前用户是否收藏了某个商品。
+type FavoriteChecker interface {
+	IsFavorited(ctx context.Context, actorID, productID string) (bool, error)
+}
+
+// New 构造 Aggregator。
+func New(accounts accountv1.AccountServiceClient, products marketplacev1.MarketplaceServiceClient, favorites FavoriteChecker) *Aggregator {
+	return &Aggregator{accounts: accounts, products: products, favorites: favorites}
+}
+
+// Users 在一次调用中返回指定标识对应的公开资料。
+// 已不存在的标识会直接从结果中省略。
+func (a *Aggregator) Users(ctx context.Context, ids []string) (map[string]*accountv1.UserPublic, error) {
+	unique := dedupe(ids)
+	if len(unique) == 0 {
+		return map[string]*accountv1.UserPublic{}, nil
+	}
+
+	resp, err := a.accounts.BatchGetUsers(ctx, &accountv1.BatchGetUsersRequest{UserIds: unique})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetUsers(), nil
+}
+
+// Products 在一次调用中返回每个商品的当前摘要。
+func (a *Aggregator) Products(ctx context.Context, ids []string) (map[string]*marketplacev1.ProductSummary, error) {
+	unique := dedupe(ids)
+	if len(unique) == 0 {
+		return map[string]*marketplacev1.ProductSummary{}, nil
+	}
+
+	resp, err := a.products.BatchGetProducts(ctx, &marketplacev1.BatchGetProductsRequest{ProductIds: unique})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetProducts(), nil
+}
+
+// SellerContact 为商品详情响应返回一个卖家的联系方式资料。
+// 它使用 GetUser，而 GetUser 的响应类型不包含学号字段。
+func (a *Aggregator) SellerContact(ctx context.Context, sellerID string) (*accountv1.UserContact, error) {
+	resp, err := a.accounts.GetUser(ctx, &accountv1.GetUserRequest{UserId: sellerID})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetUser(), nil
+}
+
+// IsFavorited 返回当前用户是否收藏了某个商品。匿名调用方永远不会被视为已收藏。
+func (a *Aggregator) IsFavorited(ctx context.Context, actorID, productID string) (bool, error) {
+	if actorID == "" || a.favorites == nil {
+		return false, nil
+	}
+	return a.favorites.IsFavorited(ctx, actorID, productID)
+}
+
+// GRPCFavorites 通过 Favorite Service 检查收藏状态。
+type GRPCFavorites struct {
+	client favoritev1.FavoriteServiceClient
+}
+
+// NewGRPCFavorites 构造由 Favorite Service 支持的收藏检查器。
+func NewGRPCFavorites(client favoritev1.FavoriteServiceClient) *GRPCFavorites {
+	return &GRPCFavorites{client: client}
+}
+
+// IsFavorited 向 Favorite Service 查询收藏状态。
+func (f *GRPCFavorites) IsFavorited(ctx context.Context, actorID, productID string) (bool, error) {
+	resp, err := f.client.IsFavorited(grpcx.WithActor(ctx, actorID), &favoritev1.IsFavoritedRequest{
+		ActorId:   actorID,
+		ProductId: productID,
+	})
+	if err != nil {
+		return false, err
+	}
+	return resp.GetFavorited(), nil
+}
+
+// dedupe 删除空标识和重复标识，同时保留原有顺序。
+func dedupe(ids []string) []string {
+	seen := make(map[string]struct{}, len(ids))
+	unique := make([]string, 0, len(ids))
+	for _, value := range ids {
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		unique = append(unique, value)
+	}
+	return unique
+}

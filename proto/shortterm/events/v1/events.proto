@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package shortterm.events.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/events/v1;eventsv1";
+
+// EventEnvelope 是所有服务共享的规范 Outbox 事件结构。
+// 事件是提交后通知的事实；消费者必须按 event_id 去重，不能通过事件修改源服务状态。
+// 事件总线产品暂不指定（设计文档仍待决定）；此 schema 只固定契约。
+message EventEnvelope {
+  string event_id = 1;
+  string event_type = 2;
+  int32 schema_version = 3;
+  string aggregate_type = 4;
+  string aggregate_id = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  string trace_id = 7;
+  bytes payload = 8;
+}
