@@ -6,9 +6,8 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/favorite/v1;favoritev1";
 
-// FavoriteService owns the user/product favorite relation. It validates
-// product existence and ownership through MarketplaceService when adding a
-// favorite, but never stores product truth.
+// FavoriteService 负责用户/商品收藏关系。添加收藏时，它通过 MarketplaceService
+// 校验商品存在且属于允许的范围，但从不存储商品事实。
 service FavoriteService {
   rpc AddFavorite(AddFavoriteRequest) returns (AddFavoriteResponse);
   rpc RemoveFavorite(RemoveFavoriteRequest) returns (RemoveFavoriteResponse);

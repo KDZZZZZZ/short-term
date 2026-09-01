@@ -9,18 +9,15 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/errs"
 )
 
-// TokenVerifier checks an access token and reports the acting user.
+// TokenVerifier 校验访问令牌并返回当前用户。
 type TokenVerifier interface {
 	Verify(token string) (auth.Claims, error)
 }
 
-// NewAuthentication verifies the bearer token and puts the acting user on the
-// context.
+// NewAuthentication 校验 bearer 令牌，并将当前用户放入上下文。
 //
-// It authenticates only. Whether the acting user may read or change a given
-// product, trade or conversation is decided by the service that owns it
-// (docs/software-design.md section 7.2), because only that service knows the
-// seller, buyer and participant identities.
+// 它只负责身份认证。当前用户能否读取或修改某个商品、交易或会话，由资源所属服务
+// 决定（docs/software-design.md 第 7.2 节），因为只有该服务知道卖家、买家和参与者身份。
 func NewAuthentication(verifier TokenVerifier, responder ErrorWriter, isPublic func(*http.Request) bool) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,8 +34,7 @@ func NewAuthentication(verifier TokenVerifier, responder ErrorWriter, isPublic f
 
 			claims, err := verifier.Verify(token)
 			if err != nil {
-				// The reason is deliberately not reported: an expired token and
-				// a forged one look the same to the caller.
+				// 有意不报告具体原因：过期令牌和伪造令牌对调用方应表现相同。
 				responder.Error(w, r, errs.Wrap(errs.CodeUnauthorized, "请先登录", err))
 				return
 			}
@@ -48,11 +44,11 @@ func NewAuthentication(verifier TokenVerifier, responder ErrorWriter, isPublic f
 	}
 }
 
-// errNoBearer reports a missing or malformed Authorization header.
+// errNoBearer 表示 Authorization 请求头缺失或格式错误。
 var errNoBearer = errors.New("missing bearer token")
 
-// bearerToken extracts the token from the Authorization header. The scheme
-// comparison is case-insensitive, as RFC 7235 requires.
+// bearerToken 从 Authorization 请求头提取令牌。按照 RFC 7235 的要求，
+// scheme 比较不区分大小写。
 func bearerToken(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
 	scheme, token, found := strings.Cut(header, " ")

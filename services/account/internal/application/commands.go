@@ -6,42 +6,41 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/account/internal/domain"
 )
 
-// RegisterCommand creates an account and signs in the new user.
+// RegisterCommand 创建账户并让新用户登录。
 type RegisterCommand struct {
 	StudentNo string
 	Password  string
-	// Nickname is optional. When absent the service assigns a neutral default
-	// that does not disclose the student number.
+	// Nickname 可选。缺失时服务分配不泄露学号的中性默认昵称。
 	Nickname *string
 	Wechat   *string
 	QQ       *string
 }
 
-// LoginCommand authenticates a student number and password pair.
+// LoginCommand 验证学号和密码组合。
 type LoginCommand struct {
 	StudentNo string
 	Password  string
 }
 
-// StringPatch expresses the three states a nullable JSON field can take in a
-// PATCH body: absent, set to a value, or explicitly set to null.
+// StringPatch 表示 PATCH 字段的三种线路状态：缺失、设置值或显式 null。
+// 显式 null 会被应用层拒绝，以执行“联系方式不可删除”的公开契约。
 type StringPatch struct {
-	// Present is false when the client omitted the field.
+	// Present 在客户端省略字段时为 false。
 	Present bool
-	// Value is nil when the client sent null.
+	// Value 在客户端发送 null 时为 nil。
 	Value *string
 }
 
-// Keep returns an unset patch, meaning "leave the field unchanged".
+// Keep 返回未设置的 patch，表示“不改变字段”。
 func Keep() StringPatch { return StringPatch{} }
 
-// Set returns a patch that assigns value.
+// Set 返回将字段设置为 value 的 patch。
 func Set(value string) StringPatch { return StringPatch{Present: true, Value: &value} }
 
-// Clear returns a patch that sets the field to null.
+// Clear 返回显式 null patch；它只用于验证服务端会拒绝旧客户端的删除请求。
 func Clear() StringPatch { return StringPatch{Present: true} }
 
-// UpdateProfileCommand changes the caller's own profile.
+// UpdateProfileCommand 修改调用方自己的资料。
 type UpdateProfileCommand struct {
 	ActorID  string
 	Nickname *string
@@ -49,14 +48,14 @@ type UpdateProfileCommand struct {
 	QQ       StringPatch
 }
 
-// ChangePasswordCommand replaces the caller's own password.
+// ChangePasswordCommand 替换调用方自己的密码。
 type ChangePasswordCommand struct {
 	ActorID     string
 	OldPassword string
 	NewPassword string
 }
 
-// AuthResult is the outcome of a successful register or login.
+// AuthResult 是注册或登录成功后的结果。
 type AuthResult struct {
 	AccessToken string
 	IssuedAt    time.Time
@@ -64,10 +63,9 @@ type AuthResult struct {
 	Account     *domain.Account
 }
 
-// ExpiresIn reports the token lifetime in whole seconds, which is what the
-// public AuthData schema carries. The value is derived from the issuing clock
-// rather than from a later read, so a slow response cannot report a lifetime
-// the token does not have.
+// ExpiresIn 返回以整秒计的令牌有效期，这正是公开 AuthData schema 携带的值。
+// 该值根据签发时的时钟计算，而不是稍后读取，因此缓慢响应不会报告令牌并不具备的
+// 有效期。
 func (r AuthResult) ExpiresIn() int64 {
 	remaining := r.ExpiresAt.Sub(r.IssuedAt)
 	if remaining <= 0 {

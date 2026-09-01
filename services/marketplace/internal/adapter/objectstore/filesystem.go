@@ -1,9 +1,8 @@
-// Package objectstore implements the Marketplace ObjectStore port.
+// Package objectstore 实现 Marketplace ObjectStore 端口。
 //
-// docs/software-design.md section 9.2 puts product images in object storage
-// reached only by this adapter. The filesystem implementation here is what
-// local development and integration tests run against; an Alibaba Cloud OSS
-// implementation satisfies the same interface and changes no business code.
+// docs/software-design.md 第 9.2 节规定商品图片只能通过此适配器访问对象存储。
+// 这里的文件系统实现用于本地开发和集成测试；Alibaba Cloud OSS 实现满足同一接口，
+// 不会改变业务代码。
 package objectstore
 
 import (
@@ -15,18 +14,17 @@ import (
 	"strings"
 )
 
-// Filesystem stores objects under a base directory and serves them from a
-// public base URL.
+// Filesystem 将对象存储在基础目录下，并通过公开基础 URL 提供访问。
 type Filesystem struct {
 	root      string
 	publicURL string
 }
 
-// ErrUnsafeKey reports a key that would escape the storage root.
+// ErrUnsafeKey 表示会逃出存储根目录的对象键。
 var ErrUnsafeKey = errors.New("objectstore: unsafe object key")
 
-// NewFilesystem creates the storage root if needed and returns a store.
-// publicURL is the prefix the outside world uses to fetch objects.
+// NewFilesystem 按需创建存储根目录并返回存储器。
+// publicURL 是外部世界获取对象时使用的前缀。
 func NewFilesystem(root, publicURL string) (*Filesystem, error) {
 	if root == "" {
 		return nil, errors.New("objectstore: storage root is required")
@@ -41,11 +39,10 @@ func NewFilesystem(root, publicURL string) (*Filesystem, error) {
 	return &Filesystem{root: absolute, publicURL: strings.TrimSuffix(publicURL, "/")}, nil
 }
 
-// Put writes an object, replacing any existing one with the same key.
+// Put 写入对象，并替换同一键下已有的对象。
 //
-// The write goes to a temporary file that is then renamed, so a reader never
-// observes a half-written image and a failed write leaves the previous object
-// intact.
+// 写入先落到临时文件，再执行重命名，因此读取方不会看到只写了一半的图片，
+// 写入失败也会保留原有对象。
 func (f *Filesystem) Put(_ context.Context, key, _ string, data []byte) error {
 	target, err := f.resolve(key)
 	if err != nil {
@@ -78,8 +75,7 @@ func (f *Filesystem) Put(_ context.Context, key, _ string, data []byte) error {
 	return nil
 }
 
-// Delete removes an object. A missing object is not an error, so cleanup and
-// retries are idempotent.
+// Delete 删除对象。对象不存在不算错误，因此清理和重试具备幂等性。
 func (f *Filesystem) Delete(_ context.Context, key string) error {
 	target, err := f.resolve(key)
 	if err != nil {
@@ -91,7 +87,7 @@ func (f *Filesystem) Delete(_ context.Context, key string) error {
 	return nil
 }
 
-// URL returns the public location of an object.
+// URL 返回对象的公开位置。
 func (f *Filesystem) URL(key string) string {
 	if key == "" {
 		return ""
@@ -99,12 +95,11 @@ func (f *Filesystem) URL(key string) string {
 	return f.publicURL + "/" + key
 }
 
-// Root reports the storage directory, so a deployment can mount and serve it.
+// Root 返回存储目录，以便部署挂载并提供其中的文件。
 func (f *Filesystem) Root() string { return f.root }
 
-// resolve turns an object key into a path inside the root, rejecting anything
-// that would escape it. Keys are server-generated today; this check is what
-// keeps that from silently becoming a path traversal if that ever changes.
+// resolve 将对象键转换为根目录内的路径，并拒绝任何会逃出根目录的值。
+// 当前对象键由服务端生成；即使将来改变来源，这项检查也能避免静默变成路径穿越。
 func (f *Filesystem) resolve(key string) (string, error) {
 	if key == "" || strings.HasPrefix(key, "/") || strings.Contains(key, "\\") {
 		return "", ErrUnsafeKey

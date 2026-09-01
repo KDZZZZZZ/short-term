@@ -9,13 +9,10 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/errs"
 )
 
-// decodeJSON reads a JSON request body into target, rejecting unknown fields
-// and trailing content.
+// decodeJSON 将 JSON 请求正文读取到 target，拒绝未知字段和尾随内容。
 //
-// The contract marks every request schema additionalProperties: false, so an
-// unknown field is a client error rather than something to ignore silently.
-// It reports whether decoding succeeded; on failure it has already written the
-// response.
+// 契约将每个请求 schema 标记为 additionalProperties: false，因此未知字段属于客户端
+// 错误，而不是可以静默忽略的内容。函数返回解码是否成功；失败时已经写入响应。
 func decodeJSON(w http.ResponseWriter, r *http.Request, responder Responder, target any) bool {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -36,13 +33,11 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, responder Responder, tar
 	return true
 }
 
-// unknownFieldPrefix is the text encoding/json uses for a rejected property.
-// There is no typed error for it, so the prefix is matched deliberately here
-// rather than at each call site.
+// unknownFieldPrefix 是 encoding/json 为被拒绝属性使用的文本前缀。
+// 由于没有对应的类型化错误，这里有意匹配此前缀，而不是让每个调用点分别处理。
 const unknownFieldPrefix = "json: unknown field "
 
-// decodeMessage turns a decoding failure into a message that tells the client
-// what to fix, without echoing the submitted value back.
+// decodeMessage 将解码失败转换为告知客户端如何修复的消息，同时不回显提交的值。
 func decodeMessage(err error) string {
 	message := err.Error()
 	if field, found := strings.CutPrefix(message, unknownFieldPrefix); found {
@@ -56,8 +51,8 @@ func decodeMessage(err error) string {
 	return "请求体不是合法的 JSON"
 }
 
-// decodeOptionalJSON behaves like decodeJSON but accepts an empty body, which
-// the contract allows for requests whose body is not required.
+// decodeOptionalJSON 的行为类似 decodeJSON，但接受空正文；契约允许正文非必填的
+// 请求这样做。
 func decodeOptionalJSON(w http.ResponseWriter, r *http.Request, responder Responder, target any) bool {
 	if r.ContentLength == 0 {
 		return true

@@ -1,6 +1,5 @@
-// Package middleware holds the Gateway's cross-cutting HTTP concerns:
-// request identity, panic recovery, access logging, authentication and body
-// size limits.
+// Package middleware 保存 Gateway 的 HTTP 横切关注点：请求身份、panic 恢复、
+// 访问日志、身份认证和正文大小限制。
 package middleware
 
 import (
@@ -16,8 +15,7 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/observability"
 )
 
-// RequestIDHeader lets a caller or an upstream proxy supply the request
-// identifier that appears in logs and traces.
+// RequestIDHeader 允许调用方或上游代理提供会出现在日志和追踪中的请求标识。
 const RequestIDHeader = "X-Request-Id"
 
 type contextKey int
@@ -27,34 +25,33 @@ const (
 	actorIDKey
 )
 
-// RequestID returns the identifier assigned to the current request.
+// RequestID 返回当前请求分配到的标识。
 func RequestID(ctx context.Context) string {
 	value, _ := ctx.Value(requestIDKey).(string)
 	return value
 }
 
-// ActorID returns the authenticated user identifier, or an empty string on an
-// unauthenticated request.
+// ActorID 返回通过认证的用户标识；未认证请求返回空字符串。
 func ActorID(ctx context.Context) string {
 	value, _ := ctx.Value(actorIDKey).(string)
 	return value
 }
 
-// WithActorID stores an authenticated user identifier on the context. It is
-// exported so tests can build authenticated requests without minting tokens.
+// WithActorID 将通过认证的用户标识存入上下文。该函数导出后，测试可以构造已认证
+// 请求，而无需签发令牌。
 func WithActorID(ctx context.Context, actorID string) context.Context {
 	return context.WithValue(ctx, actorIDKey, actorID)
 }
 
-// WithRequestID stores a request identifier on the context.
+// WithRequestID 将请求标识存入上下文。
 func WithRequestID(ctx context.Context, requestID string) context.Context {
 	return context.WithValue(ctx, requestIDKey, requestID)
 }
 
-// Middleware wraps a handler.
+// Middleware 包装处理器。
 type Middleware func(http.Handler) http.Handler
 
-// Chain applies middlewares so that the first listed runs outermost.
+// Chain 应用中间件，使列表中的第一个中间件在最外层运行。
 func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		handler = middlewares[i](handler)
@@ -62,8 +59,7 @@ func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 	return handler
 }
 
-// NewRequestID assigns each request an identifier, reusing a caller-supplied
-// one when it is present and plausible.
+// NewRequestID 为每个请求分配标识；调用方提供的标识存在且看起来合理时复用它。
 func NewRequestID() Middleware {
 	generator := id.NewGenerator(nil)
 
@@ -79,13 +75,13 @@ func NewRequestID() Middleware {
 	}
 }
 
-// ErrorWriter writes a contract-shaped error response. The middleware package
-// depends on this narrow interface so it does not import the handler package.
+// ErrorWriter 写入符合契约结构的错误响应。middleware 包依赖这个窄接口，
+// 因此无需导入 handler 包。
 type ErrorWriter interface {
 	Error(w http.ResponseWriter, r *http.Request, err error)
 }
 
-// NewRecovery turns a panic into 500 INTERNAL_ERROR and logs the stack.
+// NewRecovery 将 panic 转换为 500 INTERNAL_ERROR，并记录堆栈。
 func NewRecovery(logger *slog.Logger, responder ErrorWriter) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,9 +100,8 @@ func NewRecovery(logger *slog.Logger, responder ErrorWriter) Middleware {
 	}
 }
 
-// NewAccessLog writes one structured record per request. It never logs the
-// request body or query values, which carry passwords, contact details and
-// message content.
+// NewAccessLog 为每个请求写入一条结构化记录。它从不记录请求正文或查询值，
+// 因为其中包含密码、联系方式和消息内容。
 func NewAccessLog(logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +122,7 @@ func NewAccessLog(logger *slog.Logger) Middleware {
 	}
 }
 
-// NewBodyLimit rejects request bodies larger than max bytes.
+// NewBodyLimit 拒绝大于 max 字节的请求正文。
 func NewBodyLimit(max int64) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +132,7 @@ func NewBodyLimit(max int64) Middleware {
 	}
 }
 
-// statusRecorder remembers the status code for the access log.
+// statusRecorder 为访问日志记录状态码。
 type statusRecorder struct {
 	http.ResponseWriter
 	status  int

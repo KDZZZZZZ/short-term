@@ -60,13 +60,8 @@ func TestRegisterDefaultNicknameNeverDisclosesTheStudentNumber(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	// Nicknames appear on every product, conversation and trade projection.
-	// A default derived from the student number would publish it.
-	if strings.Contains(result.Account.Nickname, "20260001") {
-		t.Fatalf("default nickname %q contains the student number", result.Account.Nickname)
-	}
-	if err := domain.ValidateNickname(result.Account.Nickname); err != nil {
-		t.Fatalf("default nickname is not contract-valid: %v", err)
+	if result.Account.Nickname != "校园用户" {
+		t.Fatalf("default nickname = %q, want 校园用户", result.Account.Nickname)
 	}
 }
 
@@ -198,8 +193,7 @@ func TestLoginDoesNotRevealWhetherAStudentNumberExists(t *testing.T) {
 		assertCode(t, err, errs.CodeUnauthorized)
 		messages = append(messages, errs.MessageOf(err))
 
-		// Every rejected path must still perform one verification, otherwise
-		// response time tells an attacker which student numbers exist.
+		// 每条被拒绝的路径仍必须执行一次验证，否则响应时间会告诉攻击者哪些学号存在。
 		if got := deps.hasher.verifications() - before; got != 1 {
 			t.Fatalf("%s performed %d verifications, want 1", tt.name, got)
 		}
@@ -240,7 +234,7 @@ func TestBatchGetUsersSkipsMissingAndDuplicateIdentifiers(t *testing.T) {
 	}
 }
 
-func TestUpdateProfileAppliesTheThreePatchStates(t *testing.T) {
+func TestUpdateProfileAppliesOmittedAndSetPatches(t *testing.T) {
 	t.Parallel()
 
 	svc, _ := newService(t)
@@ -258,7 +252,7 @@ func TestUpdateProfileAppliesTheThreePatchStates(t *testing.T) {
 
 	updated, err := svc.UpdateProfile(t.Context(), application.UpdateProfileCommand{
 		ActorID: id,
-		Wechat:  application.Clear(),
+		Wechat:  application.Set("wx_updated"),
 		QQ:      application.Set("987654321"),
 	})
 	if err != nil {
@@ -268,11 +262,36 @@ func TestUpdateProfileAppliesTheThreePatchStates(t *testing.T) {
 	if updated.Nickname != nickname {
 		t.Fatalf("an absent nickname patch changed the nickname to %q", updated.Nickname)
 	}
-	if updated.Wechat != nil {
-		t.Fatalf("Wechat = %v, want nil after an explicit null", *updated.Wechat)
+	if updated.Wechat == nil || *updated.Wechat != "wx_updated" {
+		t.Fatalf("Wechat = %v, want wx_updated", updated.Wechat)
 	}
 	if updated.QQ == nil || *updated.QQ != "987654321" {
 		t.Fatalf("QQ = %v, want 987654321", updated.QQ)
+	}
+}
+
+func TestUpdateProfileRejectsContactRemoval(t *testing.T) {
+	t.Parallel()
+
+	svc, deps := newService(t)
+	wechat := "wx_xiaoming"
+	qq := "123456789"
+	id := registerFull(t, svc, application.RegisterCommand{
+		StudentNo: "20260001",
+		Password:  "correct-horse-battery",
+		Wechat:    &wechat,
+		QQ:        &qq,
+	})
+
+	_, err := svc.UpdateProfile(t.Context(), application.UpdateProfileCommand{
+		ActorID: id,
+		Wechat:  application.Clear(),
+	})
+	assertCode(t, err, errs.CodeValidation)
+
+	stored := deps.repo.accounts[id]
+	if stored.Wechat == nil || *stored.Wechat != wechat || stored.QQ == nil || *stored.QQ != qq {
+		t.Fatalf("rejected removal changed stored contacts: wechat=%v qq=%v", stored.Wechat, stored.QQ)
 	}
 }
 
@@ -383,7 +402,7 @@ func TestErrorsNeverEchoTheSubmittedPassword(t *testing.T) {
 	}
 }
 
-// --- test doubles -----------------------------------------------------------
+// --- 测试替身 ---------------------------------------------------------------
 
 type deps struct {
 	repo   *fakeRepository
@@ -509,9 +528,8 @@ func (r *fakeRepository) Update(_ context.Context, account *domain.Account) erro
 	return nil
 }
 
-// fakeHasher is a reversible stand-in: the real Argon2id implementation is
-// tested in platform/auth, and running it here would make these tests slow
-// without testing anything new.
+// fakeHasher 是可逆的替身：真实 Argon2id 实现在 platform/auth 中测试，
+// 在这里运行会让测试变慢，却不会增加新的测试内容。
 type fakeHasher struct {
 	mu      sync.Mutex
 	verifed int
@@ -532,8 +550,8 @@ func (h *fakeHasher) Verify(password, encoded string) error {
 
 func (h *fakeHasher) NeedsRehash(string) bool { return false }
 
-// fakeDigest is one-way like the real hasher, so assertions that no plaintext
-// password reaches storage stay meaningful with this double in place.
+// fakeDigest 和真实哈希器一样是单向的，因此使用该替身时，断言明文密码不会进入
+// 存储仍然有意义。
 func fakeDigest(password string) string {
 	sum := sha256.Sum256([]byte("fake-hash:" + password))
 	return "fake$" + hex.EncodeToString(sum[:])

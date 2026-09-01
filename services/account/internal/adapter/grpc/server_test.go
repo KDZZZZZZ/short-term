@@ -20,11 +20,9 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/account/migrations"
 )
 
-// newClient starts the real gRPC adapter over the real repository, the real
-// Argon2id hasher and the real token issuer, and returns a client for it.
-// Only the network is local; nothing in the chain is stubbed, so this is the
-// evidence that registration, login and profile access work end to end inside
-// the service.
+// newClient 在真实仓储、真实 Argon2id 哈希器和真实令牌签发器之上启动真实 gRPC
+// 适配器，并返回对应客户端。只有网络位于本机，调用链中没有使用桩实现，
+// 因此这证明注册、登录和资料访问可以在服务内部端到端工作。
 func newClient(t *testing.T) (accountv1.AccountServiceClient, *auth.Verifier) {
 	t.Helper()
 
@@ -188,8 +186,8 @@ func TestBatchGetUsersReturnsPublicProfilesOnly(t *testing.T) {
 		t.Fatalf("got %d users, want 2", len(resp.GetUsers()))
 	}
 
-	// UserPublic has no contact or student number fields at all, which is the
-	// point: list aggregation cannot leak them even by accident.
+	// UserPublic 完全没有联系方式或学号字段，这正是目的：
+	// 列表聚合即使意外也无法泄露这些信息。
 	for id, user := range resp.GetUsers() {
 		if user.GetId() != id {
 			t.Fatalf("map key %q does not match user id %q", id, user.GetId())
@@ -228,7 +226,7 @@ func TestUpdateProfileRejectsAMismatchedActor(t *testing.T) {
 	assertCode(t, err, errs.CodeForbidden)
 }
 
-func TestUpdateProfileClearsAndSetsContacts(t *testing.T) {
+func TestUpdateProfileSetsContacts(t *testing.T) {
 	t.Parallel()
 
 	client, _ := newClient(t)
@@ -247,21 +245,50 @@ func TestUpdateProfileClearsAndSetsContacts(t *testing.T) {
 
 	updated, err := client.UpdateProfile(grpcx.WithActor(ctx, userID), &accountv1.UpdateProfileRequest{
 		UserId: userID,
-		Wechat: &accountv1.NullableStringPatch{Value: &accountv1.NullableStringPatch_NullValue{}},
+		Wechat: &accountv1.NullableStringPatch{Value: &accountv1.NullableStringPatch_StringValue{StringValue: "wx_updated"}},
 		Qq:     &accountv1.NullableStringPatch{Value: &accountv1.NullableStringPatch_StringValue{StringValue: "987654321"}},
 	})
 	if err != nil {
 		t.Fatalf("UpdateProfile: %v", err)
 	}
 
-	if updated.GetUser().Wechat != nil {
-		t.Fatalf("wechat = %q, want cleared", updated.GetUser().GetWechat())
+	if updated.GetUser().GetWechat() != "wx_updated" {
+		t.Fatalf("wechat = %q, want wx_updated", updated.GetUser().GetWechat())
 	}
 	if updated.GetUser().GetQq() != "987654321" {
 		t.Fatalf("qq = %q, want 987654321", updated.GetUser().GetQq())
 	}
 	if updated.GetUser().GetStudentNo() != "20260001" {
 		t.Fatalf("student_no = %q, want it unchanged", updated.GetUser().GetStudentNo())
+	}
+}
+
+func TestUpdateProfileRejectsContactRemoval(t *testing.T) {
+	t.Parallel()
+
+	client, _ := newClient(t)
+	registered, err := client.Register(t.Context(), &accountv1.RegisterRequest{
+		StudentNo: "20260001",
+		Password:  "correct-horse-battery",
+		Wechat:    strptr("wx_xiaoming"),
+	})
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	userID := registered.GetAuth().GetUser().GetId()
+
+	_, err = client.UpdateProfile(grpcx.WithActor(t.Context(), userID), &accountv1.UpdateProfileRequest{
+		UserId: userID,
+		Wechat: &accountv1.NullableStringPatch{Value: &accountv1.NullableStringPatch_NullValue{}},
+	})
+	assertCode(t, err, errs.CodeValidation)
+
+	me, err := client.GetProfile(grpcx.WithActor(t.Context(), userID), &accountv1.GetProfileRequest{UserId: userID})
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if me.GetUser().GetWechat() != "wx_xiaoming" {
+		t.Fatalf("wechat = %q after rejected removal", me.GetUser().GetWechat())
 	}
 }
 

@@ -1,10 +1,11 @@
-// Package domain holds the account entity and its invariants.
+// Package domain 保存账户实体及其不变量。
 package domain
 
 import (
 	"errors"
 	"regexp"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -13,19 +14,20 @@ var (
 	qqPattern        = regexp.MustCompile(`^[0-9]{5,20}$`)
 )
 
-// Field validation errors; the application layer maps them to API codes.
+// 字段校验错误；应用层将它们映射为 API 错误码。
 var (
 	ErrStudentNoFormat = errors.New("student_no must be 4-32 characters of letters, digits, '_' or '-'")
 	ErrPasswordLength  = errors.New("password must be 8-64 characters")
 	ErrNicknameLength  = errors.New("nickname must be 1-50 characters")
 	ErrWechatLength    = errors.New("wechat must be 1-64 characters")
 	ErrQQFormat        = errors.New("qq must be 5-20 digits")
+	ErrContactRemoval  = errors.New("a saved contact cannot be removed")
 
 	ErrIDRequired           = errors.New("account id is required")
 	ErrPasswordHashRequired = errors.New("password hash is required")
 )
 
-// Account is the aggregate root of the Account service.
+// Account 是 Account Service 的聚合根。
 type Account struct {
 	ID           string
 	StudentNo    string
@@ -37,7 +39,7 @@ type Account struct {
 	UpdatedAt    time.Time
 }
 
-// ValidateStudentNo enforces the OpenAPI StudentNumber schema.
+// ValidateStudentNo 强制执行 OpenAPI StudentNumber schema。
 func ValidateStudentNo(v string) error {
 	if !studentNoPattern.MatchString(v) {
 		return ErrStudentNoFormat
@@ -45,7 +47,7 @@ func ValidateStudentNo(v string) error {
 	return nil
 }
 
-// ValidatePassword enforces the OpenAPI PasswordInput schema.
+// ValidatePassword 强制执行 OpenAPI PasswordInput schema。
 func ValidatePassword(v string) error {
 	length := utf8.RuneCountInString(v)
 	if length < 8 || length > 64 {
@@ -54,7 +56,7 @@ func ValidatePassword(v string) error {
 	return nil
 }
 
-// ValidateNickname enforces the OpenAPI Nickname schema.
+// ValidateNickname 强制执行 OpenAPI Nickname schema。
 func ValidateNickname(v string) error {
 	length := utf8.RuneCountInString(v)
 	if length < 1 || length > 50 {
@@ -63,7 +65,7 @@ func ValidateNickname(v string) error {
 	return nil
 }
 
-// ValidateWechat enforces the OpenAPI Wechat schema when present.
+// ValidateWechat 在字段存在时强制执行 OpenAPI Wechat schema。
 func ValidateWechat(v *string) error {
 	if v == nil {
 		return nil
@@ -72,10 +74,15 @@ func ValidateWechat(v *string) error {
 	if length < 1 || length > 64 {
 		return ErrWechatLength
 	}
+	for _, r := range *v {
+		if unicode.IsSpace(r) {
+			return ErrWechatLength
+		}
+	}
 	return nil
 }
 
-// ValidateQQ enforces the OpenAPI QQ schema when present.
+// ValidateQQ 在字段存在时强制执行 OpenAPI QQ schema。
 func ValidateQQ(v *string) error {
 	if v == nil {
 		return nil
@@ -86,9 +93,8 @@ func ValidateQQ(v *string) error {
 	return nil
 }
 
-// New builds an account after checking every field invariant. The caller
-// supplies the identifier and password hash: generating identifiers and
-// hashing passwords are adapter concerns, not domain rules.
+// New 在检查所有字段不变量后构造账户。调用方提供标识和密码哈希：
+// 生成标识和哈希密码属于适配器关注点，而不是领域规则。
 func New(id, studentNo, passwordHash, nickname string, wechat, qq *string, now time.Time) (*Account, error) {
 	if id == "" {
 		return nil, ErrIDRequired
@@ -121,7 +127,7 @@ func New(id, studentNo, passwordHash, nickname string, wechat, qq *string, now t
 	}, nil
 }
 
-// Rename changes the display nickname.
+// Rename 修改显示昵称。
 func (a *Account) Rename(nickname string, now time.Time) error {
 	if err := ValidateNickname(nickname); err != nil {
 		return err
@@ -131,8 +137,11 @@ func (a *Account) Rename(nickname string, now time.Time) error {
 	return nil
 }
 
-// SetWechat sets or clears the WeChat contact. A nil value clears it.
+// SetWechat 新增或修改微信联系方式。已填写的联系方式不能删除。
 func (a *Account) SetWechat(wechat *string, now time.Time) error {
+	if wechat == nil {
+		return ErrContactRemoval
+	}
 	if err := ValidateWechat(wechat); err != nil {
 		return err
 	}
@@ -141,8 +150,11 @@ func (a *Account) SetWechat(wechat *string, now time.Time) error {
 	return nil
 }
 
-// SetQQ sets or clears the QQ contact. A nil value clears it.
+// SetQQ 新增或修改 QQ 联系方式。已填写的联系方式不能删除。
 func (a *Account) SetQQ(qq *string, now time.Time) error {
+	if qq == nil {
+		return ErrContactRemoval
+	}
 	if err := ValidateQQ(qq); err != nil {
 		return err
 	}
@@ -151,8 +163,7 @@ func (a *Account) SetQQ(qq *string, now time.Time) error {
 	return nil
 }
 
-// SetPasswordHash replaces the stored password hash. The plaintext password
-// never enters the domain.
+// SetPasswordHash 替换已存储的密码哈希。明文密码永远不会进入领域层。
 func (a *Account) SetPasswordHash(hash string, now time.Time) error {
 	if hash == "" {
 		return ErrPasswordHashRequired
@@ -162,8 +173,8 @@ func (a *Account) SetPasswordHash(hash string, now time.Time) error {
 	return nil
 }
 
-// HasContact reports whether the account published at least one contact
-// method. Publishing a product requires one (OpenAPI createProduct).
+// HasContact 返回账户是否至少公开了一种联系方式。
+// 发布商品要求至少有一种联系方式（OpenAPI createProduct）。
 func (a *Account) HasContact() bool {
 	return (a.Wechat != nil && *a.Wechat != "") || (a.QQ != nil && *a.QQ != "")
 }

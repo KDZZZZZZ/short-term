@@ -6,10 +6,9 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1";
 
-// MarketplaceService owns products, product images, trades and the
-// product/trade state machines. Product and trade transitions that must be
-// atomic (accept, cancel of accepted trade, double confirm) run in a single
-// local transaction here.
+// MarketplaceService 负责商品、商品图片、交易以及商品/交易状态机。
+// 必须保持原子性的商品和交易转换（接受、取消已接受交易、双方确认）
+// 都在此处的单一本地事务中运行。
 service MarketplaceService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
   rpc GetProduct(GetProductRequest) returns (GetProductResponse);
@@ -234,11 +233,18 @@ message CreateTradeRequest {
   string product_id = 2;
   optional string conversation_id = 3;
   optional string idempotency_key = 4;
+  // conversation_id_present distinguishes an omitted JSON property from an
+  // explicitly supplied null. The public create-or-get contract treats those
+  // two forms differently when an intent already exists.
+  bool conversation_id_present = 5;
 }
 
 message CreateTradeResponse {
   Trade trade = 1;
   bool replayed = 2;
+  // created is true for the first successful creation and its idempotent
+  // replays. It is false when create-or-get returned an existing intent.
+  bool created = 3;
 }
 
 message ListTradesRequest {

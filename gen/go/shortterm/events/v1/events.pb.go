@@ -22,11 +22,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// EventEnvelope is the canonical outbox event shape shared by all services.
-// Events are facts notified after commit; consumers must deduplicate on
-// event_id and must not mutate source-service state through events.
-// The event bus product is intentionally unspecified (design doc pending
-// decision); this schema only fixes the contract.
+// EventEnvelope 是所有服务共享的规范 Outbox 事件结构。
+// 事件是提交后通知的事实；消费者必须按 event_id 去重，不能通过事件修改源服务状态。
+// 事件总线产品暂不指定（设计文档仍待决定）；此 schema 只固定契约。
 type EventEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`

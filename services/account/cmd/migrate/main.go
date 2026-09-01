@@ -1,7 +1,6 @@
-// Command migrate applies the Account Service database migrations and exits.
-// Deployments run it as a separate step before starting the server, which is
-// what lets a release use the expand/contract sequence in
-// docs/software-design.md section 9.3.
+// Command migrate 应用 Account Service 数据库迁移后退出。
+// 部署会在启动服务端前单独执行此命令，从而让发布过程可以使用
+// docs/software-design.md 第 9.3 节中的扩展/收缩序列。
 package main
 
 import (

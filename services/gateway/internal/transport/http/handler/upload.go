@@ -6,25 +6,23 @@ import (
 	"mime/multipart"
 )
 
-// Upload limits, matching openapi/components/schemas.yaml#/ImageFile and the
-// createProduct description.
+// 上传限制，与 openapi/components/schemas.yaml#/ImageFile 和 createProduct 描述一致。
 const (
-	// MaxImageBytes is the per-file limit: 5 MiB.
+	// MaxImageBytes 是单文件限制：5 MiB。
 	MaxImageBytes = 5 << 20
-	// MaxUploadBytes is the whole multipart request limit: 16 MiB.
+	// MaxUploadBytes 是整个 multipart 请求的限制：16 MiB。
 	MaxUploadBytes = 16 << 20
-	// maxImages is the number of files one request may carry.
+	// maxImages 是单个请求可携带的文件数。
 	maxImages = 3
-	// multipartMemory bounds what the parser keeps in memory before spilling
-	// to a temporary file on disk.
+	// multipartMemory 限制解析器在将内容溢出到磁盘临时文件前保留在内存中的大小。
 	multipartMemory = 8 << 20
 )
 
-// errUploadTooLarge reports a file that exceeded the per-file limit.
+// errUploadTooLarge 表示文件超过单文件限制。
 var errUploadTooLarge = errors.New("upload exceeds the per-file limit")
 
-// readUpload loads one uploaded file, refusing to read past the per-file limit
-// even when the header reported a smaller size.
+// readUpload 加载一个上传文件，即使请求头报告的大小更小，也拒绝读取超过单文件
+// 限制的内容。
 func readUpload(header *multipart.FileHeader) ([]byte, error) {
 	file, err := header.Open()
 	if err != nil {
@@ -32,8 +30,7 @@ func readUpload(header *multipart.FileHeader) ([]byte, error) {
 	}
 	defer func() { _ = file.Close() }()
 
-	// One byte over the limit is read on purpose: it distinguishes a file at
-	// exactly the limit from one that exceeds it.
+	// 有意多读取一个字节：这样可以区分恰好达到限制的文件和超过限制的文件。
 	data, err := io.ReadAll(io.LimitReader(file, MaxImageBytes+1))
 	if err != nil {
 		return nil, err

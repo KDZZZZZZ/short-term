@@ -1,9 +1,8 @@
-// Package logging builds the structured logger every service uses.
+// Package logging 构造所有服务使用的结构化日志记录器。
 //
-// docs/software-design.md section 8.4 fixes the field names and forbids
-// passwords, whole JWTs, contact details, message bodies and credentials from
-// reaching logs. The redacting handler here enforces that at write time rather
-// than trusting each call site to remember.
+// docs/software-design.md 第 8.4 节规定了字段名，并禁止密码、完整 JWT、联系方式、
+// 消息正文和凭据进入日志。本包中的脱敏处理器在写入时强制执行这些规则，
+// 不依赖每个调用点自行记住。
 package logging
 
 import (
@@ -13,7 +12,7 @@ import (
 	"strings"
 )
 
-// Canonical field names shared by all services and by the trace exporters.
+// 所有服务及追踪导出器共享的规范字段名。
 const (
 	FieldService     = "service"
 	FieldEnvironment = "environment"
@@ -24,13 +23,11 @@ const (
 	FieldErrorCode   = "error_code"
 )
 
-// Redacted replaces the value of any attribute whose key is classified as
-// sensitive.
+// Redacted 替换键被归类为敏感信息的属性值。
 const Redacted = "[REDACTED]"
 
-// deniedKeys are attribute names that must never be written in clear text.
-// Matching is case-insensitive and also covers dotted or prefixed variants
-// such as "request.password" or "user_wechat".
+// deniedKeys 是绝不能以明文写入的属性名。匹配不区分大小写，也覆盖带点号或
+// 前缀的变体，例如 "request.password" 或 "user_wechat"。
 var deniedKeys = []string{
 	"password",
 	"password_hash",
@@ -53,18 +50,17 @@ var deniedKeys = []string{
 	"oss_secret_key",
 }
 
-// Options configures the process logger.
+// Options 配置进程日志记录器。
 type Options struct {
-	// Service is the deployable unit name, for example "gateway".
+	// Service 是可部署单元名称，例如 "gateway"。
 	Service string
-	// Environment is the deployment environment, for example "local".
+	// Environment 是部署环境，例如 "local"。
 	Environment string
-	// Level is the minimum level to emit.
+	// Level 是要输出的最低级别。
 	Level slog.Level
 }
 
-// New builds a JSON logger that stamps every record with the service and
-// environment and redacts sensitive attributes.
+// New 构造 JSON 日志记录器，为每条记录添加服务和环境，并对敏感属性脱敏。
 func New(w io.Writer, opts Options) *slog.Logger {
 	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{Level: opts.Level})
 	return slog.New(&redactingHandler{inner: handler}).With(
@@ -73,8 +69,8 @@ func New(w io.Writer, opts Options) *slog.Logger {
 	)
 }
 
-// IsSensitive reports whether an attribute key must be redacted. It is
-// exported so tests and reviewers can assert the policy directly.
+// IsSensitive 判断属性键是否必须脱敏。该函数导出后，测试和评审者可以直接验证
+// 这项策略。
 func IsSensitive(key string) bool {
 	lower := strings.ToLower(key)
 	for _, denied := range deniedKeys {
@@ -85,7 +81,7 @@ func IsSensitive(key string) bool {
 	return false
 }
 
-// redactingHandler rewrites sensitive attributes before delegating.
+// redactingHandler 在委托处理前重写敏感属性。
 type redactingHandler struct {
 	inner slog.Handler
 }
@@ -115,8 +111,7 @@ func (h *redactingHandler) WithGroup(name string) slog.Handler {
 	return &redactingHandler{inner: h.inner.WithGroup(name)}
 }
 
-// redact rewrites one attribute, descending into groups so a sensitive field
-// cannot hide one level down.
+// redact 重写一个属性，并递归处理组，避免敏感字段藏在下一层。
 func redact(attr slog.Attr) slog.Attr {
 	if IsSensitive(attr.Key) {
 		return slog.String(attr.Key, Redacted)

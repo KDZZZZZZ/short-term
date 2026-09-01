@@ -59,7 +59,7 @@ func TestCreateAndReadProductWithImages(t *testing.T) {
 	if len(loaded.Images) != 2 {
 		t.Fatalf("got %d images, want 2", len(loaded.Images))
 	}
-	// Images come back ordered by slot, so the cover is deterministic.
+	// 图片按位置排序返回，因此封面是确定的。
 	if loaded.Images[0].SortOrder != 1 || loaded.Images[1].SortOrder != 2 {
 		t.Fatalf("images are not ordered by slot: %+v", loaded.Images)
 	}
@@ -75,7 +75,7 @@ func TestCreateRollsBackWhenAnImageIsInvalid(t *testing.T) {
 	product := newProduct(t, "p_1", "u_seller", "机械键盘", created)
 	product.Images = []domain.Image{
 		{ID: "img_1", ProductID: "p_1", ObjectKey: "ok", SortOrder: 1, CreatedAt: created},
-		// Slot 4 violates the CHECK constraint.
+		// 位置 4 违反 CHECK 约束。
 		{ID: "img_4", ProductID: "p_1", ObjectKey: "bad", SortOrder: 4, CreatedAt: created},
 	}
 
@@ -107,8 +107,8 @@ func TestListOrdersNewestFirstWithADeterministicTieBreaker(t *testing.T) {
 
 	repo, _ := newRepository(t)
 
-	// Every product shares one timestamp, so only the identifier can order
-	// them. Without the tie-breaker, paging could repeat or skip rows.
+	// 所有商品共享同一个时间戳，因此只能用标识排序。没有这个平局裁决，
+	// 分页可能会重复或跳过行。
 	for i := range 10 {
 		product := newProduct(t, fmt.Sprintf("p_%02d", i), "u_seller", fmt.Sprintf("商品 %d", i), created)
 		if err := repo.Create(t.Context(), product); err != nil {
@@ -222,8 +222,7 @@ func TestListKeywordMatchesLiterallyAndIsCaseInsensitive(t *testing.T) {
 	}{
 		{name: "case insensitive", keyword: "keyboard", want: []string{"p_1"}},
 		{name: "chinese substring", keyword: "键盘", want: []string{"p_2"}},
-		// A wildcard in user input must match the literal characters, not
-		// every row.
+		// 用户输入中的通配符必须匹配字面字符，而不是匹配每一行。
 		{name: "percent is literal", keyword: "100%", want: []string{"p_2"}},
 		{name: "underscore is literal", keyword: "_", want: nil},
 		{name: "no match", keyword: "自行车", want: nil},
@@ -310,7 +309,7 @@ func TestConcurrentImageWritesCannotExceedThreeSlots(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	// Every writer races for slot 1. Only the unique index can decide.
+	// 所有写入方都争抢位置 1，只有唯一索引能够决定结果。
 	const attempts = 8
 	results := make([]error, attempts)
 	var wg sync.WaitGroup

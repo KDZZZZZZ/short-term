@@ -6,12 +6,12 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/messaging/v1;messagingv1";
 
-// MessagingService owns product-contextual conversations, text messages and
-// read state. Participation rules are enforced locally against stored
-// buyer_id/seller_id; product facts are fetched from MarketplaceService when
-// a conversation is created.
+// MessagingService 负责与商品关联的会话、文本消息和已读状态。
+// 参与规则根据存储的 buyer_id/seller_id 在本地执行；创建会话时，
+// 商品事实从 MarketplaceService 获取。
 service MessagingService {
   rpc GetOrCreateConversation(GetOrCreateConversationRequest) returns (GetOrCreateConversationResponse);
+  rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
   rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
   rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
@@ -55,6 +55,19 @@ message GetOrCreateConversationRequest {
 message GetOrCreateConversationResponse {
   ConversationItem conversation = 1;
   bool replayed = 2;
+}
+
+// GetConversation is the fact-source lookup used by Marketplace before it
+// binds a purchase intent to a conversation. Messaging applies participant
+// visibility and returns RESOURCE_NOT_FOUND for both missing and invisible
+// conversations.
+message GetConversationRequest {
+  string actor_id = 1;
+  string conversation_id = 2;
+}
+
+message GetConversationResponse {
+  ConversationItem conversation = 1;
 }
 
 message ListConversationsRequest {

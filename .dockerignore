@@ -1,0 +1,12 @@
+.git
+.github
+.codex
+node_modules
+deploy
+docs
+openapi
+research
+scripts
+*.log
+*.tmp
+coverage*

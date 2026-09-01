@@ -29,8 +29,8 @@ func TestMigrateAppliesEveryVersion(t *testing.T) {
 		t.Fatalf("schema version = %d, want 2", version)
 	}
 
-	// The second migration adds this column, so selecting it proves the whole
-	// sequence ran rather than only the first file.
+	// 第二个迁移会添加此列，因此查询该列可以证明完整迁移序列已运行，
+	// 而不只是运行了第一个文件。
 	if _, err := pool.Exec(t.Context(), `INSERT INTO widgets (id, name, notes) VALUES ($1, $2, $3)`, "w1", "first", "note"); err != nil {
 		t.Fatalf("insert into migrated table: %v", err)
 	}

@@ -177,7 +177,8 @@ func TestUpdateWritesBackMutableFields(t *testing.T) {
 	if err := account.Rename("新昵称", later); err != nil {
 		t.Fatalf("Rename: %v", err)
 	}
-	if err := account.SetWechat(nil, later); err != nil {
+	wechat := "wx_updated"
+	if err := account.SetWechat(&wechat, later); err != nil {
 		t.Fatalf("SetWechat: %v", err)
 	}
 	qq := "123456789"
@@ -195,8 +196,8 @@ func TestUpdateWritesBackMutableFields(t *testing.T) {
 	if reloaded.Nickname != "新昵称" {
 		t.Fatalf("Nickname = %q", reloaded.Nickname)
 	}
-	if reloaded.Wechat != nil {
-		t.Fatalf("Wechat = %v, want nil after clearing", *reloaded.Wechat)
+	if reloaded.Wechat == nil || *reloaded.Wechat != wechat {
+		t.Fatalf("Wechat = %v, want %s", reloaded.Wechat, wechat)
 	}
 	if reloaded.QQ == nil || *reloaded.QQ != qq {
 		t.Fatalf("QQ = %v, want %s", reloaded.QQ, qq)
@@ -222,18 +223,19 @@ func TestDatabaseRejectsInvalidValues(t *testing.T) {
 
 	_, pool := newRepository(t)
 
-	// The migration's CHECK constraints are a second line of defence behind
-	// domain validation; a repository bug must not be able to store a value the
-	// public contract cannot represent.
+	// 迁移中的 CHECK 约束是领域校验之外的第二道防线；
+	// 仓储缺陷不能将公开契约无法表示的值存入数据库。
 	tests := []struct {
 		name      string
 		studentNo string
 		nickname  string
+		wechat    any
 		qq        any
 	}{
-		{name: "student number too short", studentNo: "1", nickname: "n", qq: nil},
-		{name: "student number with a space", studentNo: "2026 0001", nickname: "n", qq: nil},
-		{name: "empty nickname", studentNo: "20260001", nickname: "", qq: nil},
+		{name: "student number too short", studentNo: "1", nickname: "n"},
+		{name: "student number with a space", studentNo: "2026 0001", nickname: "n"},
+		{name: "empty nickname", studentNo: "20260001", nickname: ""},
+		{name: "wechat with whitespace", studentNo: "20260001", nickname: "n", wechat: "wx xiaoming"},
 		{name: "qq with letters", studentNo: "20260001", nickname: "n", qq: "12345abc"},
 	}
 
@@ -242,8 +244,8 @@ func TestDatabaseRejectsInvalidValues(t *testing.T) {
 			t.Parallel()
 
 			_, err := pool.Exec(t.Context(),
-				`INSERT INTO accounts (id, student_no, password_hash, nickname, qq) VALUES ($1, $2, $3, $4, $5)`,
-				"u_"+tt.name, tt.studentNo, "hash", tt.nickname, tt.qq)
+				`INSERT INTO accounts (id, student_no, password_hash, nickname, wechat, qq) VALUES ($1, $2, $3, $4, $5, $6)`,
+				"u_"+tt.name, tt.studentNo, "hash", tt.nickname, tt.wechat, tt.qq)
 			if err == nil {
 				t.Fatal("the database accepted a value the contract forbids")
 			}

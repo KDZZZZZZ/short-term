@@ -1,7 +1,5 @@
-// Package domain holds the Marketplace entities and the rules that govern
-// them. Product status may only change through the transitions declared here,
-// which is what docs/state-machines.md requires: no generic setter, and no
-// PATCH endpoint, may assign a status directly.
+// Package domain 保存 Marketplace 实体及其规则。商品状态只能通过此处声明的转换改变，
+// 这是 docs/state-machines.md 的要求：不能通过通用 setter 或 PATCH 端点直接赋值状态。
 package domain
 
 import (
@@ -10,10 +8,10 @@ import (
 	"unicode/utf8"
 )
 
-// Status is the product lifecycle state.
+// Status 是商品生命周期状态。
 type Status string
 
-// The product states from docs/state-machines.md.
+// docs/state-machines.md 中定义的商品状态。
 const (
 	StatusOnSale   Status = "ON_SALE"
 	StatusReserved Status = "RESERVED"
@@ -21,7 +19,7 @@ const (
 	StatusOffShelf Status = "OFF_SHELF"
 )
 
-// Valid reports whether s is a known status.
+// Valid 判断 s 是否为已知状态。
 func (s Status) Valid() bool {
 	switch s {
 	case StatusOnSale, StatusReserved, StatusSold, StatusOffShelf:
@@ -31,10 +29,10 @@ func (s Status) Valid() bool {
 	}
 }
 
-// Category is the product category.
+// Category 是商品分类。
 type Category string
 
-// The categories declared by the public ProductCategory schema.
+// 公开 ProductCategory schema 声明的分类。
 const (
 	CategoryTextbook Category = "TEXTBOOK"
 	CategoryDigital  Category = "DIGITAL"
@@ -42,7 +40,7 @@ const (
 	CategoryOther    Category = "OTHER"
 )
 
-// Valid reports whether c is a known category.
+// Valid 判断 c 是否为已知分类。
 func (c Category) Valid() bool {
 	switch c {
 	case CategoryTextbook, CategoryDigital, CategoryLife, CategoryOther:
@@ -52,20 +50,20 @@ func (c Category) Valid() bool {
 	}
 }
 
-// Field limits, mirroring openapi/components/schemas.yaml.
+// 字段限制，与 openapi/components/schemas.yaml 保持一致。
 const (
-	// MaxTitleLength is the ProductSummary/ProductDetail title limit.
+	// MaxTitleLength 是 ProductSummary/ProductDetail 的标题长度限制。
 	MaxTitleLength = 100
-	// MaxDescriptionLength is the ProductDetail description limit.
+	// MaxDescriptionLength 是 ProductDetail 的描述长度限制。
 	MaxDescriptionLength = 2000
-	// MaxPriceMinor is the largest amount the Price pattern can express:
-	// 99999999.99 in minor units.
+	// MaxPriceMinor 是 Price 模式可以表达的最大金额：
+	// 以最小货币单位表示为 99999999.99。
 	MaxPriceMinor = 9999999999
-	// MaxImages is the number of images a product may carry.
+	// MaxImages 是商品可以携带的图片数量。
 	MaxImages = 3
 )
 
-// Validation and transition errors.
+// 校验和状态转换错误。
 var (
 	ErrIDRequired         = errors.New("product id is required")
 	ErrSellerRequired     = errors.New("seller id is required")
@@ -81,11 +79,11 @@ var (
 	ErrNotReserved        = errors.New("the product is not reserved")
 	ErrImageLimitExceeded = errors.New("a product may hold at most three images")
 	ErrImageSlotTaken     = errors.New("the image slot is already used")
+	ErrImageNotFound      = errors.New("the product image does not exist")
 )
 
-// Image is a stored product photo. The object key is internal; the public URL
-// is derived by the transport layer, so moving to another object store does
-// not change the domain.
+// Image 是已存储的商品图片。对象键属于内部信息，公开 URL 由传输层推导，
+// 因此迁移到其他对象存储不会改变领域层。
 type Image struct {
 	ID        string
 	ProductID string
@@ -94,7 +92,7 @@ type Image struct {
 	CreatedAt time.Time
 }
 
-// Product is the aggregate root for a listing.
+// Product 是商品的聚合根。
 type Product struct {
 	ID          string
 	SellerID    string
@@ -103,15 +101,14 @@ type Product struct {
 	Category    Category
 	Description string
 	Status      Status
-	// Version increases on every change and is used for optimistic concurrency
-	// detection on the product row.
+	// Version 每次变更都会递增，用于在商品行上检测乐观并发冲突。
 	Version   int64
 	Images    []Image
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-// NewProduct creates a listing in the ON_SALE state.
+// NewProduct 创建处于 ON_SALE 状态的商品。
 func NewProduct(id, sellerID, title string, priceMinor int64, category Category, description string, now time.Time) (*Product, error) {
 	if id == "" {
 		return nil, ErrIDRequired
@@ -146,7 +143,7 @@ func NewProduct(id, sellerID, title string, priceMinor int64, category Category,
 	}, nil
 }
 
-// ValidateTitle enforces the public title limits.
+// ValidateTitle 强制执行公开标题限制。
 func ValidateTitle(title string) error {
 	length := utf8.RuneCountInString(title)
 	if length < 1 || length > MaxTitleLength {
@@ -155,7 +152,7 @@ func ValidateTitle(title string) error {
 	return nil
 }
 
-// ValidateDescription enforces the public description limits.
+// ValidateDescription 强制执行公开描述限制。
 func ValidateDescription(description string) error {
 	length := utf8.RuneCountInString(description)
 	if length < 1 || length > MaxDescriptionLength {
@@ -164,7 +161,7 @@ func ValidateDescription(description string) error {
 	return nil
 }
 
-// ValidatePrice enforces the range the public Price pattern can express.
+// ValidatePrice 强制执行公开 Price 模式可以表达的范围。
 func ValidatePrice(priceMinor int64) error {
 	if priceMinor < 0 || priceMinor > MaxPriceMinor {
 		return ErrPriceRange
@@ -172,18 +169,14 @@ func ValidatePrice(priceMinor int64) error {
 	return nil
 }
 
-// IsSeller reports whether actorID published this product.
+// IsSeller 判断 actorID 是否发布了该商品。
 func (p *Product) IsSeller(actorID string) bool { return actorID != "" && actorID == p.SellerID }
 
-// Edit changes the descriptive fields. Only fields with a non-nil argument
-// change, and status is never one of them: a listing that is reserved or sold
-// belongs to a trade in progress and must not move under the counterparty.
+// Edit 修改描述字段。只有非 nil 参数对应的字段会改变，状态永远不是其中之一：
+// 已预留或已售出的商品属于进行中的交易，不能在交易对方操作下移动状态。
 func (p *Product) Edit(actorID string, title *string, priceMinor *int64, category *Category, description *string, now time.Time) error {
-	if !p.IsSeller(actorID) {
-		return ErrNotSeller
-	}
-	if p.Status != StatusOnSale && p.Status != StatusOffShelf {
-		return ErrNotEditable
+	if err := p.RequireContentMutation(actorID); err != nil {
+		return err
 	}
 
 	if title != nil {
@@ -221,7 +214,64 @@ func (p *Product) Edit(actorID string, title *string, priceMinor *int64, categor
 	return nil
 }
 
-// OffShelf performs ON_SALE -> OFF_SHELF.
+// RequireContentMutation 检查商品字段或图片是否可由 actorID 修改。
+// 是否存在 PENDING 意向由持有 Product 锁的应用事务额外检查。
+func (p *Product) RequireContentMutation(actorID string) error {
+	if !p.IsSeller(actorID) {
+		return ErrNotSeller
+	}
+	if p.Status != StatusOnSale && p.Status != StatusOffShelf {
+		return ErrNotEditable
+	}
+	return nil
+}
+
+// AppendImages 按上传顺序追加图片，并维持连续的 1..N 排序。
+func (p *Product) AppendImages(actorID string, images []Image, now time.Time) error {
+	if err := p.RequireContentMutation(actorID); err != nil {
+		return err
+	}
+	if len(images) == 0 || len(p.Images)+len(images) > MaxImages {
+		return ErrImageLimitExceeded
+	}
+
+	firstOrder := len(p.Images) + 1
+	for i := range images {
+		images[i].ProductID = p.ID
+		images[i].SortOrder = firstOrder + i
+		p.Images = append(p.Images, images[i])
+	}
+	p.touch(now)
+	return nil
+}
+
+// RemoveImage 删除指定图片，保持其余图片相对顺序并重新编号为连续的 1..N。
+func (p *Product) RemoveImage(actorID, imageID string, now time.Time) (string, error) {
+	if err := p.RequireContentMutation(actorID); err != nil {
+		return "", err
+	}
+
+	index := -1
+	for i := range p.Images {
+		if p.Images[i].ID == imageID {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		return "", ErrImageNotFound
+	}
+
+	objectKey := p.Images[index].ObjectKey
+	p.Images = append(p.Images[:index], p.Images[index+1:]...)
+	for i := range p.Images {
+		p.Images[i].SortOrder = i + 1
+	}
+	p.touch(now)
+	return objectKey, nil
+}
+
+// OffShelf 执行 ON_SALE -> OFF_SHELF。
 func (p *Product) OffShelf(actorID string, now time.Time) error {
 	if !p.IsSeller(actorID) {
 		return ErrNotSeller
@@ -234,7 +284,7 @@ func (p *Product) OffShelf(actorID string, now time.Time) error {
 	return nil
 }
 
-// Relist performs OFF_SHELF -> ON_SALE.
+// Relist 执行 OFF_SHELF -> ON_SALE。
 func (p *Product) Relist(actorID string, now time.Time) error {
 	if !p.IsSeller(actorID) {
 		return ErrNotSeller
@@ -247,8 +297,8 @@ func (p *Product) Relist(actorID string, now time.Time) error {
 	return nil
 }
 
-// Reserve performs ON_SALE -> RESERVED when a seller accepts a trade. It is
-// driven by the trade state machine, never by a product endpoint.
+// Reserve 在卖家接受交易时执行 ON_SALE -> RESERVED。
+// 它由交易状态机驱动，绝不由商品端点驱动。
 func (p *Product) Reserve(now time.Time) error {
 	if p.Status != StatusOnSale {
 		return ErrNotOnSale
@@ -258,7 +308,7 @@ func (p *Product) Reserve(now time.Time) error {
 	return nil
 }
 
-// Release performs RESERVED -> ON_SALE when an accepted trade is cancelled.
+// Release 在已接受交易取消时执行 RESERVED -> ON_SALE。
 func (p *Product) Release(now time.Time) error {
 	if p.Status != StatusReserved {
 		return ErrNotReserved
@@ -268,7 +318,7 @@ func (p *Product) Release(now time.Time) error {
 	return nil
 }
 
-// MarkSold performs RESERVED -> SOLD when both parties confirm. SOLD is final.
+// MarkSold 在双方确认时执行 RESERVED -> SOLD。SOLD 是终态。
 func (p *Product) MarkSold(now time.Time) error {
 	if p.Status != StatusReserved {
 		return ErrNotReserved
@@ -278,12 +328,11 @@ func (p *Product) MarkSold(now time.Time) error {
 	return nil
 }
 
-// Tradable reports whether a new trade may be created or accepted for this
-// product. RESERVED, SOLD and OFF_SHELF products are not tradable.
+// Tradable 判断是否可以为该商品创建或接受新交易。
+// RESERVED、SOLD 和 OFF_SHELF 商品不可交易。
 func (p *Product) Tradable() bool { return p.Status == StatusOnSale }
 
-// NextImageSlot returns the lowest free sort_order, or an error when the
-// product already holds the maximum number of images.
+// NextImageSlot 返回最小的空闲 sort_order；商品图片已达上限时返回错误。
 func (p *Product) NextImageSlot() (int, error) {
 	used := make(map[int]bool, len(p.Images))
 	for _, image := range p.Images {
@@ -297,8 +346,8 @@ func (p *Product) NextImageSlot() (int, error) {
 	return 0, ErrImageLimitExceeded
 }
 
-// CoverObjectKey returns the object key of the lowest-ordered image, which is
-// the product cover, or an empty string when the product has no images.
+// CoverObjectKey 返回排序最小图片的对象键，即商品封面；
+// 商品没有图片时返回空字符串。
 func (p *Product) CoverObjectKey() string {
 	cover := ""
 	lowest := MaxImages + 1
@@ -311,8 +360,7 @@ func (p *Product) CoverObjectKey() string {
 	return cover
 }
 
-// touch records a change: the timestamp moves and the version increments, so a
-// concurrent writer that read an older row can be detected.
+// touch 记录一次变更：更新时间戳并递增版本，这样可以检测读取过旧数据行的并发写入方。
 func (p *Product) touch(now time.Time) {
 	p.Version++
 	p.UpdatedAt = now

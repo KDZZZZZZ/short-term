@@ -32,15 +32,15 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// AccountService owns student credentials, tokens and public profiles.
-// Resource-level authorization for accounts is enforced here.
+// AccountService 负责学生凭据、令牌和公开资料。
+// 账户的资源级授权在此处执行。
 type AccountServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
-	// GetProfile returns the owner's own view, including the student number.
-	// It is separate from GetUser so that no aggregation path can reach the
-	// student number by mistake: GetUser cannot return one.
+	// GetProfile 返回所有者自己的视图，其中包含学号。
+	// 它与 GetUser 分开，因此任何聚合路径都不会误取学号：
+	// GetUser 无法返回学号。
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 	BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
@@ -129,15 +129,15 @@ func (c *accountServiceClient) ChangePassword(ctx context.Context, in *ChangePas
 // All implementations should embed UnimplementedAccountServiceServer
 // for forward compatibility.
 //
-// AccountService owns student credentials, tokens and public profiles.
-// Resource-level authorization for accounts is enforced here.
+// AccountService 负责学生凭据、令牌和公开资料。
+// 账户的资源级授权在此处执行。
 type AccountServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
-	// GetProfile returns the owner's own view, including the student number.
-	// It is separate from GetUser so that no aggregation path can reach the
-	// student number by mistake: GetUser cannot return one.
+	// GetProfile 返回所有者自己的视图，其中包含学号。
+	// 它与 GetUser 分开，因此任何聚合路径都不会误取学号：
+	// GetUser 无法返回学号。
 	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
 	BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)

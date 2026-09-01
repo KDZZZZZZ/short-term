@@ -1,5 +1,5 @@
-// Package grpc exposes the Marketplace use cases over the internal gRPC
-// contract in proto/shortterm/marketplace/v1.
+// Package grpc 通过 proto/shortterm/marketplace/v1 中的内部 gRPC 契约暴露
+// Marketplace 用例。
 package grpc
 
 import (
@@ -13,23 +13,22 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/marketplace/internal/domain"
 )
 
-// maxBatchProducts bounds one BatchGetProducts call. Favorite, conversation
-// and trade lists complete one page at a time, and the largest public page is
-// 100 rows.
+// maxBatchProducts 限制一次 BatchGetProducts 调用。收藏、会话和交易列表一次补全
+// 一页，最大公开页面为 100 行。
 const maxBatchProducts = 200
 
-// Server adapts the Marketplace application services to the generated service
-// interface.
+// Server 将 Marketplace 应用服务适配到生成的服务接口。
 type Server struct {
 	products *application.ProductService
+	trades   *application.TradeService
 }
 
-// NewServer builds the gRPC adapter.
-func NewServer(products *application.ProductService) *Server {
-	return &Server{products: products}
+// NewServer 构造 gRPC 适配器。
+func NewServer(products *application.ProductService, trades *application.TradeService) *Server {
+	return &Server{products: products, trades: trades}
 }
 
-// CreateProduct publishes a listing.
+// CreateProduct 发布商品。
 func (s *Server) CreateProduct(ctx context.Context, req *marketplacev1.CreateProductRequest) (*marketplacev1.CreateProductResponse, error) {
 	product, err := s.products.Create(ctx, application.CreateProductCommand{
 		ActorID:     req.GetActorId(),
@@ -45,7 +44,7 @@ func (s *Server) CreateProduct(ctx context.Context, req *marketplacev1.CreatePro
 	return &marketplacev1.CreateProductResponse{Product: s.productDetail(product)}, nil
 }
 
-// GetProduct returns one listing with its images.
+// GetProduct 返回一个商品及其图片。
 func (s *Server) GetProduct(ctx context.Context, req *marketplacev1.GetProductRequest) (*marketplacev1.GetProductResponse, error) {
 	product, err := s.products.Get(ctx, req.GetProductId())
 	if err != nil {
@@ -54,7 +53,7 @@ func (s *Server) GetProduct(ctx context.Context, req *marketplacev1.GetProductRe
 	return &marketplacev1.GetProductResponse{Product: s.productDetail(product)}, nil
 }
 
-// ListProducts browses the public catalogue.
+// ListProducts 浏览公开商品目录。
 func (s *Server) ListProducts(ctx context.Context, req *marketplacev1.ListProductsRequest) (*marketplacev1.ListProductsResponse, error) {
 	query := application.ListProductsQuery{
 		Keyword: req.Keyword,
@@ -72,7 +71,7 @@ func (s *Server) ListProducts(ctx context.Context, req *marketplacev1.ListProduc
 	return &marketplacev1.ListProductsResponse{Page: s.productPage(page)}, nil
 }
 
-// ListUserProducts lists one seller's own products in any status.
+// ListUserProducts 按任意状态列出某个卖家的商品。
 func (s *Server) ListUserProducts(ctx context.Context, req *marketplacev1.ListUserProductsRequest) (*marketplacev1.ListUserProductsResponse, error) {
 	query := application.ListUserProductsQuery{
 		SellerID: req.GetSellerId(),
@@ -90,7 +89,7 @@ func (s *Server) ListUserProducts(ctx context.Context, req *marketplacev1.ListUs
 	return &marketplacev1.ListUserProductsResponse{Page: s.productPage(page)}, nil
 }
 
-// BatchGetProducts returns the listings that exist among the requested ids.
+// BatchGetProducts 返回请求 id 中存在的商品。
 func (s *Server) BatchGetProducts(ctx context.Context, req *marketplacev1.BatchGetProductsRequest) (*marketplacev1.BatchGetProductsResponse, error) {
 	if len(req.GetProductIds()) > maxBatchProducts {
 		return nil, errs.Newf(errs.CodeValidation, "单次最多查询 %d 个商品", maxBatchProducts)
@@ -108,7 +107,7 @@ func (s *Server) BatchGetProducts(ctx context.Context, req *marketplacev1.BatchG
 	return &marketplacev1.BatchGetProductsResponse{Products: summaries}, nil
 }
 
-// UpdateProduct edits a listing's descriptive fields.
+// UpdateProduct 编辑商品的描述字段。
 func (s *Server) UpdateProduct(ctx context.Context, req *marketplacev1.UpdateProductRequest) (*marketplacev1.UpdateProductResponse, error) {
 	cmd := application.UpdateProductCommand{
 		ActorID:     req.GetActorId(),
@@ -129,7 +128,7 @@ func (s *Server) UpdateProduct(ctx context.Context, req *marketplacev1.UpdatePro
 	return &marketplacev1.UpdateProductResponse{Product: s.productDetail(product)}, nil
 }
 
-// AddProductImages appends images to a listing.
+// AddProductImages 向商品追加图片。
 func (s *Server) AddProductImages(ctx context.Context, req *marketplacev1.AddProductImagesRequest) (*marketplacev1.AddProductImagesResponse, error) {
 	images, err := s.products.AddImages(ctx, application.AddImagesCommand{
 		ActorID:   req.GetActorId(),
@@ -142,7 +141,7 @@ func (s *Server) AddProductImages(ctx context.Context, req *marketplacev1.AddPro
 	return &marketplacev1.AddProductImagesResponse{Images: s.images(images)}, nil
 }
 
-// DeleteProductImage removes one image from a listing.
+// DeleteProductImage 从商品中删除一张图片。
 func (s *Server) DeleteProductImage(ctx context.Context, req *marketplacev1.DeleteProductImageRequest) (*marketplacev1.DeleteProductImageResponse, error) {
 	err := s.products.DeleteImage(ctx, application.DeleteImageCommand{
 		ActorID:   req.GetActorId(),
@@ -155,7 +154,7 @@ func (s *Server) DeleteProductImage(ctx context.Context, req *marketplacev1.Dele
 	return &marketplacev1.DeleteProductImageResponse{}, nil
 }
 
-// OffShelfProduct performs the seller's ON_SALE -> OFF_SHELF action.
+// OffShelfProduct 执行卖家的 ON_SALE -> OFF_SHELF 操作。
 func (s *Server) OffShelfProduct(ctx context.Context, req *marketplacev1.OffShelfProductRequest) (*marketplacev1.OffShelfProductResponse, error) {
 	product, err := s.products.OffShelf(ctx, application.ProductActionCommand{
 		ActorID:   req.GetActorId(),
@@ -167,7 +166,7 @@ func (s *Server) OffShelfProduct(ctx context.Context, req *marketplacev1.OffShel
 	return &marketplacev1.OffShelfProductResponse{Product: s.productDetail(product)}, nil
 }
 
-// RelistProduct performs the seller's OFF_SHELF -> ON_SALE action.
+// RelistProduct 执行卖家的 OFF_SHELF -> ON_SALE 操作。
 func (s *Server) RelistProduct(ctx context.Context, req *marketplacev1.RelistProductRequest) (*marketplacev1.RelistProductResponse, error) {
 	product, err := s.products.Relist(ctx, application.ProductActionCommand{
 		ActorID:   req.GetActorId(),
@@ -179,7 +178,7 @@ func (s *Server) RelistProduct(ctx context.Context, req *marketplacev1.RelistPro
 	return &marketplacev1.RelistProductResponse{Product: s.productDetail(product)}, nil
 }
 
-// --- mapping ----------------------------------------------------------------
+// --- 映射 -------------------------------------------------------------------
 
 func (s *Server) productDetail(product *domain.Product) *marketplacev1.ProductDetail {
 	return &marketplacev1.ProductDetail{
@@ -250,9 +249,8 @@ func uploads(src []*marketplacev1.ImageUpload) []application.ImageUpload {
 	return mapped
 }
 
-// category maps the wire enum to the domain value. UNSPECIFIED maps to an
-// empty category, which domain validation rejects: an unset enum is a client
-// error, not a silent default.
+// category 将线路枚举映射为领域值。UNSPECIFIED 映射为空分类，领域校验会拒绝它：
+// 未设置枚举属于客户端错误，而不是静默使用默认值。
 func category(value marketplacev1.ProductCategory) domain.Category {
 	switch value {
 	case marketplacev1.ProductCategory_PRODUCT_CATEGORY_TEXTBOOK:

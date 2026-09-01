@@ -1,8 +1,7 @@
--- Local development databases and per-service accounts.
+-- 本地开发数据库和各服务账户。
 --
--- Runs once, on an empty data directory, through the postgres image entrypoint.
--- Passwords here are local-only development values; deployed environments
--- inject credentials from the runtime environment instead.
+-- 由 postgres 镜像的入口点在空数据目录上运行一次。
+-- 此处的密码仅用于本地开发；部署环境会从运行时环境注入凭据。
 
 CREATE ROLE account_svc     LOGIN PASSWORD 'account_svc';
 CREATE ROLE marketplace_svc LOGIN PASSWORD 'marketplace_svc';
@@ -14,9 +13,8 @@ CREATE DATABASE marketplace_db OWNER marketplace_svc;
 CREATE DATABASE messaging_db   OWNER messaging_svc;
 CREATE DATABASE favorite_db    OWNER favorite_svc;
 
--- PostgreSQL grants CONNECT to PUBLIC by default. Revoking it and granting it
--- back to the single owner is what makes cross-service access impossible: any
--- other service account is refused at connection time.
+-- PostgreSQL 默认向 PUBLIC 授予 CONNECT。撤销该权限并仅授予数据库所有者，
+-- 才能真正禁止跨服务访问：其他服务账户会在连接时被拒绝。
 REVOKE CONNECT ON DATABASE account_db     FROM PUBLIC;
 REVOKE CONNECT ON DATABASE marketplace_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE messaging_db   FROM PUBLIC;

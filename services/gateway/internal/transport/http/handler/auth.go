@@ -1,6 +1,5 @@
-// Package handler implements the public REST endpoints. Handlers parse and
-// validate the request, call one or more internal services, and map the
-// result; they hold no business rules of their own.
+// Package handler 实现公开 REST 端点。处理器负责解析并校验请求、调用一个或多个
+// 内部服务并映射结果；自身不持有业务规则。
 package handler
 
 import (
@@ -12,18 +11,18 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/mapper"
 )
 
-// Auth serves /auth/register, /auth/login and /auth/logout.
+// Auth 提供 /auth/register、/auth/login 和 /auth/logout。
 type Auth struct {
 	accounts  accountv1.AccountServiceClient
 	responder Responder
 }
 
-// NewAuth builds the authentication handler.
+// NewAuth 构造认证处理器。
 func NewAuth(accounts accountv1.AccountServiceClient, responder Responder) *Auth {
 	return &Auth{accounts: accounts, responder: responder}
 }
 
-// Register handles POST /auth/register.
+// Register 处理 POST /auth/register。
 func (h *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	var body dto.RegisterRequest
 	if !decodeJSON(w, r, h.responder, &body) {
@@ -45,7 +44,7 @@ func (h *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	h.responder.Created(w, r, mapper.AuthData(resp.GetAuth()))
 }
 
-// Login handles POST /auth/login.
+// Login 处理 POST /auth/login。
 func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	var body dto.LoginRequest
 	if !decodeJSON(w, r, h.responder, &body) {
@@ -64,22 +63,19 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	h.responder.OK(w, r, mapper.AuthData(resp.GetAuth()))
 }
 
-// Logout handles POST /auth/logout.
+// Logout 处理 POST /auth/logout。
 //
-// The token is not revoked server-side. docs/backend-development-plan.md
-// records this as the default while "JWT logout 是否服务端撤销" is unconfirmed,
-// and the approved contract allows it: the logout response describes the
-// session as ended either by invalidating the token or by the client
-// discarding it. Choosing revocation later means adding a jti denylist in the
-// Account Service and consulting it here; no other code changes.
+// 令牌不会在服务端撤销。docs/backend-development-plan.md 将此记录为默认方案，
+// 因为“JWT logout 是否服务端撤销”尚未确认；已批准契约允许这样做：注销响应将会话
+// 描述为已结束，具体可以是令牌失效，也可以是客户端丢弃令牌。日后若选择撤销，
+// 只需在 Account Service 中增加 jti denylist 并在此处查询，无需修改其他代码。
 //
-// The endpoint still requires a valid token, so it reports honestly whether
-// the caller had a session to end.
+// 该端点仍要求有效令牌，因此能够如实反映调用方是否有会话可结束。
 func (h *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	h.responder.Empty(w, r)
 }
 
-// Responder is the subset of the response writer the handlers use.
+// Responder 是处理器使用的响应写入器子集。
 type Responder interface {
 	OK(w http.ResponseWriter, r *http.Request, data any)
 	Created(w http.ResponseWriter, r *http.Request, data any)

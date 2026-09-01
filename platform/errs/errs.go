@@ -1,10 +1,9 @@
-// Package errs defines the stable internal error model shared by every
-// service. A domain code maps to a gRPC status on the wire, and the Gateway
-// maps the same code to the public HTTP status and ErrorCode defined by
-// openapi/components/schemas.yaml#/ErrorCode.
+// Package errs 定义所有服务共享的稳定内部错误模型。领域错误码映射为线路上的
+// gRPC 状态，网关再将同一错误码映射为 openapi/components/schemas.yaml#/ErrorCode
+// 定义的公开 HTTP 状态和 ErrorCode。
 //
-// The error code travels in a google.rpc.ErrorInfo detail rather than in the
-// status message, so the Gateway never has to parse human-readable text.
+// 错误码放在 google.rpc.ErrorInfo 详情中，而不是状态消息中，因此网关无需解析
+// 人类可读文本。
 package errs
 
 import (
@@ -16,15 +15,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Domain is the ErrorInfo domain identifying this system as the error source.
+// Domain 是 ErrorInfo 的域，用于标识本系统为错误来源。
 const Domain = "shortterm"
 
-// Code is a public ErrorCode from the OpenAPI contract. The internal model
-// deliberately reuses the public enum so that no service can invent an error
-// the contract cannot express.
+// Code 是 OpenAPI 契约中的公开 ErrorCode。内部模型有意复用公开枚举，
+// 使任何服务都无法发明契约无法表达的错误。
 type Code string
 
-// The full set of ErrorCode values in the approved OpenAPI contract.
+// 已批准 OpenAPI 契约中的全部 ErrorCode 值。
 const (
 	CodeValidation           Code = "VALIDATION_ERROR"
 	CodeContactRequired      Code = "CONTACT_REQUIRED"
@@ -37,13 +35,14 @@ const (
 	CodeProductNotAvailable  Code = "PRODUCT_NOT_AVAILABLE"
 	CodeTradeStateConflict   Code = "TRADE_STATE_CONFLICT"
 	CodeProductStateConflict Code = "PRODUCT_STATE_CONFLICT"
+	CodeConversationMismatch Code = "CONVERSATION_MISMATCH"
 	CodeSelfActionNotAllowed Code = "SELF_ACTION_NOT_ALLOWED"
+	CodeRateLimited          Code = "RATE_LIMITED"
 	CodeInternal             Code = "INTERNAL_ERROR"
 )
 
-// grpcCodes follows docs/software-design.md section 7.3. Aborted is reserved
-// for conflicts a client may retry after re-reading state; FailedPrecondition
-// marks conflicts that repeat until the resource itself changes.
+// grpcCodes 遵循 docs/software-design.md 第 7.3 节。Aborted 用于客户端重新读取
+// 状态后可以重试的冲突；FailedPrecondition 用于只有资源本身变化后才会消失的冲突。
 var grpcCodes = map[Code]codes.Code{
 	CodeValidation:           codes.InvalidArgument,
 	CodeContactRequired:      codes.FailedPrecondition,
@@ -56,27 +55,28 @@ var grpcCodes = map[Code]codes.Code{
 	CodeProductNotAvailable:  codes.FailedPrecondition,
 	CodeTradeStateConflict:   codes.Aborted,
 	CodeProductStateConflict: codes.FailedPrecondition,
+	CodeConversationMismatch: codes.FailedPrecondition,
 	CodeSelfActionNotAllowed: codes.FailedPrecondition,
+	CodeRateLimited:          codes.ResourceExhausted,
 	CodeInternal:             codes.Internal,
 }
 
-// Error is a domain error carrying a contract error code. The wrapped cause is
-// kept for logs only; it is never sent to a client.
+// Error 是携带契约错误码的领域错误。被包装的原因只保留用于日志，绝不发送给客户端。
 type Error struct {
 	Code  Code
 	Msg   string
 	cause error
 }
 
-// New builds a domain error without a cause.
+// New 构造不带原因的领域错误。
 func New(code Code, msg string) *Error { return &Error{Code: code, Msg: msg} }
 
-// Newf builds a domain error with a formatted message.
+// Newf 使用格式化消息构造领域错误。
 func Newf(code Code, format string, args ...any) *Error {
 	return &Error{Code: code, Msg: fmt.Sprintf(format, args...)}
 }
 
-// Wrap attaches a cause to a domain error so logs keep the original failure.
+// Wrap 将原因附加到领域错误，使日志保留原始失败信息。
 func Wrap(code Code, msg string, cause error) *Error {
 	return &Error{Code: code, Msg: msg, cause: cause}
 }
@@ -88,10 +88,10 @@ func (e *Error) Error() string {
 	return string(e.Code) + ": " + e.Msg
 }
 
-// Unwrap exposes the cause to errors.Is and errors.As.
+// Unwrap 向 errors.Is 和 errors.As 暴露原因。
 func (e *Error) Unwrap() error { return e.cause }
 
-// GRPCStatus lets the gRPC runtime serialise the code and message directly.
+// GRPCStatus 让 gRPC 运行时直接序列化错误码和消息。
 func (e *Error) GRPCStatus() *status.Status {
 	code, ok := grpcCodes[e.Code]
 	if !ok {
@@ -108,9 +108,8 @@ func (e *Error) GRPCStatus() *status.Status {
 	return detailed
 }
 
-// CodeOf reports the contract error code carried by err. An error that did not
-// originate from this package is reported as INTERNAL_ERROR so an unexpected
-// failure is never silently rendered as a client mistake.
+// CodeOf 返回 err 携带的契约错误码。不是由本包产生的错误会报告为 INTERNAL_ERROR，
+// 以免意外失败被默默呈现为客户端错误。
 func CodeOf(err error) Code {
 	if err == nil {
 		return ""
@@ -135,8 +134,7 @@ func CodeOf(err error) Code {
 	return fallbackCode(st.Code())
 }
 
-// MessageOf returns the client-safe message for err, falling back to the gRPC
-// status message when the error crossed a service boundary.
+// MessageOf 返回 err 的客户端安全消息；错误跨越服务边界时回退到 gRPC 状态消息。
 func MessageOf(err error) string {
 	if err == nil {
 		return ""
@@ -151,8 +149,8 @@ func MessageOf(err error) string {
 	return err.Error()
 }
 
-// fallbackCode maps a bare gRPC status from a downstream that did not attach
-// ErrorInfo, for example a deadline enforced by the transport itself.
+// fallbackCode 将未附加 ErrorInfo 的下游原始 gRPC 状态映射为契约错误码，
+// 例如传输层自身强制执行的截止时间。
 func fallbackCode(code codes.Code) Code {
 	switch code {
 	case codes.InvalidArgument, codes.OutOfRange:

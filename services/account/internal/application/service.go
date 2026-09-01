@@ -10,17 +10,10 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/account/internal/domain"
 )
 
-// defaultNicknamePrefix starts the nickname assigned when a student registers
-// without choosing one.
-//
-// Agent Self-Claimed: the default must not be derived from the student number.
-// The approved contract forbids disclosing a seller's student number
-// (openapi/paths/products.yaml, getProduct), and nicknames are shown on every
-// product, conversation and trade projection, so a student-number-derived
-// nickname would leak it through the front door.
-const defaultNicknamePrefix = "同学"
+// defaultNickname 是 OpenAPI 对省略昵称注册请求规定的固定默认值。
+const defaultNickname = "校园用户"
 
-// Service implements the Account Service use cases.
+// Service 实现 Account Service 用例。
 type Service struct {
 	repo    Repository
 	hasher  PasswordHasher
@@ -31,9 +24,9 @@ type Service struct {
 	decoyPW string
 }
 
-// NewService wires the use cases. decoyHash is a hash of an unguessable value;
-// Login verifies against it when no account matches so that a missing account
-// and a wrong password cost the same time and cannot be told apart.
+// NewService 组装各个用例。decoyHash 是不可猜值的哈希；
+// 没有匹配账户时，Login 会用它执行验证，使账户不存在和密码错误消耗相同时间，
+// 从而无法区分二者。
 func NewService(repo Repository, hasher PasswordHasher, tokens TokenIssuer, ids IDGenerator, clock Clock, logger *slog.Logger) (*Service, error) {
 	if repo == nil || hasher == nil || tokens == nil || ids == nil || clock == nil {
 		return nil, errors.New("application: every Account Service dependency is required")
@@ -50,7 +43,7 @@ func NewService(repo Repository, hasher PasswordHasher, tokens TokenIssuer, ids 
 	return &Service{repo: repo, hasher: hasher, tokens: tokens, ids: ids, clock: clock, logger: logger, decoyPW: decoy}, nil
 }
 
-// Register creates an account and returns an access token for it.
+// Register 创建账户并返回该账户的访问令牌。
 func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (AuthResult, error) {
 	if err := domain.ValidateStudentNo(cmd.StudentNo); err != nil {
 		return AuthResult{}, errs.Wrap(errs.CodeValidation, "学号格式不合法", err)
@@ -60,7 +53,7 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (AuthResult
 	}
 
 	accountID := s.ids.New()
-	nickname := defaultNickname(accountID)
+	nickname := defaultNickname
 	if cmd.Nickname != nil {
 		nickname = *cmd.Nickname
 	}
@@ -86,11 +79,10 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (AuthResult
 	return s.issue(account)
 }
 
-// Login authenticates a student number and password pair.
+// Login 验证学号和密码组合。
 func (s *Service) Login(ctx context.Context, cmd LoginCommand) (AuthResult, error) {
-	// Format problems are reported as a failed login rather than as a
-	// validation error: telling a caller which student numbers are well formed
-	// is free reconnaissance.
+	// 格式问题报告为登录失败，而不是校验错误：告诉调用方哪些学号格式正确，
+	// 等于免费提供侦察信息。
 	if domain.ValidateStudentNo(cmd.StudentNo) != nil || domain.ValidatePassword(cmd.Password) != nil {
 		s.burnTime(cmd.Password)
 		return AuthResult{}, errs.New(errs.CodeUnauthorized, "学号或密码错误")
@@ -114,9 +106,8 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (AuthResult, erro
 	return s.issue(account)
 }
 
-// GetUser returns one account with its contact details. Contact details are
-// part of the approved product detail response, so this RPC is only called by
-// the Gateway on paths that are allowed to show them.
+// GetUser 返回一个包含联系方式的账户。联系方式是已批准商品详情响应的一部分，
+// 因此只有允许展示联系方式的路径才会由 Gateway 调用此 RPC。
 func (s *Service) GetUser(ctx context.Context, userID string) (*domain.Account, error) {
 	if userID == "" {
 		return nil, errs.New(errs.CodeValidation, "用户标识不能为空")
@@ -132,9 +123,8 @@ func (s *Service) GetUser(ctx context.Context, userID string) (*domain.Account, 
 	return account, nil
 }
 
-// BatchGetUsers returns the accounts that exist among ids. It exists so list
-// endpoints can complete seller and participant names in one round trip
-// instead of one call per row (docs/software-design.md section 3.3).
+// BatchGetUsers 返回指定 id 中存在的账户。它让列表端点可以在一次往返中补全卖家和
+// 参与者名称，而不是每行调用一次（docs/software-design.md 第 3.3 节）。
 func (s *Service) BatchGetUsers(ctx context.Context, ids []string) (map[string]*domain.Account, error) {
 	unique := dedupe(ids)
 	if len(unique) == 0 {
@@ -153,13 +143,16 @@ func (s *Service) BatchGetUsers(ctx context.Context, ids []string) (map[string]*
 	return byID, nil
 }
 
-// UpdateProfile changes the caller's own nickname and contact details.
+// UpdateProfile 修改调用方自己的昵称和联系方式。
 func (s *Service) UpdateProfile(ctx context.Context, cmd UpdateProfileCommand) (*domain.Account, error) {
 	if cmd.ActorID == "" {
 		return nil, errs.New(errs.CodeUnauthorized, "请先登录")
 	}
 	if cmd.Nickname == nil && !cmd.Wechat.Present && !cmd.QQ.Present {
 		return nil, errs.New(errs.CodeValidation, "请至少修改一项资料")
+	}
+	if (cmd.Wechat.Present && cmd.Wechat.Value == nil) || (cmd.QQ.Present && cmd.QQ.Value == nil) {
+		return nil, errs.New(errs.CodeValidation, "微信和 QQ 只能新增或修改，不能删除")
 	}
 
 	account, err := s.GetUser(ctx, cmd.ActorID)
@@ -175,7 +168,7 @@ func (s *Service) UpdateProfile(ctx context.Context, cmd UpdateProfileCommand) (
 	}
 	if cmd.Wechat.Present {
 		if err := account.SetWechat(cmd.Wechat.Value, now); err != nil {
-			return nil, errs.Wrap(errs.CodeValidation, "微信号长度必须为 1 至 64 个字符", err)
+			return nil, errs.Wrap(errs.CodeValidation, "微信号必须为 1 至 64 个非空白字符", err)
 		}
 	}
 	if cmd.QQ.Present {
@@ -193,7 +186,7 @@ func (s *Service) UpdateProfile(ctx context.Context, cmd UpdateProfileCommand) (
 	return account, nil
 }
 
-// ChangePassword replaces the caller's own password after checking the old one.
+// ChangePassword 校验旧密码后替换调用方自己的密码。
 func (s *Service) ChangePassword(ctx context.Context, cmd ChangePasswordCommand) error {
 	if cmd.ActorID == "" {
 		return errs.New(errs.CodeUnauthorized, "请先登录")
@@ -207,8 +200,8 @@ func (s *Service) ChangePassword(ctx context.Context, cmd ChangePasswordCommand)
 		return err
 	}
 
-	// A wrong current password is an authentication failure, not a validation
-	// error: the caller holds a valid token but has not proven the password.
+	// 当前密码错误属于身份认证失败，而不是校验错误：调用方虽然持有有效令牌，
+	// 但尚未证明自己知道密码。
 	if err := s.hasher.Verify(cmd.OldPassword, account.PasswordHash); err != nil {
 		return errs.New(errs.CodeUnauthorized, "当前密码错误")
 	}
@@ -226,7 +219,7 @@ func (s *Service) ChangePassword(ctx context.Context, cmd ChangePasswordCommand)
 	return nil
 }
 
-// issue signs an access token for an authenticated account.
+// issue 为通过认证的账户签发访问令牌。
 func (s *Service) issue(account *domain.Account) (AuthResult, error) {
 	token, expiresAt, err := s.tokens.Issue(account.ID)
 	if err != nil {
@@ -235,16 +228,14 @@ func (s *Service) issue(account *domain.Account) (AuthResult, error) {
 	return AuthResult{AccessToken: token, IssuedAt: s.clock.Now(), ExpiresAt: expiresAt, Account: account}, nil
 }
 
-// burnTime performs the same work a real verification would, so an attacker
-// cannot distinguish an unknown student number from a wrong password by
-// measuring response time.
+// burnTime 执行与真实验证相同的工作，使攻击者无法通过测量响应时间区分未知学号
+// 和错误密码。
 func (s *Service) burnTime(password string) {
 	_ = s.hasher.Verify(password, s.decoyPW)
 }
 
-// upgradeHashIfNeeded re-hashes a password that was stored with weaker
-// parameters than the current configuration. A failure here must not fail the
-// login: the caller already proved the password.
+// upgradeHashIfNeeded 重新哈希使用弱于当前配置参数存储的密码。
+// 这里失败不能导致登录失败：调用方已经证明了密码正确。
 func (s *Service) upgradeHashIfNeeded(ctx context.Context, account *domain.Account, password string) {
 	if !s.hasher.NeedsRehash(account.PasswordHash) {
 		return
@@ -265,17 +256,7 @@ func (s *Service) upgradeHashIfNeeded(ctx context.Context, account *domain.Accou
 	}
 }
 
-// defaultNickname derives a neutral display name from the opaque account
-// identifier. The identifier is already public, so this discloses nothing new.
-func defaultNickname(accountID string) string {
-	suffix := accountID
-	if len(suffix) > 4 {
-		suffix = suffix[len(suffix)-4:]
-	}
-	return defaultNicknamePrefix + suffix
-}
-
-// dedupe removes empty and repeated identifiers while preserving order.
+// dedupe 删除空标识和重复标识，同时保留原有顺序。
 func dedupe(ids []string) []string {
 	seen := make(map[string]struct{}, len(ids))
 	unique := make([]string, 0, len(ids))

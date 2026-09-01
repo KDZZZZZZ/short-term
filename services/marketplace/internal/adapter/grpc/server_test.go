@@ -18,6 +18,8 @@ import (
 	marketplacev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1"
 	"github.com/KDZZZZZZ/short-term/platform/errs"
 	"github.com/KDZZZZZZ/short-term/platform/grpcx"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/KDZZZZZZ/short-term/platform/pgtest"
 	grpcadapter "github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/grpc"
 	"github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/objectstore"
@@ -32,12 +34,22 @@ const seller = "u_seller"
 type harness struct {
 	client    marketplacev1.MarketplaceServiceClient
 	mediaRoot string
+	pool      *pgxpool.Pool
 }
 
-// newHarness runs the real gRPC adapter over the real repository and a real
-// filesystem object store, so uploads, transactions and ordering are all
-// exercised against live infrastructure.
-func newHarness(t *testing.T) harness {
+// newHarness 通过真实仓储和真实文件系统对象存储运行 gRPC 适配器，
+// 因此上传、事务和排序都会在实际基础设施上得到测试。
+func newHarness(t *testing.T) harness { return newHarnessWith(t, nil) }
+
+// newHarnessWith 允许测试替换标识符生成器：这是注入 outbox 写入失败的方式，
+// 一个已存在的事件 id 会让本应有效的命令在追加事件时失败。
+func newHarnessWith(t *testing.T, ids application.IDGenerator) harness {
+	return newHarnessWithConversationVerifier(t, ids, fakeConversationVerifier{})
+}
+
+// newHarnessWithConversationVerifier lets trade tests provide Messaging facts
+// without coupling Marketplace integration tests to a running M5 service.
+func newHarnessWithConversationVerifier(t *testing.T, ids application.IDGenerator, conversations application.ConversationVerifier) harness {
 	t.Helper()
 
 	pool := pgtest.New(t, migrations.FS, migrations.Dir)
@@ -47,15 +59,24 @@ func newHarness(t *testing.T) harness {
 	if err != nil {
 		t.Fatalf("NewFilesystem: %v", err)
 	}
-	products, err := application.NewProductService(
-		postgres.NewProductRepository(pool),
-		objects,
-		system.NewIDs(),
-		system.Clock{},
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-	)
+	discard := slog.New(slog.NewTextHandler(io.Discard, nil))
+	if ids == nil {
+		ids = system.NewIDs()
+	}
+	if conversations == nil {
+		conversations = fakeConversationVerifier{}
+	}
+	productRepo := postgres.NewProductRepository(pool)
+
+	products, err := application.NewProductService(productRepo, objects, ids, system.Clock{}, discard)
 	if err != nil {
 		t.Fatalf("NewProductService: %v", err)
+	}
+	trades, err := application.NewTradeService(
+		postgres.NewTradeRepository(pool), productRepo, conversations, ids, system.Clock{}, discard,
+	)
+	if err != nil {
+		t.Fatalf("NewTradeService: %v", err)
 	}
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -66,7 +87,7 @@ func newHarness(t *testing.T) harness {
 		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
 		HandlerTimeout: 30 * time.Second,
 	})
-	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products))
+	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades))
 	go func() { _ = server.Serve(listener) }()
 	t.Cleanup(server.Stop)
 
@@ -80,7 +101,7 @@ func newHarness(t *testing.T) harness {
 	}
 	t.Cleanup(func() { _ = conn.Close() })
 
-	return harness{client: marketplacev1.NewMarketplaceServiceClient(conn), mediaRoot: mediaRoot}
+	return harness{client: marketplacev1.NewMarketplaceServiceClient(conn), mediaRoot: mediaRoot, pool: pool}
 }
 
 func TestPublishedProductIsOnSaleAndVisibleInTheCatalogue(t *testing.T) {
@@ -146,7 +167,7 @@ func TestOffShelfAndRelistRoundTripIsVisibleEverywhere(t *testing.T) {
 		t.Fatalf("status = %s, want OFF_SHELF", offShelf.GetProduct().GetStatus())
 	}
 
-	// Every projection must report the same current status.
+	// 每个投影都必须报告相同的当前状态。
 	h.assertStatusEverywhere(t, product.GetId(), marketplacev1.ProductStatus_PRODUCT_STATUS_OFF_SHELF)
 
 	relisted, err := h.client.RelistProduct(t.Context(), &marketplacev1.RelistProductRequest{
@@ -207,8 +228,7 @@ func TestUpdateCannotAssignStatusAndIsRejectedWhileReserved(t *testing.T) {
 	h := newHarness(t)
 	product := h.create(t, seller, "机械键盘", nil)
 
-	// UpdateProductRequest has no status field at all: the wire contract makes
-	// assigning a status through the edit path impossible.
+	// UpdateProductRequest 完全没有 status 字段：线路契约使编辑路径无法分配状态。
 	price := int64(9900)
 	updated, err := h.client.UpdateProduct(t.Context(), &marketplacev1.UpdateProductRequest{
 		ActorId: seller, ProductId: product.GetId(), PriceMinor: &price,
@@ -283,7 +303,7 @@ func TestImagesAreStoredAndServedFromTheObjectStore(t *testing.T) {
 		t.Fatal("the image has no public URL")
 	}
 
-	// The object really exists on disk under the product's prefix.
+	// 对象确实存在于磁盘上该商品的前缀目录下。
 	stored, err := filepath.Glob(filepath.Join(h.mediaRoot, "products", product.GetId(), "*"))
 	if err != nil {
 		t.Fatalf("glob: %v", err)
@@ -441,7 +461,7 @@ func TestDeletingAnImageFreesItsSlotAndRemovesTheObject(t *testing.T) {
 		t.Fatalf("the object outlived its row: %v", stored)
 	}
 
-	// The freed slot is reusable.
+	// 释放的位置可以再次使用。
 	added, err := h.client.AddProductImages(t.Context(), &marketplacev1.AddProductImagesRequest{
 		ActorId: seller, ProductId: product.GetId(),
 		Images: []*marketplacev1.ImageUpload{{Data: jpegBytes(t), ContentType: "image/jpeg"}},
@@ -531,21 +551,105 @@ func TestListUserProductsShowsEveryStatusForTheOwner(t *testing.T) {
 	}
 }
 
-func TestTradeRpcsReportUnimplemented(t *testing.T) {
+func TestPendingReservedAndSoldProductsRejectContentMutations(t *testing.T) {
 	t.Parallel()
 
 	h := newHarness(t)
-	product := h.create(t, seller, "机械键盘", nil)
-
-	// The trade state machine lands in milestone M3. Until then the RPC must
-	// say so plainly rather than pretend the request was refused on merit.
-	_, err := h.client.CreateTrade(t.Context(), &marketplacev1.CreateTradeRequest{
-		ActorId: "u_buyer", ProductId: product.GetId(),
+	product := h.create(t, seller, "机械键盘", []*marketplacev1.ImageUpload{
+		{Data: pngBytes(t), ContentType: "image/png"},
 	})
-	if err == nil {
-		t.Fatal("CreateTrade unexpectedly succeeded")
+	tradeID := h.createTrade(t, buyerA, product.GetId())
+	imageID := product.GetImages()[0].GetId()
+
+	assertContentBlocked := func(t *testing.T, want errs.Code) {
+		t.Helper()
+		price := int64(9900)
+		calls := []struct {
+			name string
+			call func() error
+		}{
+			{name: "fields", call: func() error {
+				_, err := h.client.UpdateProduct(t.Context(), &marketplacev1.UpdateProductRequest{
+					ActorId: seller, ProductId: product.GetId(), PriceMinor: &price,
+				})
+				return err
+			}},
+			{name: "add image", call: func() error {
+				_, err := h.client.AddProductImages(t.Context(), &marketplacev1.AddProductImagesRequest{
+					ActorId: seller, ProductId: product.GetId(),
+					Images: []*marketplacev1.ImageUpload{{Data: jpegBytes(t), ContentType: "image/jpeg"}},
+				})
+				return err
+			}},
+			{name: "delete image", call: func() error {
+				_, err := h.client.DeleteProductImage(t.Context(), &marketplacev1.DeleteProductImageRequest{
+					ActorId: seller, ProductId: product.GetId(), ImageId: imageID,
+				})
+				return err
+			}},
+		}
+		for _, tt := range calls {
+			t.Run(tt.name, func(t *testing.T) {
+				assertCode(t, tt.call(), want)
+			})
+		}
 	}
-	assertCode(t, err, errs.CodeInternal)
+
+	t.Run("pending", func(t *testing.T) {
+		assertContentBlocked(t, errs.CodeTradeStateConflict)
+		_, err := h.client.OffShelfProduct(t.Context(), &marketplacev1.OffShelfProductRequest{
+			ActorId: seller, ProductId: product.GetId(),
+		})
+		assertCode(t, err, errs.CodeTradeStateConflict)
+	})
+
+	h.accept(t, tradeID)
+	t.Run("reserved", func(t *testing.T) {
+		assertContentBlocked(t, errs.CodeProductStateConflict)
+	})
+
+	if _, err := h.client.ConfirmTrade(t.Context(), &marketplacev1.ConfirmTradeRequest{
+		ActorId: buyerA, TradeId: tradeID,
+	}); err != nil {
+		t.Fatalf("buyer ConfirmTrade: %v", err)
+	}
+	if _, err := h.client.ConfirmTrade(t.Context(), &marketplacev1.ConfirmTradeRequest{
+		ActorId: seller, TradeId: tradeID,
+	}); err != nil {
+		t.Fatalf("seller ConfirmTrade: %v", err)
+	}
+	t.Run("sold", func(t *testing.T) {
+		assertContentBlocked(t, errs.CodeProductStateConflict)
+	})
+}
+
+func TestDeletingImagesCompactsOrderAndPromotesTheNextCover(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	product := h.create(t, seller, "机械键盘", []*marketplacev1.ImageUpload{
+		{Data: pngBytes(t), ContentType: "image/png"},
+		{Data: jpegBytes(t), ContentType: "image/jpeg"},
+		{Data: pngBytes(t), ContentType: "image/png"},
+	})
+	secondID := product.GetImages()[1].GetId()
+	secondURL := product.GetImages()[1].GetUrl()
+	thirdID := product.GetImages()[2].GetId()
+	thirdURL := product.GetImages()[2].GetUrl()
+
+	if _, err := h.client.DeleteProductImage(t.Context(), &marketplacev1.DeleteProductImageRequest{
+		ActorId: seller, ProductId: product.GetId(), ImageId: product.GetImages()[0].GetId(),
+	}); err != nil {
+		t.Fatalf("delete first image: %v", err)
+	}
+	h.assertImageOrderAndCover(t, product.GetId(), []string{secondID, thirdID}, secondURL)
+
+	if _, err := h.client.DeleteProductImage(t.Context(), &marketplacev1.DeleteProductImageRequest{
+		ActorId: seller, ProductId: product.GetId(), ImageId: secondID,
+	}); err != nil {
+		t.Fatalf("delete promoted cover: %v", err)
+	}
+	h.assertImageOrderAndCover(t, product.GetId(), []string{thirdID}, thirdURL)
 }
 
 // --- helpers ----------------------------------------------------------------
@@ -567,9 +671,8 @@ func (h harness) create(t *testing.T, actor, title string, images []*marketplace
 	return resp.GetProduct()
 }
 
-// assertStatusEverywhere checks that the detail, the owner list and the batch
-// projection all report the same current status, which is the requirement in
-// docs/software-design.md section 4.2.
+// assertStatusEverywhere 检查详情、所有者列表和批量投影是否都报告相同的当前状态，
+// 这是 docs/software-design.md 第 4.2 节的要求。
 func (h harness) assertStatusEverywhere(t *testing.T, productID string, want marketplacev1.ProductStatus) {
 	t.Helper()
 
@@ -599,6 +702,35 @@ func (h harness) assertStatusEverywhere(t *testing.T, productID string, want mar
 	}
 	if got := batch.GetProducts()[productID].GetStatus(); got != want {
 		t.Fatalf("batch status = %s, want %s", got, want)
+	}
+}
+
+func (h harness) assertImageOrderAndCover(t *testing.T, productID string, wantIDs []string, wantCover string) {
+	t.Helper()
+
+	detail, err := h.client.GetProduct(t.Context(), &marketplacev1.GetProductRequest{ProductId: productID})
+	if err != nil {
+		t.Fatalf("GetProduct: %v", err)
+	}
+	images := detail.GetProduct().GetImages()
+	if len(images) != len(wantIDs) {
+		t.Fatalf("images = %d, want %d", len(images), len(wantIDs))
+	}
+	for i, wantID := range wantIDs {
+		if images[i].GetId() != wantID || images[i].GetSortOrder() != int32(i+1) {
+			t.Fatalf("image %d = %s/order %d, want %s/order %d",
+				i, images[i].GetId(), images[i].GetSortOrder(), wantID, i+1)
+		}
+	}
+
+	batch, err := h.client.BatchGetProducts(t.Context(), &marketplacev1.BatchGetProductsRequest{
+		ProductIds: []string{productID},
+	})
+	if err != nil {
+		t.Fatalf("BatchGetProducts: %v", err)
+	}
+	if got := batch.GetProducts()[productID].GetCoverUrl(); got != wantCover {
+		t.Fatalf("cover_url = %q, want %q", got, wantCover)
 	}
 }
 
@@ -643,8 +775,8 @@ func gifBytes(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
-// oversizedPNG produces a real PNG larger than the 5 MiB per-file limit, so
-// the size check is exercised on content that would otherwise be accepted.
+// oversizedPNG 生成一个超过单文件 5 MiB 限制的真实 PNG，
+// 因此尺寸检查针对的是本来会被接受的内容。
 func oversizedPNG(t *testing.T) []byte {
 	t.Helper()
 
@@ -654,7 +786,7 @@ func oversizedPNG(t *testing.T) []byte {
 	}
 	data := buf.Bytes()
 	if len(data) <= application.MaxImageBytes {
-		// Random noise does not compress, but pad rather than depend on it.
+		// 随机噪声不会被压缩，但这里使用填充，而不是依赖这一点。
 		data = append(data, bytes.Repeat([]byte{0}, application.MaxImageBytes+1-len(data))...)
 	}
 	return data

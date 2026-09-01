@@ -1,12 +1,11 @@
-# Local backend development infrastructure.
+# 本地后端开发基础设施。
 #
-# Each service owns its own database and its own database account, matching the
-# ownership boundary in docs/software-design.md section 9.2. The init script
-# revokes CONNECT from PUBLIC, so a service account that tries to reach another
-# service's database is refused by PostgreSQL rather than by convention.
+# 每个服务拥有自己的数据库和数据库账户，与 docs/software-design.md 第 9.2 节的所有权边界一致。
+# 初始化脚本会从 PUBLIC 撤销 CONNECT 权限，因此服务账户尝试连接其他服务的数据库时，
+# 会由 PostgreSQL 拒绝，而不是依赖约定来保证隔离。
 #
-# This file is for local development only. Production topology, image digests
-# and secrets are a separate concern (backend deployment, milestone M6).
+# 此文件仅用于本地开发。生产拓扑、镜像摘要和密钥属于另一个问题
+#（后端部署，里程碑 M6）。
 
 name: short-term-local
 
@@ -18,7 +17,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-      # Deterministic collation keeps ORDER BY stable across machines.
+      # 确定性排序规则使 ORDER BY 在不同机器上保持稳定。
       POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=und-x-icu --encoding=UTF8"
     ports:
       - "127.0.0.1:5432:5432"

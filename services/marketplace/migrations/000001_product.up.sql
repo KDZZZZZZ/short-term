@@ -1,8 +1,7 @@
--- Marketplace Service schema: products and their images.
+-- Marketplace Service 数据库结构：商品及其图片。
 --
--- Product status is driven only by the product action endpoints and by the
--- trade state machine (docs/state-machines.md); the CHECK below keeps an
--- unknown value out of the table even if a future code path forgets.
+-- 商品状态只能由商品操作端点和交易状态机驱动（docs/state-machines.md）；
+-- 即使未来某条代码路径遗漏校验，下面的 CHECK 也会阻止未知值进入数据表。
 CREATE TABLE products (
     id           text PRIMARY KEY,
     seller_id    text NOT NULL,
@@ -22,18 +21,17 @@ CREATE TABLE products (
     CONSTRAINT products_version_positive CHECK (version >= 1)
 );
 
--- The public list returns ON_SALE products ordered by created_at DESC with id
--- as the deterministic tie-breaker, so the index carries the same order.
+-- 公开列表返回 ON_SALE 商品，按 created_at DESC 排序并以 id 作为确定性的平局裁决，
+-- 因此索引采用相同的排序方式。
 CREATE INDEX products_public_list_idx
     ON products (status, created_at DESC, id DESC);
 
 CREATE INDEX products_seller_list_idx
     ON products (seller_id, created_at DESC, id DESC);
 
--- Keyword search matches a substring of the title. A substring match cannot
--- use a btree index; docs/software-design.md section 8.2 leaves the Chinese
--- search indexing strategy open until the requirement is confirmed, so no
--- pretend index is created here.
+-- 关键词搜索匹配标题子串。子串匹配无法使用 btree 索引；
+-- docs/software-design.md 第 8.2 节指出中文搜索索引策略要等需求确认后再决定，
+-- 因此这里不创建一个假装有效的索引。
 CREATE TABLE product_images (
     id         text PRIMARY KEY,
     product_id text NOT NULL REFERENCES products (id) ON DELETE CASCADE,
@@ -42,8 +40,7 @@ CREATE TABLE product_images (
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT product_images_sort_order_range CHECK (sort_order BETWEEN 1 AND 3),
     CONSTRAINT product_images_object_key_not_empty CHECK (char_length(object_key) > 0),
-    -- Together with the range check this is what caps a product at three
-    -- images, whatever the application layer does.
+    -- 该约束与范围检查一起将商品图片数限制为最多三张，无论应用层如何处理。
     CONSTRAINT product_images_slot_unique UNIQUE (product_id, sort_order)
 );
 

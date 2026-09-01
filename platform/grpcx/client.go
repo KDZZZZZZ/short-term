@@ -10,27 +10,25 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// ClientOptions configures a connection to an internal service.
+// ClientOptions 配置到内部服务的连接。
 type ClientOptions struct {
-	// Target is the dial target, for example "account:9001".
+	// Target 是拨号目标，例如 "account:9001"。
 	Target string
-	// Caller identifies the calling deployable unit in downstream logs.
+	// Caller 在下游日志中标识发起调用的可部署单元。
 	Caller string
-	// DefaultTimeout bounds any call whose context carries no deadline.
-	// docs/software-design.md section 7.2 requires every downstream call to
-	// have one, so a zero value is rejected.
+	// DefaultTimeout 限制上下文未携带截止时间的调用。
+	// docs/software-design.md 第 7.2 节要求每次下游调用都必须有截止时间，
+	// 因此零值会被拒绝。
 	DefaultTimeout time.Duration
-	// MaxRecvMsgSize bounds a single response.
+	// MaxRecvMsgSize 限制单个响应的大小。
 	MaxRecvMsgSize int
 }
 
-// Dial builds a client connection with tracing, a default deadline and the
-// caller identity attached to every call.
+// Dial 构造带有追踪、默认截止时间，并在每次调用中附加调用方身份的客户端连接。
 //
-// The connection is plaintext: internal gRPC is reachable only on the private
-// container network (docs/software-design.md section 9.2). Choosing mTLS or
-// workload identity is an open decision in section 11.3, and this is the
-// single place that changes when it is settled.
+// 连接使用明文：内部 gRPC 只能通过私有容器网络访问
+// （docs/software-design.md 第 9.2 节）。选择 mTLS 还是工作负载身份是第 11.3 节
+// 中尚未决定的事项；决定后只需在这里修改。
 func Dial(opts ClientOptions) (*grpc.ClientConn, error) {
 	if opts.Target == "" {
 		return nil, fmt.Errorf("grpcx: client target is required")
@@ -57,9 +55,8 @@ func Dial(opts ClientOptions) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-// deadlineInterceptor applies the default timeout when the caller did not set
-// one. An inherited deadline is left untouched so the remaining budget
-// propagates down the chain instead of being extended at each hop.
+// deadlineInterceptor 在调用方未设置截止时间时应用默认超时。继承而来的截止时间
+// 保持不变，使剩余时间预算沿调用链传递，而不是在每一跳被延长。
 func deadlineInterceptor(timeout time.Duration) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if _, ok := ctx.Deadline(); ok {
@@ -71,7 +68,7 @@ func deadlineInterceptor(timeout time.Duration) grpc.UnaryClientInterceptor {
 	}
 }
 
-// callerInterceptor stamps the calling service name on every request.
+// callerInterceptor 在每个请求上标记调用方服务名称。
 func callerInterceptor(caller string) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if caller != "" {

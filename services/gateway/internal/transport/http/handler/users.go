@@ -11,18 +11,18 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/middleware"
 )
 
-// Users serves /users/me and /users/me/password.
+// Users 提供 /users/me 和 /users/me/password。
 type Users struct {
 	accounts  accountv1.AccountServiceClient
 	responder Responder
 }
 
-// NewUsers builds the current-user handler.
+// NewUsers 构造当前用户处理器。
 func NewUsers(accounts accountv1.AccountServiceClient, responder Responder) *Users {
 	return &Users{accounts: accounts, responder: responder}
 }
 
-// Me handles GET /users/me.
+// Me 处理 GET /users/me。
 func (h *Users) Me(w http.ResponseWriter, r *http.Request) {
 	actorID := middleware.ActorID(r.Context())
 
@@ -35,7 +35,7 @@ func (h *Users) Me(w http.ResponseWriter, r *http.Request) {
 	h.responder.OK(w, r, mapper.UserMe(resp.GetUser()))
 }
 
-// UpdateMe handles PATCH /users/me.
+// UpdateMe 处理 PATCH /users/me。
 func (h *Users) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	var body dto.UpdateProfileRequest
 	if !decodeJSON(w, r, h.responder, &body) {
@@ -57,20 +57,20 @@ func (h *Users) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		req.Nickname = &nickname
 	}
 
-	wechat, ok := nullablePatch(w, r, h.responder, body.Wechat, "微信号")
+	wechat, ok := contactPatch(w, r, h.responder, body.Wechat, "微信号")
 	if !ok {
 		return
 	}
 	req.Wechat = wechat
 
-	qq, ok := nullablePatch(w, r, h.responder, body.QQ, "QQ 号")
+	qq, ok := contactPatch(w, r, h.responder, body.QQ, "QQ 号")
 	if !ok {
 		return
 	}
 	req.Qq = qq
 
 	if req.Nickname == nil && req.Wechat == nil && req.Qq == nil {
-		// UpdateProfileRequest declares minProperties: 1.
+		// UpdateProfileRequest 声明 minProperties: 1。
 		h.responder.Fail(w, r, errs.CodeValidation, "请至少修改一项资料")
 		return
 	}
@@ -84,7 +84,7 @@ func (h *Users) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	h.responder.OK(w, r, mapper.UserMe(resp.GetUser()))
 }
 
-// ChangePassword handles PUT /users/me/password.
+// ChangePassword 处理 PUT /users/me/password。
 func (h *Users) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var body dto.ChangePasswordRequest
 	if !decodeJSON(w, r, h.responder, &body) {
@@ -105,19 +105,20 @@ func (h *Users) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	h.responder.Empty(w, r)
 }
 
-// nullablePatch converts a three-state HTTP field into the wire patch message:
-// absent stays nil, null becomes an explicit clear, and a string becomes a set.
-func nullablePatch(w http.ResponseWriter, r *http.Request, responder Responder, field dto.RawField, label string) (*accountv1.NullableStringPatch, bool) {
+// contactPatch 将更新输入转换为线路上的 patch 消息。省略表示保持不变，
+// null 被公开契约禁止，字符串表示新增或修改。
+func contactPatch(w http.ResponseWriter, r *http.Request, responder Responder, field dto.RawField, label string) (*accountv1.NullableStringPatch, bool) {
 	if !field.Present {
 		return nil, true
 	}
 	if field.IsNull() {
-		return &accountv1.NullableStringPatch{Value: &accountv1.NullableStringPatch_NullValue{}}, true
+		responder.Fail(w, r, errs.CodeValidation, label+"不能为 null")
+		return nil, false
 	}
 
 	value, err := field.String()
 	if err != nil {
-		responder.Fail(w, r, errs.CodeValidation, label+"必须是字符串或 null")
+		responder.Fail(w, r, errs.CodeValidation, label+"必须是非空字符串")
 		return nil, false
 	}
 	return &accountv1.NullableStringPatch{

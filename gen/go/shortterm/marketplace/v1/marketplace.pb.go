@@ -1937,8 +1937,12 @@ type CreateTradeRequest struct {
 	ProductId      string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	ConversationId *string                `protobuf:"bytes,3,opt,name=conversation_id,json=conversationId,proto3,oneof" json:"conversation_id,omitempty"`
 	IdempotencyKey *string                `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3,oneof" json:"idempotency_key,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// conversation_id_present distinguishes an omitted JSON property from an
+	// explicitly supplied null. The public create-or-get contract treats those
+	// two forms differently when an intent already exists.
+	ConversationIdPresent bool `protobuf:"varint,5,opt,name=conversation_id_present,json=conversationIdPresent,proto3" json:"conversation_id_present,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *CreateTradeRequest) Reset() {
@@ -1999,10 +2003,20 @@ func (x *CreateTradeRequest) GetIdempotencyKey() string {
 	return ""
 }
 
+func (x *CreateTradeRequest) GetConversationIdPresent() bool {
+	if x != nil {
+		return x.ConversationIdPresent
+	}
+	return false
+}
+
 type CreateTradeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Trade         *Trade                 `protobuf:"bytes,1,opt,name=trade,proto3" json:"trade,omitempty"`
-	Replayed      bool                   `protobuf:"varint,2,opt,name=replayed,proto3" json:"replayed,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Trade    *Trade                 `protobuf:"bytes,1,opt,name=trade,proto3" json:"trade,omitempty"`
+	Replayed bool                   `protobuf:"varint,2,opt,name=replayed,proto3" json:"replayed,omitempty"`
+	// created is true for the first successful creation and its idempotent
+	// replays. It is false when create-or-get returned an existing intent.
+	Created       bool `protobuf:"varint,3,opt,name=created,proto3" json:"created,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2047,6 +2061,13 @@ func (x *CreateTradeResponse) GetTrade() *Trade {
 func (x *CreateTradeResponse) GetReplayed() bool {
 	if x != nil {
 		return x.Replayed
+	}
+	return false
+}
+
+func (x *CreateTradeResponse) GetCreated() bool {
+	if x != nil {
+		return x.Created
 	}
 	return false
 }
@@ -2896,18 +2917,20 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\n" +
 	"product_id\x18\x02 \x01(\tR\tproductId\"Z\n" +
 	"\x15RelistProductResponse\x12A\n" +
-	"\aproduct\x18\x01 \x01(\v2'.shortterm.marketplace.v1.ProductDetailR\aproduct\"\xd2\x01\n" +
+	"\aproduct\x18\x01 \x01(\v2'.shortterm.marketplace.v1.ProductDetailR\aproduct\"\x8a\x02\n" +
 	"\x12CreateTradeRequest\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x02 \x01(\tR\tproductId\x12,\n" +
 	"\x0fconversation_id\x18\x03 \x01(\tH\x00R\x0econversationId\x88\x01\x01\x12,\n" +
-	"\x0fidempotency_key\x18\x04 \x01(\tH\x01R\x0eidempotencyKey\x88\x01\x01B\x12\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tH\x01R\x0eidempotencyKey\x88\x01\x01\x126\n" +
+	"\x17conversation_id_present\x18\x05 \x01(\bR\x15conversationIdPresentB\x12\n" +
 	"\x10_conversation_idB\x12\n" +
-	"\x10_idempotency_key\"h\n" +
+	"\x10_idempotency_key\"\x82\x01\n" +
 	"\x13CreateTradeResponse\x125\n" +
 	"\x05trade\x18\x01 \x01(\v2\x1f.shortterm.marketplace.v1.TradeR\x05trade\x12\x1a\n" +
-	"\breplayed\x18\x02 \x01(\bR\breplayed\"\xc9\x01\n" +
+	"\breplayed\x18\x02 \x01(\bR\breplayed\x12\x18\n" +
+	"\acreated\x18\x03 \x01(\bR\acreated\"\xc9\x01\n" +
 	"\x11ListTradesRequest\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x19\n" +
 	"\bas_buyer\x18\x02 \x01(\bR\aasBuyer\x12B\n" +

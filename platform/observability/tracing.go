@@ -1,10 +1,8 @@
-// Package observability wires OpenTelemetry tracing and exposes the helpers
-// that keep logs and traces correlated.
+// Package observability 接入 OpenTelemetry 追踪，并提供保持日志与追踪关联的辅助函数。
 //
-// docs/software-design.md section 8.4 requires context propagation across
-// REST, gRPC, the database and event envelopes. Propagation must work even
-// when no collector is configured, so an empty endpoint still installs a
-// tracer provider and the W3C propagator; only the exporter is skipped.
+// docs/software-design.md 第 8.4 节要求在 REST、gRPC、数据库和事件信封之间传递上下文。
+// 即使未配置收集器，传递也必须有效，因此端点为空时仍安装追踪器提供程序和
+// W3C 传播器，只跳过导出器。
 package observability
 
 import (
@@ -24,32 +22,30 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/logging"
 )
 
-// Options configures the tracer provider.
+// Options 配置追踪器提供程序。
 type Options struct {
-	// Service is the deployable unit name reported as service.name.
+	// Service 是作为 service.name 上报的可部署单元名称。
 	Service string
-	// Environment is reported as deployment.environment.
+	// Environment 作为 deployment.environment 上报。
 	Environment string
-	// OTLPEndpoint is a host:port collector address. Empty disables export.
+	// OTLPEndpoint 是 host:port 形式的收集器地址。为空时禁用导出。
 	OTLPEndpoint string
-	// ExportTimeout bounds the exporter connection and shutdown.
+	// ExportTimeout 限制导出器连接和关闭的时间。
 	ExportTimeout time.Duration
 }
 
-// Shutdown flushes and stops the tracer provider.
+// Shutdown 刷新并停止追踪器提供程序。
 type Shutdown func(context.Context) error
 
-// Setup installs the global tracer provider and the W3C trace context
-// propagator. The returned Shutdown must be called before the process exits so
-// pending spans are flushed.
+// Setup 安装全局追踪器提供程序和 W3C 追踪上下文传播器。进程退出前必须调用返回的
+// Shutdown，以便刷新待处理的 span。
 func Setup(ctx context.Context, opts Options) (Shutdown, error) {
 	if opts.ExportTimeout <= 0 {
 		opts.ExportTimeout = 10 * time.Second
 	}
 
-	// The schema URL must match the one resource.Default() carries, otherwise
-	// Merge refuses to combine them; keep the semconv import in step with the
-	// OpenTelemetry SDK version in go.mod.
+	// schema URL 必须与 resource.Default() 携带的 URL 匹配，否则 Merge 会拒绝合并；
+	// semconv 的导入版本必须与 go.mod 中的 OpenTelemetry SDK 版本保持一致。
 	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceName(opts.Service),
@@ -82,8 +78,8 @@ func Setup(ctx context.Context, opts Options) (Shutdown, error) {
 	return provider.Shutdown, nil
 }
 
-// TraceAttrs returns the trace correlation attributes for ctx, ready to append
-// to a log record. It returns no attributes when ctx carries no recorded span.
+// TraceAttrs 返回 ctx 的追踪关联属性，可直接追加到日志记录中。
+// 当 ctx 不包含已记录的 span 时，不返回任何属性。
 func TraceAttrs(ctx context.Context) []slog.Attr {
 	sc := trace.SpanContextFromContext(ctx)
 	if !sc.IsValid() {
@@ -95,8 +91,7 @@ func TraceAttrs(ctx context.Context) []slog.Attr {
 	}
 }
 
-// TraceID returns the current trace identifier, or an empty string when ctx
-// carries no valid span context.
+// TraceID 返回当前追踪标识；当 ctx 不包含有效的 span 上下文时返回空字符串。
 func TraceID(ctx context.Context) string {
 	sc := trace.SpanContextFromContext(ctx)
 	if !sc.IsValid() {
@@ -105,8 +100,8 @@ func TraceID(ctx context.Context) string {
 	return sc.TraceID().String()
 }
 
-// LoggerWith returns a logger that carries the trace correlation fields for
-// ctx, so every line written during a request can be joined to its trace.
+// LoggerWith 返回携带 ctx 追踪关联字段的日志记录器，使请求期间写入的每一行日志
+// 都可以关联到对应追踪。
 func LoggerWith(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	attrs := TraceAttrs(ctx)
 	if len(attrs) == 0 {

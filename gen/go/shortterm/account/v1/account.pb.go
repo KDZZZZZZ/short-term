@@ -75,7 +75,7 @@ func (x *UserPublic) GetNickname() string {
 	return ""
 }
 
-// UserContact adds wechat/qq; optional fields distinguish unset from empty.
+// UserContact 增加微信/QQ；可选字段用于区分未设置和空值。
 type UserContact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -742,8 +742,7 @@ func (x *BatchGetUsersRequest) GetUserIds() []string {
 
 type BatchGetUsersResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Batch aggregation only needs public profile data. Contact details are
-	// intentionally excluded to keep list queries on a least-privilege shape.
+	// 批量聚合只需要公开资料。联系方式被有意排除，使列表查询保持最小权限的数据形状。
 	Users         map[string]*UserPublic `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -786,8 +785,9 @@ func (x *BatchGetUsersResponse) GetUsers() map[string]*UserPublic {
 	return nil
 }
 
-// NullableStringPatch preserves the three public PATCH states: field absent
-// means unchanged, string_value sets a value, and null_value clears it.
+// NullableStringPatch 保留 PATCH 字段的线路兼容性：字段不存在表示不变，
+// string_value 设置值。公开契约不再接受 null_value；服务端仍会明确拒绝它，
+// 而不是把旧客户端的删除请求静默当成“保持不变”。
 type NullableStringPatch struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Value:

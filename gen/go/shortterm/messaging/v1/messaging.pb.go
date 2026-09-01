@@ -386,6 +386,106 @@ func (x *GetOrCreateConversationResponse) GetReplayed() bool {
 	return false
 }
 
+// GetConversation is the fact-source lookup used by Marketplace before it
+// binds a purchase intent to a conversation. Messaging applies participant
+// visibility and returns RESOURCE_NOT_FOUND for both missing and invisible
+// conversations.
+type GetConversationRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ActorId        string                 `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetConversationRequest) Reset() {
+	*x = GetConversationRequest{}
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConversationRequest) ProtoMessage() {}
+
+func (x *GetConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConversationRequest.ProtoReflect.Descriptor instead.
+func (*GetConversationRequest) Descriptor() ([]byte, []int) {
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetConversationRequest) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *GetConversationRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+type GetConversationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Conversation  *ConversationItem      `protobuf:"bytes,1,opt,name=conversation,proto3" json:"conversation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConversationResponse) Reset() {
+	*x = GetConversationResponse{}
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConversationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConversationResponse) ProtoMessage() {}
+
+func (x *GetConversationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConversationResponse.ProtoReflect.Descriptor instead.
+func (*GetConversationResponse) Descriptor() ([]byte, []int) {
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetConversationResponse) GetConversation() *ConversationItem {
+	if x != nil {
+		return x.Conversation
+	}
+	return nil
+}
+
 type ListConversationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ActorId       string                 `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
@@ -397,7 +497,7 @@ type ListConversationsRequest struct {
 
 func (x *ListConversationsRequest) Reset() {
 	*x = ListConversationsRequest{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[5]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -409,7 +509,7 @@ func (x *ListConversationsRequest) String() string {
 func (*ListConversationsRequest) ProtoMessage() {}
 
 func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[5]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -422,7 +522,7 @@ func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsRequest.ProtoReflect.Descriptor instead.
 func (*ListConversationsRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{5}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListConversationsRequest) GetActorId() string {
@@ -458,7 +558,7 @@ type ConversationPage struct {
 
 func (x *ConversationPage) Reset() {
 	*x = ConversationPage{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[6]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -470,7 +570,7 @@ func (x *ConversationPage) String() string {
 func (*ConversationPage) ProtoMessage() {}
 
 func (x *ConversationPage) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[6]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -483,7 +583,7 @@ func (x *ConversationPage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationPage.ProtoReflect.Descriptor instead.
 func (*ConversationPage) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{6}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ConversationPage) GetItems() []*ConversationItem {
@@ -523,7 +623,7 @@ type ListConversationsResponse struct {
 
 func (x *ListConversationsResponse) Reset() {
 	*x = ListConversationsResponse{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[7]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +635,7 @@ func (x *ListConversationsResponse) String() string {
 func (*ListConversationsResponse) ProtoMessage() {}
 
 func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[7]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,7 +648,7 @@ func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsResponse.ProtoReflect.Descriptor instead.
 func (*ListConversationsResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{7}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListConversationsResponse) GetPage() *ConversationPage {
@@ -567,7 +667,7 @@ type GetUnreadCountRequest struct {
 
 func (x *GetUnreadCountRequest) Reset() {
 	*x = GetUnreadCountRequest{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[8]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +679,7 @@ func (x *GetUnreadCountRequest) String() string {
 func (*GetUnreadCountRequest) ProtoMessage() {}
 
 func (x *GetUnreadCountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[8]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +692,7 @@ func (x *GetUnreadCountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUnreadCountRequest.ProtoReflect.Descriptor instead.
 func (*GetUnreadCountRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{8}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetUnreadCountRequest) GetActorId() string {
@@ -611,7 +711,7 @@ type GetUnreadCountResponse struct {
 
 func (x *GetUnreadCountResponse) Reset() {
 	*x = GetUnreadCountResponse{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[9]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -623,7 +723,7 @@ func (x *GetUnreadCountResponse) String() string {
 func (*GetUnreadCountResponse) ProtoMessage() {}
 
 func (x *GetUnreadCountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[9]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -636,7 +736,7 @@ func (x *GetUnreadCountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUnreadCountResponse.ProtoReflect.Descriptor instead.
 func (*GetUnreadCountResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{9}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetUnreadCountResponse) GetUnreadCount() int64 {
@@ -658,7 +758,7 @@ type ListMessagesRequest struct {
 
 func (x *ListMessagesRequest) Reset() {
 	*x = ListMessagesRequest{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[10]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +770,7 @@ func (x *ListMessagesRequest) String() string {
 func (*ListMessagesRequest) ProtoMessage() {}
 
 func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[10]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +783,7 @@ func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMessagesRequest.ProtoReflect.Descriptor instead.
 func (*ListMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{10}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListMessagesRequest) GetActorId() string {
@@ -724,7 +824,7 @@ type MessagePage struct {
 
 func (x *MessagePage) Reset() {
 	*x = MessagePage{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[11]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -736,7 +836,7 @@ func (x *MessagePage) String() string {
 func (*MessagePage) ProtoMessage() {}
 
 func (x *MessagePage) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[11]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -749,7 +849,7 @@ func (x *MessagePage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessagePage.ProtoReflect.Descriptor instead.
 func (*MessagePage) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{11}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MessagePage) GetItems() []*MessageItem {
@@ -775,7 +875,7 @@ type ListMessagesResponse struct {
 
 func (x *ListMessagesResponse) Reset() {
 	*x = ListMessagesResponse{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[12]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -787,7 +887,7 @@ func (x *ListMessagesResponse) String() string {
 func (*ListMessagesResponse) ProtoMessage() {}
 
 func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[12]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -800,7 +900,7 @@ func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMessagesResponse.ProtoReflect.Descriptor instead.
 func (*ListMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{12}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListMessagesResponse) GetPage() *MessagePage {
@@ -822,7 +922,7 @@ type SendMessageRequest struct {
 
 func (x *SendMessageRequest) Reset() {
 	*x = SendMessageRequest{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[13]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -834,7 +934,7 @@ func (x *SendMessageRequest) String() string {
 func (*SendMessageRequest) ProtoMessage() {}
 
 func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[13]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -847,7 +947,7 @@ func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendMessageRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{13}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SendMessageRequest) GetActorId() string {
@@ -888,7 +988,7 @@ type SendMessageResponse struct {
 
 func (x *SendMessageResponse) Reset() {
 	*x = SendMessageResponse{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[14]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -900,7 +1000,7 @@ func (x *SendMessageResponse) String() string {
 func (*SendMessageResponse) ProtoMessage() {}
 
 func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[14]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -913,7 +1013,7 @@ func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendMessageResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{14}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SendMessageResponse) GetMessage() *MessageItem {
@@ -941,7 +1041,7 @@ type MarkConversationReadRequest struct {
 
 func (x *MarkConversationReadRequest) Reset() {
 	*x = MarkConversationReadRequest{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[15]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -953,7 +1053,7 @@ func (x *MarkConversationReadRequest) String() string {
 func (*MarkConversationReadRequest) ProtoMessage() {}
 
 func (x *MarkConversationReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[15]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -966,7 +1066,7 @@ func (x *MarkConversationReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkConversationReadRequest.ProtoReflect.Descriptor instead.
 func (*MarkConversationReadRequest) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{15}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *MarkConversationReadRequest) GetActorId() string {
@@ -998,7 +1098,7 @@ type MarkConversationReadResponse struct {
 
 func (x *MarkConversationReadResponse) Reset() {
 	*x = MarkConversationReadResponse{}
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[16]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +1110,7 @@ func (x *MarkConversationReadResponse) String() string {
 func (*MarkConversationReadResponse) ProtoMessage() {}
 
 func (x *MarkConversationReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[16]
+	mi := &file_shortterm_messaging_v1_messaging_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +1123,7 @@ func (x *MarkConversationReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkConversationReadResponse.ProtoReflect.Descriptor instead.
 func (*MarkConversationReadResponse) Descriptor() ([]byte, []int) {
-	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{16}
+	return file_shortterm_messaging_v1_messaging_proto_rawDescGZIP(), []int{18}
 }
 
 var File_shortterm_messaging_v1_messaging_proto protoreflect.FileDescriptor
@@ -1068,7 +1168,12 @@ const file_shortterm_messaging_v1_messaging_proto_rawDesc = "" +
 	"\x10_idempotency_key\"\x8b\x01\n" +
 	"\x1fGetOrCreateConversationResponse\x12L\n" +
 	"\fconversation\x18\x01 \x01(\v2(.shortterm.messaging.v1.ConversationItemR\fconversation\x12\x1a\n" +
-	"\breplayed\x18\x02 \x01(\bR\breplayed\"f\n" +
+	"\breplayed\x18\x02 \x01(\bR\breplayed\"\\\n" +
+	"\x16GetConversationRequest\x12\x19\n" +
+	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12'\n" +
+	"\x0fconversation_id\x18\x02 \x01(\tR\x0econversationId\"g\n" +
+	"\x17GetConversationResponse\x12L\n" +
+	"\fconversation\x18\x01 \x01(\v2(.shortterm.messaging.v1.ConversationItemR\fconversation\"f\n" +
 	"\x18ListConversationsRequest\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
@@ -1110,9 +1215,10 @@ const file_shortterm_messaging_v1_messaging_proto_rawDesc = "" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12'\n" +
 	"\x0fconversation_id\x18\x02 \x01(\tR\x0econversationId\x12&\n" +
 	"\x0flast_message_id\x18\x03 \x01(\tR\rlastMessageId\"\x1e\n" +
-	"\x1cMarkConversationReadResponse2\xe1\x05\n" +
+	"\x1cMarkConversationReadResponse2\xd5\x06\n" +
 	"\x10MessagingService\x12\x8a\x01\n" +
-	"\x17GetOrCreateConversation\x126.shortterm.messaging.v1.GetOrCreateConversationRequest\x1a7.shortterm.messaging.v1.GetOrCreateConversationResponse\x12x\n" +
+	"\x17GetOrCreateConversation\x126.shortterm.messaging.v1.GetOrCreateConversationRequest\x1a7.shortterm.messaging.v1.GetOrCreateConversationResponse\x12r\n" +
+	"\x0fGetConversation\x12..shortterm.messaging.v1.GetConversationRequest\x1a/.shortterm.messaging.v1.GetConversationResponse\x12x\n" +
 	"\x11ListConversations\x120.shortterm.messaging.v1.ListConversationsRequest\x1a1.shortterm.messaging.v1.ListConversationsResponse\x12o\n" +
 	"\x0eGetUnreadCount\x12-.shortterm.messaging.v1.GetUnreadCountRequest\x1a..shortterm.messaging.v1.GetUnreadCountResponse\x12i\n" +
 	"\fListMessages\x12+.shortterm.messaging.v1.ListMessagesRequest\x1a,.shortterm.messaging.v1.ListMessagesResponse\x12f\n" +
@@ -1131,57 +1237,62 @@ func file_shortterm_messaging_v1_messaging_proto_rawDescGZIP() []byte {
 	return file_shortterm_messaging_v1_messaging_proto_rawDescData
 }
 
-var file_shortterm_messaging_v1_messaging_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_shortterm_messaging_v1_messaging_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_shortterm_messaging_v1_messaging_proto_goTypes = []any{
 	(*LastMessage)(nil),                     // 0: shortterm.messaging.v1.LastMessage
 	(*ConversationItem)(nil),                // 1: shortterm.messaging.v1.ConversationItem
 	(*MessageItem)(nil),                     // 2: shortterm.messaging.v1.MessageItem
 	(*GetOrCreateConversationRequest)(nil),  // 3: shortterm.messaging.v1.GetOrCreateConversationRequest
 	(*GetOrCreateConversationResponse)(nil), // 4: shortterm.messaging.v1.GetOrCreateConversationResponse
-	(*ListConversationsRequest)(nil),        // 5: shortterm.messaging.v1.ListConversationsRequest
-	(*ConversationPage)(nil),                // 6: shortterm.messaging.v1.ConversationPage
-	(*ListConversationsResponse)(nil),       // 7: shortterm.messaging.v1.ListConversationsResponse
-	(*GetUnreadCountRequest)(nil),           // 8: shortterm.messaging.v1.GetUnreadCountRequest
-	(*GetUnreadCountResponse)(nil),          // 9: shortterm.messaging.v1.GetUnreadCountResponse
-	(*ListMessagesRequest)(nil),             // 10: shortterm.messaging.v1.ListMessagesRequest
-	(*MessagePage)(nil),                     // 11: shortterm.messaging.v1.MessagePage
-	(*ListMessagesResponse)(nil),            // 12: shortterm.messaging.v1.ListMessagesResponse
-	(*SendMessageRequest)(nil),              // 13: shortterm.messaging.v1.SendMessageRequest
-	(*SendMessageResponse)(nil),             // 14: shortterm.messaging.v1.SendMessageResponse
-	(*MarkConversationReadRequest)(nil),     // 15: shortterm.messaging.v1.MarkConversationReadRequest
-	(*MarkConversationReadResponse)(nil),    // 16: shortterm.messaging.v1.MarkConversationReadResponse
-	(*timestamppb.Timestamp)(nil),           // 17: google.protobuf.Timestamp
+	(*GetConversationRequest)(nil),          // 5: shortterm.messaging.v1.GetConversationRequest
+	(*GetConversationResponse)(nil),         // 6: shortterm.messaging.v1.GetConversationResponse
+	(*ListConversationsRequest)(nil),        // 7: shortterm.messaging.v1.ListConversationsRequest
+	(*ConversationPage)(nil),                // 8: shortterm.messaging.v1.ConversationPage
+	(*ListConversationsResponse)(nil),       // 9: shortterm.messaging.v1.ListConversationsResponse
+	(*GetUnreadCountRequest)(nil),           // 10: shortterm.messaging.v1.GetUnreadCountRequest
+	(*GetUnreadCountResponse)(nil),          // 11: shortterm.messaging.v1.GetUnreadCountResponse
+	(*ListMessagesRequest)(nil),             // 12: shortterm.messaging.v1.ListMessagesRequest
+	(*MessagePage)(nil),                     // 13: shortterm.messaging.v1.MessagePage
+	(*ListMessagesResponse)(nil),            // 14: shortterm.messaging.v1.ListMessagesResponse
+	(*SendMessageRequest)(nil),              // 15: shortterm.messaging.v1.SendMessageRequest
+	(*SendMessageResponse)(nil),             // 16: shortterm.messaging.v1.SendMessageResponse
+	(*MarkConversationReadRequest)(nil),     // 17: shortterm.messaging.v1.MarkConversationReadRequest
+	(*MarkConversationReadResponse)(nil),    // 18: shortterm.messaging.v1.MarkConversationReadResponse
+	(*timestamppb.Timestamp)(nil),           // 19: google.protobuf.Timestamp
 }
 var file_shortterm_messaging_v1_messaging_proto_depIdxs = []int32{
-	17, // 0: shortterm.messaging.v1.LastMessage.created_at:type_name -> google.protobuf.Timestamp
+	19, // 0: shortterm.messaging.v1.LastMessage.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: shortterm.messaging.v1.ConversationItem.last_message:type_name -> shortterm.messaging.v1.LastMessage
-	17, // 2: shortterm.messaging.v1.ConversationItem.created_at:type_name -> google.protobuf.Timestamp
-	17, // 3: shortterm.messaging.v1.ConversationItem.last_message_at:type_name -> google.protobuf.Timestamp
-	17, // 4: shortterm.messaging.v1.MessageItem.read_at:type_name -> google.protobuf.Timestamp
-	17, // 5: shortterm.messaging.v1.MessageItem.created_at:type_name -> google.protobuf.Timestamp
+	19, // 2: shortterm.messaging.v1.ConversationItem.created_at:type_name -> google.protobuf.Timestamp
+	19, // 3: shortterm.messaging.v1.ConversationItem.last_message_at:type_name -> google.protobuf.Timestamp
+	19, // 4: shortterm.messaging.v1.MessageItem.read_at:type_name -> google.protobuf.Timestamp
+	19, // 5: shortterm.messaging.v1.MessageItem.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 6: shortterm.messaging.v1.GetOrCreateConversationResponse.conversation:type_name -> shortterm.messaging.v1.ConversationItem
-	1,  // 7: shortterm.messaging.v1.ConversationPage.items:type_name -> shortterm.messaging.v1.ConversationItem
-	6,  // 8: shortterm.messaging.v1.ListConversationsResponse.page:type_name -> shortterm.messaging.v1.ConversationPage
-	2,  // 9: shortterm.messaging.v1.MessagePage.items:type_name -> shortterm.messaging.v1.MessageItem
-	11, // 10: shortterm.messaging.v1.ListMessagesResponse.page:type_name -> shortterm.messaging.v1.MessagePage
-	2,  // 11: shortterm.messaging.v1.SendMessageResponse.message:type_name -> shortterm.messaging.v1.MessageItem
-	3,  // 12: shortterm.messaging.v1.MessagingService.GetOrCreateConversation:input_type -> shortterm.messaging.v1.GetOrCreateConversationRequest
-	5,  // 13: shortterm.messaging.v1.MessagingService.ListConversations:input_type -> shortterm.messaging.v1.ListConversationsRequest
-	8,  // 14: shortterm.messaging.v1.MessagingService.GetUnreadCount:input_type -> shortterm.messaging.v1.GetUnreadCountRequest
-	10, // 15: shortterm.messaging.v1.MessagingService.ListMessages:input_type -> shortterm.messaging.v1.ListMessagesRequest
-	13, // 16: shortterm.messaging.v1.MessagingService.SendMessage:input_type -> shortterm.messaging.v1.SendMessageRequest
-	15, // 17: shortterm.messaging.v1.MessagingService.MarkConversationRead:input_type -> shortterm.messaging.v1.MarkConversationReadRequest
-	4,  // 18: shortterm.messaging.v1.MessagingService.GetOrCreateConversation:output_type -> shortterm.messaging.v1.GetOrCreateConversationResponse
-	7,  // 19: shortterm.messaging.v1.MessagingService.ListConversations:output_type -> shortterm.messaging.v1.ListConversationsResponse
-	9,  // 20: shortterm.messaging.v1.MessagingService.GetUnreadCount:output_type -> shortterm.messaging.v1.GetUnreadCountResponse
-	12, // 21: shortterm.messaging.v1.MessagingService.ListMessages:output_type -> shortterm.messaging.v1.ListMessagesResponse
-	14, // 22: shortterm.messaging.v1.MessagingService.SendMessage:output_type -> shortterm.messaging.v1.SendMessageResponse
-	16, // 23: shortterm.messaging.v1.MessagingService.MarkConversationRead:output_type -> shortterm.messaging.v1.MarkConversationReadResponse
-	18, // [18:24] is the sub-list for method output_type
-	12, // [12:18] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	1,  // 7: shortterm.messaging.v1.GetConversationResponse.conversation:type_name -> shortterm.messaging.v1.ConversationItem
+	1,  // 8: shortterm.messaging.v1.ConversationPage.items:type_name -> shortterm.messaging.v1.ConversationItem
+	8,  // 9: shortterm.messaging.v1.ListConversationsResponse.page:type_name -> shortterm.messaging.v1.ConversationPage
+	2,  // 10: shortterm.messaging.v1.MessagePage.items:type_name -> shortterm.messaging.v1.MessageItem
+	13, // 11: shortterm.messaging.v1.ListMessagesResponse.page:type_name -> shortterm.messaging.v1.MessagePage
+	2,  // 12: shortterm.messaging.v1.SendMessageResponse.message:type_name -> shortterm.messaging.v1.MessageItem
+	3,  // 13: shortterm.messaging.v1.MessagingService.GetOrCreateConversation:input_type -> shortterm.messaging.v1.GetOrCreateConversationRequest
+	5,  // 14: shortterm.messaging.v1.MessagingService.GetConversation:input_type -> shortterm.messaging.v1.GetConversationRequest
+	7,  // 15: shortterm.messaging.v1.MessagingService.ListConversations:input_type -> shortterm.messaging.v1.ListConversationsRequest
+	10, // 16: shortterm.messaging.v1.MessagingService.GetUnreadCount:input_type -> shortterm.messaging.v1.GetUnreadCountRequest
+	12, // 17: shortterm.messaging.v1.MessagingService.ListMessages:input_type -> shortterm.messaging.v1.ListMessagesRequest
+	15, // 18: shortterm.messaging.v1.MessagingService.SendMessage:input_type -> shortterm.messaging.v1.SendMessageRequest
+	17, // 19: shortterm.messaging.v1.MessagingService.MarkConversationRead:input_type -> shortterm.messaging.v1.MarkConversationReadRequest
+	4,  // 20: shortterm.messaging.v1.MessagingService.GetOrCreateConversation:output_type -> shortterm.messaging.v1.GetOrCreateConversationResponse
+	6,  // 21: shortterm.messaging.v1.MessagingService.GetConversation:output_type -> shortterm.messaging.v1.GetConversationResponse
+	9,  // 22: shortterm.messaging.v1.MessagingService.ListConversations:output_type -> shortterm.messaging.v1.ListConversationsResponse
+	11, // 23: shortterm.messaging.v1.MessagingService.GetUnreadCount:output_type -> shortterm.messaging.v1.GetUnreadCountResponse
+	14, // 24: shortterm.messaging.v1.MessagingService.ListMessages:output_type -> shortterm.messaging.v1.ListMessagesResponse
+	16, // 25: shortterm.messaging.v1.MessagingService.SendMessage:output_type -> shortterm.messaging.v1.SendMessageResponse
+	18, // 26: shortterm.messaging.v1.MessagingService.MarkConversationRead:output_type -> shortterm.messaging.v1.MarkConversationReadResponse
+	20, // [20:27] is the sub-list for method output_type
+	13, // [13:20] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_shortterm_messaging_v1_messaging_proto_init() }
@@ -1192,16 +1303,16 @@ func file_shortterm_messaging_v1_messaging_proto_init() {
 	file_shortterm_messaging_v1_messaging_proto_msgTypes[1].OneofWrappers = []any{}
 	file_shortterm_messaging_v1_messaging_proto_msgTypes[2].OneofWrappers = []any{}
 	file_shortterm_messaging_v1_messaging_proto_msgTypes[3].OneofWrappers = []any{}
-	file_shortterm_messaging_v1_messaging_proto_msgTypes[10].OneofWrappers = []any{}
-	file_shortterm_messaging_v1_messaging_proto_msgTypes[11].OneofWrappers = []any{}
+	file_shortterm_messaging_v1_messaging_proto_msgTypes[12].OneofWrappers = []any{}
 	file_shortterm_messaging_v1_messaging_proto_msgTypes[13].OneofWrappers = []any{}
+	file_shortterm_messaging_v1_messaging_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shortterm_messaging_v1_messaging_proto_rawDesc), len(file_shortterm_messaging_v1_messaging_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

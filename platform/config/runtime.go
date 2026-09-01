@@ -6,22 +6,22 @@ import (
 	"time"
 )
 
-// Runtime is the configuration every deployable unit shares.
+// Runtime 是每个可部署单元共享的配置。
 type Runtime struct {
-	// Service is the deployable unit name used in logs, traces and metrics.
+	// Service 是日志、追踪和指标中使用的可部署单元名称。
 	Service string
-	// Environment is the deployment environment name.
+	// Environment 是部署环境名称。
 	Environment string
-	// LogLevel is the minimum level written to stdout.
+	// LogLevel 是写入 stdout 的最低日志级别。
 	LogLevel slog.Level
-	// OTLPEndpoint is the OpenTelemetry collector endpoint. Empty disables
-	// span export; the tracer still runs so context propagation keeps working.
+	// OTLPEndpoint 是 OpenTelemetry 收集器端点。为空时禁用 span 导出；
+	// 追踪器仍会运行，以保证上下文传递继续生效。
 	OTLPEndpoint string
-	// ShutdownTimeout bounds graceful shutdown before the process exits.
+	// ShutdownTimeout 限制进程退出前的优雅关闭时间。
 	ShutdownTimeout time.Duration
 }
 
-// LoadRuntime reads the shared runtime settings for the named service.
+// LoadRuntime 读取指定服务的共享运行时设置。
 func (l *Loader) LoadRuntime(service string) Runtime {
 	return Runtime{
 		Service:         service,

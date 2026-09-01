@@ -4,26 +4,25 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本/状态 | 0.1 / 草案，待人类评审 |
+| 版本/状态 | 1.0 / M0–M6 已实现，生产验收由 main 部署 workflow 留证 |
 | 日期 | 2026-09-01 |
 | 依据 | [software-design.md](software-design.md)（目标架构）、[state-machines.md](state-machines.md)（状态与并发规则）、[openapi/openapi.yaml](../openapi/openapi.yaml)（公开契约）、根 `AGENTS.md`（Git 与验收治理） |
 | 范围 | 仅后端：五个 Go 服务、数据库、内部 gRPC、Gateway REST 实现、测试与后端部署。前端、推荐算法、邮件通知不在范围内 |
 
-## 1. 现状盘点
+## 1. 实现状态
 
-已有：
+| 里程碑 | 当前实现 |
+| --- | --- |
+| M0 | Go workspace、共享平台层、独立数据库/迁移、Proto/OpenAPI/Go CI 已就位 |
+| M1 | Account、JWT、Gateway 认证和资料链路已实现 |
+| M2 | Marketplace 商品、图片、本地对象存储与全部商品 REST 路由已实现 |
+| M3 | Trade 状态机、Product→Trade 锁序、事务幂等快照、Outbox worker 已实现 |
+| M4 | Favorite 服务、当前商品投影与 Gateway 路由已实现 |
+| M5 | Messaging 会话/消息/已读/游标、Outbox worker 与 Gateway 聚合已实现 |
+| M6 | 五个独立镜像、真实 readiness、限流、指标/Trace、容器 E2E、自动部署与回滚已实现 |
 
-- OpenAPI 公开契约及 CI（lint/bundle/drift），Swagger UI 自动部署。
-- 五个服务的 Proto 契约（`proto/shortterm/*/v1`）与已生成代码（`gen/go`），`buf.yaml`、`buf.gen.yaml`、`go.work` 已就绪。
-- `package.json` 已有 `proto:check`、`go:vet`、`go:test`、`go:test:race` 脚本。
-- Account Service 起步：领域校验（`services/account/internal/domain/account.go`）与首份迁移（`services/account/migrations/0001_account.sql`）。
-
-缺失：
-
-- 全部 `cmd/server` 入口、application/adapter 层、Gateway 全部代码。
-- Marketplace、Messaging、Favorite 的迁移与领域实现。
-- 迁移工具、本地开发基础设施（PostgreSQL）、Go CI workflow、后端部署。
-- 设计文档第 10 章全部后端测试证据。
+生产是否成功不由本表自证；以合入 `main` 后的 `Backend`、`Deploy production`
+GitHub run、远端容器状态和公开 HTTP E2E 输出为准。
 
 ## 2. 总体原则
 

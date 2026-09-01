@@ -16,8 +16,8 @@ func TestCodeSurvivesGRPCRoundTrip(t *testing.T) {
 		t.Run(string(code), func(t *testing.T) {
 			t.Parallel()
 
-			// status.FromError on the server side is what the gRPC runtime does
-			// before writing the trailer; parsing it back is what a client sees.
+			// 服务端的 status.FromError 就是 gRPC 运行时写入 trailer 前执行的操作；
+			// 将其解析回来就是客户端看到的结果。
 			sent := New(code, "boom")
 			wire := status.FromProto(status.Convert(sent).Proto()).Err()
 

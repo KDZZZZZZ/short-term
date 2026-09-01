@@ -1,4 +1,4 @@
-// Command server runs the Account Service gRPC server.
+// Command server 运行 Account Service gRPC 服务端。
 package main
 
 import (
@@ -25,8 +25,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		// The logger may not exist yet when configuration fails, so the last
-		// resort is stderr.
+		// 配置失败时日志记录器可能尚未创建，因此最后退回 stderr。
 		fmt.Fprintf(os.Stderr, "account: %v\n", err)
 		os.Exit(1)
 	}
@@ -101,6 +100,7 @@ func run() error {
 		Logger:         logger,
 		HandlerTimeout: cfg.HandlerTimeout,
 	})
+	grpcx.RegisterHealthServer(server, pool.Ping)
 	accountv1.RegisterAccountServiceServer(server, grpcadapter.NewServer(app))
 
 	return grpcx.Serve(ctx, server, cfg.GRPCAddr, logger)

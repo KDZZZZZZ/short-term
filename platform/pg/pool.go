@@ -1,9 +1,8 @@
-// Package pg holds the PostgreSQL plumbing shared by the services: pool
-// construction, tracing, the transaction helper and migration execution.
+// Package pg 保存各服务共享的 PostgreSQL 基础设施：连接池构造、追踪、事务辅助函数
+// 和迁移执行。
 //
-// Each service owns its own database and database account
-// (docs/software-design.md section 9.2), so nothing here knows about schemas
-// or tables; it only knows how to open, trace and commit work.
+// 每个服务拥有自己的数据库和数据库账户（docs/software-design.md 第 9.2 节），
+// 因此这里不涉及任何 schema 或表，只负责打开连接、追踪并提交工作。
 package pg
 
 import (
@@ -17,18 +16,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// PoolOptions configures a connection pool.
+// PoolOptions 配置连接池。
 type PoolOptions struct {
-	// DSN is the libpq connection string. It is a secret: never log it.
+	// DSN 是 libpq 连接字符串，属于密钥，绝不能记录到日志中。
 	DSN string
-	// MaxConns bounds the pool. Zero uses the pgx default.
+	// MaxConns 限制连接池大小。零值使用 pgx 默认值。
 	MaxConns int32
-	// ConnectTimeout bounds the initial connectivity check.
+	// ConnectTimeout 限制初始连通性检查。
 	ConnectTimeout time.Duration
 }
 
-// NewPool opens a pool and verifies connectivity before returning, so a
-// misconfigured database fails at startup rather than on the first request.
+// NewPool 打开连接池并在返回前验证连通性，使错误配置的数据库在启动时失败，
+// 而不是等到第一个请求到达时才失败。
 func NewPool(ctx context.Context, opts PoolOptions) (*pgxpool.Pool, error) {
 	if opts.DSN == "" {
 		return nil, errors.New("pg: DSN is required")
@@ -60,20 +59,18 @@ func NewPool(ctx context.Context, opts PoolOptions) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-// Tx is the subset of pgx used by repositories. Accepting this interface lets
-// a repository method run either on the pool or inside an open transaction.
+// Tx 是仓储使用的 pgx 子集。接受此接口后，仓储方法既可以在连接池上运行，
+// 也可以在已打开的事务中运行。
 type Tx interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-// InTx runs fn inside a transaction, committing on success and rolling back on
-// any error or panic.
+// InTx 在事务中运行 fn，成功时提交，出现任何错误或 panic 时回滚。
 //
-// The commands that change Product and Trade together depend on this: a
-// partially applied action must never become visible
-// (docs/state-machines.md, transaction boundaries).
+// 同时修改 Product 和 Trade 的命令依赖这一点：部分执行的动作绝不能对外可见
+// （docs/state-machines.md，事务边界）。
 func InTx(ctx context.Context, pool *pgxpool.Pool, opts pgx.TxOptions, fn func(pgx.Tx) error) (err error) {
 	tx, err := pool.BeginTx(ctx, opts)
 	if err != nil {
@@ -86,8 +83,8 @@ func InTx(ctx context.Context, pool *pgxpool.Pool, opts pgx.TxOptions, fn func(p
 			panic(recovered)
 		}
 		if err != nil {
-			// Roll back on a context that is still live, otherwise a cancelled
-			// request would leave the transaction open until the pool reaps it.
+			// 在仍然有效的上下文中回滚，否则已取消的请求会让事务保持打开，
+			// 直到连接池回收它。
 			_ = tx.Rollback(context.WithoutCancel(ctx))
 		}
 	}()
@@ -101,9 +98,8 @@ func InTx(ctx context.Context, pool *pgxpool.Pool, opts pgx.TxOptions, fn func(p
 	return nil
 }
 
-// IsUniqueViolation reports whether err is a PostgreSQL unique constraint
-// violation, optionally restricted to a named constraint. Repositories use it
-// to turn a race that the database already serialised into a domain error.
+// IsUniqueViolation 判断 err 是否为 PostgreSQL 唯一约束冲突，也可以限定为指定约束。
+// 仓储用它将数据库已经串行化的竞争转换为领域错误。
 func IsUniqueViolation(err error, constraint string) bool {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
@@ -112,5 +108,5 @@ func IsUniqueViolation(err error, constraint string) bool {
 	return constraint == "" || pgErr.ConstraintName == constraint
 }
 
-// IsNoRows reports whether err means the query matched nothing.
+// IsNoRows 判断 err 是否表示查询没有匹配任何记录。
 func IsNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }

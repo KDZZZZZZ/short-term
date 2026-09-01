@@ -1,4 +1,4 @@
-// Command server runs the Marketplace Service gRPC server.
+// Command server 运行 Marketplace Service gRPC 服务端。
 package main
 
 import (
@@ -10,11 +10,13 @@ import (
 	"syscall"
 
 	marketplacev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1"
+	messagingv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/messaging/v1"
 	"github.com/KDZZZZZZ/short-term/platform/grpcx"
 	"github.com/KDZZZZZZ/short-term/platform/logging"
 	"github.com/KDZZZZZZ/short-term/platform/observability"
 	"github.com/KDZZZZZZ/short-term/platform/pg"
 	grpcadapter "github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/grpc"
+	messageadapter "github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/messaging"
 	"github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/objectstore"
 	"github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/postgres"
 	"github.com/KDZZZZZZ/short-term/services/marketplace/internal/adapter/system"
@@ -78,11 +80,27 @@ func run() error {
 		return err
 	}
 
-	products, err := application.NewProductService(
-		postgres.NewProductRepository(pool),
-		objects,
-		system.NewIDs(),
-		system.Clock{},
+	ids := system.NewIDs()
+	clock := system.Clock{}
+	productRepo := postgres.NewProductRepository(pool)
+	messagingConn, err := grpcx.Dial(grpcx.ClientOptions{
+		Target: cfg.MessagingTarget, Caller: config.ServiceName, DefaultTimeout: cfg.DownstreamTimeout,
+	})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = messagingConn.Close() }()
+
+	products, err := application.NewProductService(productRepo, objects, ids, clock, logger)
+	if err != nil {
+		return err
+	}
+	trades, err := application.NewTradeService(
+		postgres.NewTradeRepository(pool),
+		productRepo,
+		messageadapter.NewVerifier(messagingv1.NewMessagingServiceClient(messagingConn)),
+		ids,
+		clock,
 		logger,
 	)
 	if err != nil {
@@ -93,7 +111,8 @@ func run() error {
 		Logger:         logger,
 		HandlerTimeout: cfg.HandlerTimeout,
 	})
-	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products))
+	grpcx.RegisterHealthServer(server, pool.Ping)
+	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades))
 
 	logger.Info("media store ready", slog.String("root", objects.Root()), slog.String("public_url", cfg.MediaPublicURL))
 	return grpcx.Serve(ctx, server, cfg.GRPCAddr, logger)

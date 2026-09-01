@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestValidateStudentNo(t *testing.T) {
@@ -93,6 +94,8 @@ func TestValidateWechat(t *testing.T) {
 	minimum := "微"
 	maximum := strings.Repeat("微", 64)
 	tooLong := strings.Repeat("微", 65)
+	withSpace := "wx xiaoming"
+	withUnicodeSpace := "微信\u3000号"
 	tests := []struct {
 		name    string
 		value   *string
@@ -103,6 +106,8 @@ func TestValidateWechat(t *testing.T) {
 		{name: "maximum unicode length", value: &maximum, wantErr: nil},
 		{name: "empty", value: &empty, wantErr: ErrWechatLength},
 		{name: "too long unicode", value: &tooLong, wantErr: ErrWechatLength},
+		{name: "ascii whitespace", value: &withSpace, wantErr: ErrWechatLength},
+		{name: "unicode whitespace", value: &withUnicodeSpace, wantErr: ErrWechatLength},
 	}
 
 	for _, tt := range tests {
@@ -113,6 +118,27 @@ func TestValidateWechat(t *testing.T) {
 				t.Fatalf("ValidateWechat(%v) error = %v, want %v", tt.value, err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestSavedContactsCannotBeRemoved(t *testing.T) {
+	t.Parallel()
+
+	wechat := "wx_xiaoming"
+	qq := "123456789"
+	account, err := New("u_1", "20260001", "hash", "小明", &wechat, &qq, time.Now())
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	if err := account.SetWechat(nil, time.Now()); !errors.Is(err, ErrContactRemoval) {
+		t.Fatalf("SetWechat(nil) = %v, want ErrContactRemoval", err)
+	}
+	if err := account.SetQQ(nil, time.Now()); !errors.Is(err, ErrContactRemoval) {
+		t.Fatalf("SetQQ(nil) = %v, want ErrContactRemoval", err)
+	}
+	if account.Wechat == nil || *account.Wechat != wechat || account.QQ == nil || *account.QQ != qq {
+		t.Fatal("a rejected removal changed the saved contacts")
 	}
 }
 

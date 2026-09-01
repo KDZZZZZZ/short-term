@@ -1,6 +1,6 @@
 package dto
 
-// ProductImage is the ProductImage schema.
+// ProductImage 是 ProductImage schema。
 type ProductImage struct {
 	ID        string `json:"id"`
 	URL       string `json:"url"`
@@ -8,7 +8,7 @@ type ProductImage struct {
 	CreatedAt string `json:"created_at"`
 }
 
-// ProductSummary is the ProductSummary schema used by every list.
+// ProductSummary 是所有列表使用的 ProductSummary schema。
 type ProductSummary struct {
 	ID        string     `json:"id"`
 	Title     string     `json:"title"`
@@ -20,8 +20,8 @@ type ProductSummary struct {
 	CreatedAt string     `json:"created_at"`
 }
 
-// ProductDetail is the ProductDetail schema. The seller is a SellerContact,
-// which has no student number field.
+// ProductDetail 是 ProductDetail schema。卖家使用 SellerContact，
+// 其中不包含学号字段。
 type ProductDetail struct {
 	ID          string         `json:"id"`
 	Title       string         `json:"title"`
@@ -36,7 +36,7 @@ type ProductDetail struct {
 	UpdatedAt   string         `json:"updated_at"`
 }
 
-// ProductPage is the ProductPage schema.
+// ProductPage 是 ProductPage schema。
 type ProductPage struct {
 	Items    []ProductSummary `json:"items"`
 	Page     int32            `json:"page"`
@@ -44,13 +44,13 @@ type ProductPage struct {
 	Total    int64            `json:"total"`
 }
 
-// ProductImageList is the ProductImageListData schema.
+// ProductImageList 是 ProductImageListData schema。
 type ProductImageList struct {
 	Images []ProductImage `json:"images"`
 }
 
-// ProductUpdateRequest is the ProductUpdateRequest schema. Every property is
-// optional but at least one must be present, and none of them is nullable.
+// ProductUpdateRequest 是 ProductUpdateRequest schema。每个属性都是可选的，
+// 但至少要出现一个，且这些属性都不可为 null。
 type ProductUpdateRequest struct {
 	Title       *string `json:"title"`
 	Price       *string `json:"price"`

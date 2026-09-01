@@ -1,7 +1,6 @@
-// Package mapper converts between the internal gRPC messages and the public
-// HTTP DTOs. Keeping the conversion explicit is what stops a Protobuf change
-// from silently altering the approved REST contract
-// (docs/software-design.md section 7.1).
+// Package mapper 在内部 gRPC 消息和公开 HTTP DTO 之间进行转换。
+// 显式维护转换关系可以避免 Protobuf 变更静默改变已批准的 REST 契约
+// （docs/software-design.md 第 7.1 节）。
 package mapper
 
 import (
@@ -13,7 +12,7 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/dto"
 )
 
-// AuthData maps the internal auth payload to the public AuthData schema.
+// AuthData 将内部认证载荷映射为公开 AuthData schema。
 func AuthData(src *accountv1.AuthData) dto.AuthData {
 	return dto.AuthData{
 		AccessToken: src.GetAccessToken(),
@@ -23,7 +22,7 @@ func AuthData(src *accountv1.AuthData) dto.AuthData {
 	}
 }
 
-// UserMe maps the caller's own profile.
+// UserMe 映射调用方自己的资料。
 func UserMe(src *accountv1.UserMe) dto.UserMe {
 	return dto.UserMe{
 		ID:        src.GetId(),
@@ -36,8 +35,8 @@ func UserMe(src *accountv1.UserMe) dto.UserMe {
 	}
 }
 
-// SellerContact maps a seller profile for the product detail response. The
-// source message has no student number field, so this mapping cannot leak one.
+// SellerContact 为商品详情响应映射卖家资料。源消息没有学号字段，
+// 因此该映射不会泄露学号。
 func SellerContact(src *accountv1.UserContact) dto.SellerContact {
 	return dto.SellerContact{
 		ID:       src.GetId(),
@@ -47,9 +46,8 @@ func SellerContact(src *accountv1.UserContact) dto.SellerContact {
 	}
 }
 
-// UserPublic maps a public profile. A missing account still yields a
-// well-formed object: list responses must not fail because one participant was
-// removed, and the contract requires the field to be present.
+// UserPublic 映射公开资料。账户缺失时仍返回格式正确的对象：
+// 列表响应不能因为某个参与者被删除而失败，且契约要求该字段存在。
 func UserPublic(id string, src *accountv1.UserPublic) dto.UserPublic {
 	if src == nil {
 		return dto.UserPublic{ID: id, Nickname: deletedUserNickname}
@@ -57,11 +55,10 @@ func UserPublic(id string, src *accountv1.UserPublic) dto.UserPublic {
 	return dto.UserPublic{ID: src.GetId(), Nickname: src.GetNickname()}
 }
 
-// deletedUserNickname stands in for an account that no longer exists.
+// deletedUserNickname 代表已不存在的账户。
 const deletedUserNickname = "已注销用户"
 
-// Timestamp renders a protobuf timestamp as the RFC 3339 string the contract's
-// date-time format requires.
+// Timestamp 将 protobuf 时间戳渲染为契约 date-time 格式要求的 RFC 3339 字符串。
 func Timestamp(src *timestamppb.Timestamp) string {
 	if src == nil {
 		return ""
@@ -69,7 +66,7 @@ func Timestamp(src *timestamppb.Timestamp) string {
 	return src.AsTime().UTC().Format(time.RFC3339Nano)
 }
 
-// OptionalTimestamp renders a nullable date-time field.
+// OptionalTimestamp 渲染可为空的 date-time 字段。
 func OptionalTimestamp(src *timestamppb.Timestamp) *string {
 	if src == nil {
 		return nil

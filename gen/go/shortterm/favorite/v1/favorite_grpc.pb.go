@@ -29,9 +29,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// FavoriteService owns the user/product favorite relation. It validates
-// product existence and ownership through MarketplaceService when adding a
-// favorite, but never stores product truth.
+// FavoriteService 负责用户/商品收藏关系。添加收藏时，它通过 MarketplaceService
+// 校验商品存在且属于允许的范围，但从不存储商品事实。
 type FavoriteServiceClient interface {
 	AddFavorite(ctx context.Context, in *AddFavoriteRequest, opts ...grpc.CallOption) (*AddFavoriteResponse, error)
 	RemoveFavorite(ctx context.Context, in *RemoveFavoriteRequest, opts ...grpc.CallOption) (*RemoveFavoriteResponse, error)
@@ -91,9 +90,8 @@ func (c *favoriteServiceClient) IsFavorited(ctx context.Context, in *IsFavorited
 // All implementations should embed UnimplementedFavoriteServiceServer
 // for forward compatibility.
 //
-// FavoriteService owns the user/product favorite relation. It validates
-// product existence and ownership through MarketplaceService when adding a
-// favorite, but never stores product truth.
+// FavoriteService 负责用户/商品收藏关系。添加收藏时，它通过 MarketplaceService
+// 校验商品存在且属于允许的范围，但从不存储商品事实。
 type FavoriteServiceServer interface {
 	AddFavorite(context.Context, *AddFavoriteRequest) (*AddFavoriteResponse, error)
 	RemoveFavorite(context.Context, *RemoveFavoriteRequest) (*RemoveFavoriteResponse, error)

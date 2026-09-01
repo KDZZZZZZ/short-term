@@ -116,8 +116,8 @@ func TestVerifyRejectsTamperedAndForeignTokens(t *testing.T) {
 func TestVerifyRejectsAlgNone(t *testing.T) {
 	t.Parallel()
 
-	// A classic downgrade attempt: an unsigned token whose header claims the
-	// "none" algorithm. RFC 8725 requires the verifier to pin the algorithm.
+	// 经典的降级攻击：令牌未签名，但其请求头声称使用 "none" 算法。
+	// RFC 8725 要求验证器固定算法。
 	const unsigned = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0." +
 		"eyJpc3MiOiJzaG9ydHRlcm0tYWNjb3VudCIsInN1YiI6InVfMSIsImF1ZCI6InNob3J0dGVybS1hcGkiLCJleHAiOjQ4NzE1MTA0MDB9."
 
@@ -154,7 +154,7 @@ func TestConfigRejectsWeakKeys(t *testing.T) {
 	}
 }
 
-// tamper flips a character in the payload segment, leaving the signature stale.
+// tamper 修改载荷片段中的一个字符，使签名失效。
 func tamper(token string) string {
 	parts := strings.Split(token, ".")
 	payload := []byte(parts[1])

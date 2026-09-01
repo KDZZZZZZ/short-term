@@ -2,15 +2,15 @@ package application
 
 import "github.com/KDZZZZZZ/short-term/services/marketplace/internal/domain"
 
-// Pagination limits, matching openapi/components/parameters.yaml.
+// 分页限制，与 openapi/components/parameters.yaml 一致。
 const (
-	// DefaultPageSize is the page_size default.
+	// DefaultPageSize 是 page_size 默认值。
 	DefaultPageSize int32 = 20
-	// MaxPageSize is the page_size maximum.
+	// MaxPageSize 是 page_size 最大值。
 	MaxPageSize int32 = 100
 )
 
-// CreateProductCommand publishes a listing.
+// CreateProductCommand 发布商品。
 type CreateProductCommand struct {
 	ActorID     string
 	Title       string
@@ -20,7 +20,7 @@ type CreateProductCommand struct {
 	Images      []ImageUpload
 }
 
-// UpdateProductCommand edits a listing. A nil field is left unchanged.
+// UpdateProductCommand 编辑商品。nil 字段保持不变。
 type UpdateProductCommand struct {
 	ActorID     string
 	ProductID   string
@@ -30,42 +30,42 @@ type UpdateProductCommand struct {
 	Description *string
 }
 
-// ListProductsQuery browses the public catalogue.
+// ListProductsQuery 浏览公开商品目录。
 type ListProductsQuery struct {
 	Keyword  *string
 	Category *domain.Category
 	Page     Page
 }
 
-// ListUserProductsQuery lists one seller's own listings.
+// ListUserProductsQuery 列出某个卖家的商品。
 type ListUserProductsQuery struct {
 	SellerID string
 	Status   *domain.Status
 	Page     Page
 }
 
-// AddImagesCommand appends images to a listing.
+// AddImagesCommand 向商品追加图片。
 type AddImagesCommand struct {
 	ActorID   string
 	ProductID string
 	Images    []ImageUpload
 }
 
-// DeleteImageCommand removes one image from a listing.
+// DeleteImageCommand 从商品中删除一张图片。
 type DeleteImageCommand struct {
 	ActorID   string
 	ProductID string
 	ImageID   string
 }
 
-// ProductActionCommand is a seller action that only needs the product.
+// ProductActionCommand 是只需要商品信息的卖家操作。
 type ProductActionCommand struct {
 	ActorID   string
 	ProductID string
 }
 
-// normalize clamps a page request to the range the public contract allows, so
-// a caller that omits the values still gets the documented defaults.
+// normalize 将分页请求限制在公开契约允许的范围内，使省略参数的调用方仍能得到
+// 文档规定的默认值。
 func (p Page) normalize() Page {
 	if p.Number < 1 {
 		p.Number = 1
@@ -79,5 +79,5 @@ func (p Page) normalize() Page {
 	return p
 }
 
-// Offset is the number of rows to skip for this page.
+// Offset 是该页需要跳过的行数。
 func (p Page) Offset() int32 { return (p.Number - 1) * p.Size }

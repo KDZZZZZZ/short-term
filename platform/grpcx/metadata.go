@@ -1,6 +1,5 @@
-// Package grpcx builds the gRPC servers and clients used between services and
-// carries the cross-cutting policy they share: deadlines, recovery, structured
-// access logs, trace propagation and error normalisation.
+// Package grpcx 构造服务之间使用的 gRPC 服务端和客户端，并承载它们共享的
+// 横切策略：截止时间、恢复、结构化访问日志、追踪传递和错误规范化。
 package grpcx
 
 import (
@@ -9,16 +8,15 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// Metadata keys propagated on every internal call. Business authorization is
-// still performed by the service that owns the resource; actor identity is
-// context, never proof of permission.
+// 每次内部调用都会传递的元数据键。业务授权仍由资源所属服务执行；
+// 当前用户身份只是上下文信息，绝不是权限证明。
 const (
 	MetadataActorID   = "x-shortterm-actor-id"
 	MetadataRequestID = "x-shortterm-request-id"
 	MetadataCaller    = "x-shortterm-caller"
 )
 
-// WithActor attaches the acting user identity to an outgoing call.
+// WithActor 将当前用户身份附加到出站调用。
 func WithActor(ctx context.Context, actorID string) context.Context {
 	if actorID == "" {
 		return ctx
@@ -26,7 +24,7 @@ func WithActor(ctx context.Context, actorID string) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, MetadataActorID, actorID)
 }
 
-// WithRequestID attaches the public request identifier to an outgoing call.
+// WithRequestID 将公开请求标识附加到出站调用。
 func WithRequestID(ctx context.Context, requestID string) context.Context {
 	if requestID == "" {
 		return ctx
@@ -34,13 +32,13 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, MetadataRequestID, requestID)
 }
 
-// ActorID reads the acting user identity from an incoming call.
+// ActorID 从入站调用中读取当前用户身份。
 func ActorID(ctx context.Context) string { return incoming(ctx, MetadataActorID) }
 
-// RequestID reads the public request identifier from an incoming call.
+// RequestID 从入站调用中读取公开请求标识。
 func RequestID(ctx context.Context) string { return incoming(ctx, MetadataRequestID) }
 
-// metadataAppend adds one key/value pair to the outgoing metadata.
+// metadataAppend 向出站元数据添加一个键值对。
 func metadataAppend(ctx context.Context, key, value string) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, key, value)
 }

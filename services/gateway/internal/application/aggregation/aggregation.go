@@ -1,10 +1,8 @@
-// Package aggregation completes list and detail responses with data owned by
-// other services.
+// Package aggregation 使用其他服务拥有的数据补全列表和详情响应。
 //
-// Every completion is a batch call. docs/software-design.md section 3.3
-// forbids one RPC per row, and reading the current product status from the
-// owning service rather than a cached copy is what makes the status in a
-// favorite, conversation or trade projection true at the moment of the reply.
+// 每次补全都是批量调用。docs/software-design.md 第 3.3 节禁止每行执行一次 RPC；
+// 从所属服务读取当前商品状态，而不是读取缓存副本，才能保证收藏、会话或交易投影
+// 中的状态在响应时刻真实有效。
 package aggregation
 
 import (
@@ -16,25 +14,25 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/grpcx"
 )
 
-// Aggregator performs the cross-service completions the REST responses need.
+// Aggregator 执行 REST 响应所需的跨服务数据补全。
 type Aggregator struct {
 	accounts  accountv1.AccountServiceClient
 	products  marketplacev1.MarketplaceServiceClient
 	favorites FavoriteChecker
 }
 
-// FavoriteChecker reports whether the acting user has favorited a product.
+// FavoriteChecker 返回当前用户是否收藏了某个商品。
 type FavoriteChecker interface {
 	IsFavorited(ctx context.Context, actorID, productID string) (bool, error)
 }
 
-// New builds an Aggregator.
+// New 构造 Aggregator。
 func New(accounts accountv1.AccountServiceClient, products marketplacev1.MarketplaceServiceClient, favorites FavoriteChecker) *Aggregator {
 	return &Aggregator{accounts: accounts, products: products, favorites: favorites}
 }
 
-// Users returns the public profiles for the given identifiers in one call.
-// Identifiers that no longer exist are simply absent from the result.
+// Users 在一次调用中返回指定标识对应的公开资料。
+// 已不存在的标识会直接从结果中省略。
 func (a *Aggregator) Users(ctx context.Context, ids []string) (map[string]*accountv1.UserPublic, error) {
 	unique := dedupe(ids)
 	if len(unique) == 0 {
@@ -48,7 +46,7 @@ func (a *Aggregator) Users(ctx context.Context, ids []string) (map[string]*accou
 	return resp.GetUsers(), nil
 }
 
-// Products returns the current summary of each product in one call.
+// Products 在一次调用中返回每个商品的当前摘要。
 func (a *Aggregator) Products(ctx context.Context, ids []string) (map[string]*marketplacev1.ProductSummary, error) {
 	unique := dedupe(ids)
 	if len(unique) == 0 {
@@ -62,8 +60,8 @@ func (a *Aggregator) Products(ctx context.Context, ids []string) (map[string]*ma
 	return resp.GetProducts(), nil
 }
 
-// SellerContact returns one seller's contact profile for the product detail
-// response. It uses GetUser, whose response type has no student number field.
+// SellerContact 为商品详情响应返回一个卖家的联系方式资料。
+// 它使用 GetUser，而 GetUser 的响应类型不包含学号字段。
 func (a *Aggregator) SellerContact(ctx context.Context, sellerID string) (*accountv1.UserContact, error) {
 	resp, err := a.accounts.GetUser(ctx, &accountv1.GetUserRequest{UserId: sellerID})
 	if err != nil {
@@ -72,8 +70,7 @@ func (a *Aggregator) SellerContact(ctx context.Context, sellerID string) (*accou
 	return resp.GetUser(), nil
 }
 
-// IsFavorited reports whether the acting user favorited a product. An
-// anonymous caller is never favorited.
+// IsFavorited 返回当前用户是否收藏了某个商品。匿名调用方永远不会被视为已收藏。
 func (a *Aggregator) IsFavorited(ctx context.Context, actorID, productID string) (bool, error) {
 	if actorID == "" || a.favorites == nil {
 		return false, nil
@@ -81,17 +78,17 @@ func (a *Aggregator) IsFavorited(ctx context.Context, actorID, productID string)
 	return a.favorites.IsFavorited(ctx, actorID, productID)
 }
 
-// GRPCFavorites checks favorites through the Favorite Service.
+// GRPCFavorites 通过 Favorite Service 检查收藏状态。
 type GRPCFavorites struct {
 	client favoritev1.FavoriteServiceClient
 }
 
-// NewGRPCFavorites builds a favorite checker backed by the Favorite Service.
+// NewGRPCFavorites 构造由 Favorite Service 支持的收藏检查器。
 func NewGRPCFavorites(client favoritev1.FavoriteServiceClient) *GRPCFavorites {
 	return &GRPCFavorites{client: client}
 }
 
-// IsFavorited asks the Favorite Service.
+// IsFavorited 向 Favorite Service 查询收藏状态。
 func (f *GRPCFavorites) IsFavorited(ctx context.Context, actorID, productID string) (bool, error) {
 	resp, err := f.client.IsFavorited(grpcx.WithActor(ctx, actorID), &favoritev1.IsFavoritedRequest{
 		ActorId:   actorID,
@@ -103,7 +100,7 @@ func (f *GRPCFavorites) IsFavorited(ctx context.Context, actorID, productID stri
 	return resp.GetFavorited(), nil
 }
 
-// dedupe removes empty and repeated identifiers while preserving order.
+// dedupe 删除空标识和重复标识，同时保留原有顺序。
 func dedupe(ids []string) []string {
 	seen := make(map[string]struct{}, len(ids))
 	unique := make([]string, 0, len(ids))

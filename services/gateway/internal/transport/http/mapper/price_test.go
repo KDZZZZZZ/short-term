@@ -88,8 +88,8 @@ func TestFormatPriceAlwaysUsesTwoFractionDigits(t *testing.T) {
 func TestPriceRoundTripsWithoutLoss(t *testing.T) {
 	t.Parallel()
 
-	// Values chosen because binary floating point cannot represent them
-	// exactly; a float-based conversion drifts on exactly these.
+	// 选择这些值是因为二进制浮点数无法精确表示它们；
+	// 基于浮点数的转换恰好会在这些值上产生偏差。
 	for _, value := range []string{"0.07", "0.29", "1.15", "8.28", "1234.56", "99999999.99"} {
 		minor, err := ParsePrice(value)
 		if err != nil {
@@ -101,7 +101,7 @@ func TestPriceRoundTripsWithoutLoss(t *testing.T) {
 	}
 }
 
-// normalise renders the expected two-fraction-digit form of a test value.
+// normalise 将测试值渲染为预期的两位小数形式。
 func normalise(value string) string {
 	minor, err := ParsePrice(value)
 	if err != nil {

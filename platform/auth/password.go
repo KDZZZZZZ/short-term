@@ -12,37 +12,34 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-// Argon2id password hashing.
+// Argon2id 密码哈希。
 //
-// The OWASP Password Storage Cheat Sheet recommends Argon2id and lists
-// m=19456 KiB, t=2, p=1 as a minimum configuration; those are the defaults
-// here. docs/backend-development-plan.md requires the working parameters to be
-// measured on the target ECS instance before production use, which is why they
-// are configuration rather than constants. BenchmarkHash in this package is
-// the harness for that measurement.
+// OWASP《密码存储备忘单》推荐 Argon2id，并将 m=19456 KiB、t=2、p=1 列为最低配置；
+// 这里使用这些值作为默认值。docs/backend-development-plan.md 要求在生产使用前，
+// 于目标 ECS 实例上测量实际参数，因此这些参数被设为配置而不是常量。本包中的
+// BenchmarkHash 用于执行该测量。
 
-// Errors returned by the password functions.
+// 密码函数返回的错误。
 var (
 	ErrPasswordMismatch = errors.New("auth: password does not match")
 	ErrHashMalformed    = errors.New("auth: stored hash is malformed")
 )
 
-// Argon2Params are the Argon2id work factors.
+// Argon2Params 是 Argon2id 的工作因子。
 type Argon2Params struct {
-	// Memory is the memory cost in KiB.
+	// Memory 是以 KiB 为单位的内存成本。
 	Memory uint32
-	// Iterations is the time cost.
+	// Iterations 是时间成本。
 	Iterations uint32
-	// Parallelism is the number of lanes.
+	// Parallelism 是并行通道数。
 	Parallelism uint8
-	// SaltLength is the random salt size in bytes.
+	// SaltLength 是随机盐的字节数。
 	SaltLength uint32
-	// KeyLength is the derived key size in bytes.
+	// KeyLength 是派生密钥的字节数。
 	KeyLength uint32
 }
 
-// DefaultArgon2Params returns the OWASP minimum configuration, with
-// parallelism capped by the CPUs actually available to the process.
+// DefaultArgon2Params 返回 OWASP 最低配置，并将并行度限制为进程实际可用的 CPU 数。
 func DefaultArgon2Params() Argon2Params {
 	parallelism := uint8(1)
 	if cpus := runtime.NumCPU(); cpus > 1 {
@@ -57,13 +54,13 @@ func DefaultArgon2Params() Argon2Params {
 	}
 }
 
-// Hasher derives and verifies password hashes.
+// Hasher 派生并验证密码哈希。
 type Hasher struct {
 	params Argon2Params
 }
 
-// NewHasher builds a Hasher, rejecting parameters weaker than the OWASP
-// minimum so a misconfigured deployment cannot silently downgrade security.
+// NewHasher 构造 Hasher，并拒绝弱于 OWASP 最低要求的参数，避免错误配置的部署
+// 在不易察觉的情况下降低安全性。
 func NewHasher(params Argon2Params) (*Hasher, error) {
 	switch {
 	case params.Memory < 19456:
@@ -80,9 +77,8 @@ func NewHasher(params Argon2Params) (*Hasher, error) {
 	return &Hasher{params: params}, nil
 }
 
-// Hash derives a new hash with a fresh random salt. The result is the PHC
-// string format, so the parameters travel with the hash and can be raised
-// later without invalidating stored passwords.
+// Hash 使用新的随机盐派生哈希。结果采用 PHC 字符串格式，因此参数会随哈希保存，
+// 日后提高参数强度时无需使已存储的密码失效。
 func (h *Hasher) Hash(password string) (string, error) {
 	salt := make([]byte, h.params.SaltLength)
 	if _, err := rand.Read(salt); err != nil {
@@ -99,8 +95,7 @@ func (h *Hasher) Hash(password string) (string, error) {
 	), nil
 }
 
-// Verify checks a password against a stored hash, using the parameters
-// recorded in the hash rather than the current configuration.
+// Verify 使用哈希中记录的参数，而不是当前配置，校验密码与已存储哈希是否匹配。
 func (h *Hasher) Verify(password, encoded string) error {
 	params, salt, want, err := decodeHash(encoded)
 	if err != nil {
@@ -114,8 +109,8 @@ func (h *Hasher) Verify(password, encoded string) error {
 	return nil
 }
 
-// NeedsRehash reports whether a stored hash was derived with weaker parameters
-// than the current configuration, so callers can upgrade it on next login.
+// NeedsRehash 判断已存储哈希的派生参数是否弱于当前配置，以便调用方在下次登录时
+// 升级哈希。
 func (h *Hasher) NeedsRehash(encoded string) bool {
 	params, _, key, err := decodeHash(encoded)
 	if err != nil {

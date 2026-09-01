@@ -1,0 +1,71 @@
+ARG GO_IMAGE=docker.io/library/golang:1.27-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc
+
+FROM ${GO_IMAGE} AS build
+
+ARG GOPROXY=https://proxy.golang.org|https://goproxy.cn|direct
+
+WORKDIR /src
+
+RUN apk add --no-cache ca-certificates tzdata
+
+ARG SERVICE
+
+COPY gen/go/go.mod gen/go/go.sum ./gen/go/
+COPY platform/go.mod platform/go.sum ./platform/
+COPY services/${SERVICE}/go.mod services/${SERVICE}/go.sum ./services/${SERVICE}/
+
+RUN set -eu; \
+    case "$SERVICE" in \
+      account|favorite|marketplace|messaging|gateway) ;; \
+      *) echo "unsupported SERVICE: $SERVICE" >&2; exit 1 ;; \
+    esac; \
+    for module in gen/go platform "services/$SERVICE"; do \
+      (cd "$module" && GOWORK=off GOPROXY="$GOPROXY" go mod download); \
+    done
+
+COPY gen/go ./gen/go
+COPY platform ./platform
+COPY services/${SERVICE} ./services/${SERVICE}
+
+ARG VERSION=dev
+ARG VCS_REF=unknown
+
+RUN set -eu; \
+    case "$SERVICE" in \
+      account|favorite|marketplace|messaging|gateway) ;; \
+      *) echo "unsupported SERVICE: $SERVICE" >&2; exit 1 ;; \
+    esac; \
+    mkdir -p /out/usr/local/bin; \
+    cd "services/$SERVICE"; \
+    CGO_ENABLED=0 GOOS=linux GOWORK=off GOPROXY="$GOPROXY" go build -trimpath \
+      -ldflags "-s -w -X main.version=$VERSION -X main.revision=$VCS_REF" \
+      -o /out/usr/local/bin/server ./cmd/server; \
+    if [ -d cmd/migrate ]; then \
+      CGO_ENABLED=0 GOOS=linux GOWORK=off GOPROXY="$GOPROXY" go build -trimpath \
+        -ldflags "-s -w -X main.version=$VERSION -X main.revision=$VCS_REF" \
+        -o /out/usr/local/bin/migrate ./cmd/migrate; \
+    fi; \
+    if [ -d cmd/worker ]; then \
+      CGO_ENABLED=0 GOOS=linux GOWORK=off GOPROXY="$GOPROXY" go build -trimpath \
+        -ldflags "-s -w -X main.version=$VERSION -X main.revision=$VCS_REF" \
+        -o /out/usr/local/bin/worker ./cmd/worker; \
+    fi
+
+FROM scratch
+
+ARG SERVICE
+ARG VERSION=dev
+ARG VCS_REF=unknown
+
+LABEL org.opencontainers.image.title="short-term-${SERVICE}" \
+      org.opencontainers.image.description="short-term campus marketplace backend service" \
+      org.opencontainers.image.source="https://github.com/KDZZZZZZ/short-term" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}"
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=build --chown=65532:65532 /out/ /
+
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/server"]

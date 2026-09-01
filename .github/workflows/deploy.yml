@@ -1,39 +1,54 @@
-name: Deploy OpenAPI docs
+name: Deploy production
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Backend
     branches:
       - main
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
-  group: production-openapi
+  group: production-short-term
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: deploy
-    if: github.ref == 'refs/heads/main'
+    name: Deploy production
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     environment: production
+    env:
+      RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
     steps:
-      - name: Check out repository
+      - name: Check out the verified main revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
-          cache: npm
+          ref: ${{ env.RELEASE_SHA }}
 
-      - name: Verify deployable contract
+      - name: Build immutable backend image bundle
+        env:
+          BACKEND_GOPROXY: https://proxy.golang.org|https://goproxy.cn|direct
         run: |
-          npm ci
-          npm run openapi:check
+          scripts/build-backend-images.sh "$RELEASE_SHA" "$RUNNER_TEMP/backend-images.tar.gz"
+          {
+            printf 'RELEASE_SHA=%s\n' "$RELEASE_SHA"
+            printf 'ACCOUNT_IMAGE=localhost/short-term/account:%s\n' "$RELEASE_SHA"
+            printf 'MARKETPLACE_IMAGE=localhost/short-term/marketplace:%s\n' "$RELEASE_SHA"
+            printf 'MESSAGING_IMAGE=localhost/short-term/messaging:%s\n' "$RELEASE_SHA"
+            printf 'FAVORITE_IMAGE=localhost/short-term/favorite:%s\n' "$RELEASE_SHA"
+            printf 'GATEWAY_IMAGE=localhost/short-term/gateway:%s\n' "$RELEASE_SHA"
+            printf 'POSTGRES_IMAGE=localhost/short-term/postgres:18-%s\n' "$RELEASE_SHA"
+          } >"$RUNNER_TEMP/manifest.env"
 
       - name: Configure SSH
         env:
@@ -41,49 +56,46 @@ jobs:
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" >"$HOME/.ssh/deploy_key"
           chmod 600 "$HOME/.ssh/deploy_key"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >"$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
-      - name: Upload contract
+      - name: Upload release bundle
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            'mkdir -p /opt/short-term/incoming'
+          ssh_base=(
+            -i "$HOME/.ssh/deploy_key"
+            -p "$DEPLOY_PORT"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          release_dir="/opt/short-term/releases/$RELEASE_SHA"
+          ssh "${ssh_base[@]}" "$remote" "install -d -m 0755 '$release_dir' /opt/short-term/incoming"
+          rsync -az --partial \
+            -e "ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
+            "$RUNNER_TEMP/backend-images.tar.gz" \
+            "$RUNNER_TEMP/backend-images.tar.gz.sha256" \
+            "$RUNNER_TEMP/manifest.env" \
+            "$remote:$release_dir/"
+          rsync -az \
+            -e "ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
+            deploy/backend/short-term-backend.sh \
+            deploy/backend/short-term-backend.service \
+            deploy/stage-openapi.sh \
+            deploy/short-term-openapi.service \
+            "$remote:/opt/short-term/incoming/"
           rsync -az \
             -e "ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
             openapi/ \
-            "$DEPLOY_USER@$DEPLOY_HOST:/opt/short-term/incoming/"
+            "$remote:/opt/short-term/incoming/"
 
-      - name: Verify server service definition has not drifted
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-        run: |
-          expected_service_sha="$(sha256sum deploy/short-term-openapi.service | cut -d' ' -f1)"
-          actual_service_sha="$(ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "sha256sum /etc/systemd/system/short-term-openapi.service | cut -d' ' -f1")"
-          expected_stage_sha="$(sha256sum deploy/stage-openapi.sh | cut -d' ' -f1)"
-          actual_stage_sha="$(ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "sha256sum /usr/local/sbin/short-term-openapi-stage | cut -d' ' -f1")"
-          test "$expected_service_sha" = "$actual_service_sha"
-          test "$expected_stage_sha" = "$actual_stage_sha"
-
-      - name: Restart Swagger UI and verify health
+      - name: Install release and verify local readiness
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
@@ -92,11 +104,74 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
             -o BatchMode=yes -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" <<'REMOTE'
+            "$DEPLOY_USER@$DEPLOY_HOST" "RELEASE_SHA='$RELEASE_SHA' bash -s" <<'REMOTE'
           set -euo pipefail
+          rollback_required=false
+          rollback_on_exit() {
+            exit_code=$?
+            if [ "$exit_code" -ne 0 ] && [ "$rollback_required" = true ]; then
+              sudo /usr/local/sbin/short-term-backend rollback || true
+            fi
+            exit "$exit_code"
+          }
+          trap rollback_on_exit EXIT
+          sudo install -o root -g root -m 0755 \
+            /opt/short-term/incoming/short-term-backend.sh \
+            /usr/local/sbin/short-term-backend
+          sudo install -o root -g root -m 0644 \
+            /opt/short-term/incoming/short-term-backend.service \
+            /etc/systemd/system/short-term-backend.service
+          sudo install -o root -g root -m 0755 \
+            /opt/short-term/incoming/stage-openapi.sh \
+            /usr/local/sbin/short-term-openapi-stage
+          sudo install -o root -g root -m 0644 \
+            /opt/short-term/incoming/short-term-openapi.service \
+            /etc/systemd/system/short-term-openapi.service
+          sudo /usr/local/sbin/short-term-backend deploy "/opt/short-term/releases/$RELEASE_SHA"
+          rollback_required=true
+          sudo /usr/bin/systemctl daemon-reload
+          sudo /usr/bin/systemctl enable short-term-openapi.service >/dev/null
           sudo /usr/bin/systemctl restart short-term-openapi.service
+          /usr/bin/systemctl is-active --quiet short-term-backend.service
           /usr/bin/systemctl is-active --quiet short-term-openapi.service
-          curl --fail --silent --show-error --retry 12 --retry-delay 2 \
-            --retry-connrefused \
+          sudo /usr/local/sbin/short-term-backend status
+          sudo /usr/local/sbin/short-term-backend metrics
+          curl --fail --silent --show-error --retry 12 --retry-delay 2 --retry-connrefused \
             http://127.0.0.1:18082/ >/dev/null
+          rollback_required=false
           REMOTE
+
+      - name: Run public production acceptance
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          base_url="http://$DEPLOY_HOST:18080"
+          if ! python3 scripts/backend-e2e.py \
+            --base-url "$base_url" \
+            --tag "$RELEASE_SHA" \
+            --baseline-samples 20 \
+            --result-file "$RUNNER_TEMP/production-e2e.json"; then
+            ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              'sudo /usr/local/sbin/short-term-backend rollback' || true
+            exit 1
+          fi
+
+          request_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["trace_request_id"])' "$RUNNER_TEMP/production-e2e.json")"
+          if ! ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/sbin/short-term-backend verify-trace '$request_id' && sudo /usr/local/sbin/short-term-backend verify-outbox && sudo /usr/local/sbin/short-term-backend metrics"; then
+            ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              'sudo /usr/local/sbin/short-term-backend rollback' || true
+            exit 1
+          fi

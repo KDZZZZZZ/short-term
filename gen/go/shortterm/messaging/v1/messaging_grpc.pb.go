@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MessagingService_GetOrCreateConversation_FullMethodName = "/shortterm.messaging.v1.MessagingService/GetOrCreateConversation"
+	MessagingService_GetConversation_FullMethodName         = "/shortterm.messaging.v1.MessagingService/GetConversation"
 	MessagingService_ListConversations_FullMethodName       = "/shortterm.messaging.v1.MessagingService/ListConversations"
 	MessagingService_GetUnreadCount_FullMethodName          = "/shortterm.messaging.v1.MessagingService/GetUnreadCount"
 	MessagingService_ListMessages_FullMethodName            = "/shortterm.messaging.v1.MessagingService/ListMessages"
@@ -31,12 +32,12 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// MessagingService owns product-contextual conversations, text messages and
-// read state. Participation rules are enforced locally against stored
-// buyer_id/seller_id; product facts are fetched from MarketplaceService when
-// a conversation is created.
+// MessagingService 负责与商品关联的会话、文本消息和已读状态。
+// 参与规则根据存储的 buyer_id/seller_id 在本地执行；创建会话时，
+// 商品事实从 MarketplaceService 获取。
 type MessagingServiceClient interface {
 	GetOrCreateConversation(ctx context.Context, in *GetOrCreateConversationRequest, opts ...grpc.CallOption) (*GetOrCreateConversationResponse, error)
+	GetConversation(ctx context.Context, in *GetConversationRequest, opts ...grpc.CallOption) (*GetConversationResponse, error)
 	ListConversations(ctx context.Context, in *ListConversationsRequest, opts ...grpc.CallOption) (*ListConversationsResponse, error)
 	GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
 	ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesResponse, error)
@@ -56,6 +57,16 @@ func (c *messagingServiceClient) GetOrCreateConversation(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetOrCreateConversationResponse)
 	err := c.cc.Invoke(ctx, MessagingService_GetOrCreateConversation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *messagingServiceClient) GetConversation(ctx context.Context, in *GetConversationRequest, opts ...grpc.CallOption) (*GetConversationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetConversationResponse)
+	err := c.cc.Invoke(ctx, MessagingService_GetConversation_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +127,12 @@ func (c *messagingServiceClient) MarkConversationRead(ctx context.Context, in *M
 // All implementations should embed UnimplementedMessagingServiceServer
 // for forward compatibility.
 //
-// MessagingService owns product-contextual conversations, text messages and
-// read state. Participation rules are enforced locally against stored
-// buyer_id/seller_id; product facts are fetched from MarketplaceService when
-// a conversation is created.
+// MessagingService 负责与商品关联的会话、文本消息和已读状态。
+// 参与规则根据存储的 buyer_id/seller_id 在本地执行；创建会话时，
+// 商品事实从 MarketplaceService 获取。
 type MessagingServiceServer interface {
 	GetOrCreateConversation(context.Context, *GetOrCreateConversationRequest) (*GetOrCreateConversationResponse, error)
+	GetConversation(context.Context, *GetConversationRequest) (*GetConversationResponse, error)
 	ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error)
 	GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error)
 	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error)
@@ -138,6 +149,9 @@ type UnimplementedMessagingServiceServer struct{}
 
 func (UnimplementedMessagingServiceServer) GetOrCreateConversation(context.Context, *GetOrCreateConversationRequest) (*GetOrCreateConversationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrCreateConversation not implemented")
+}
+func (UnimplementedMessagingServiceServer) GetConversation(context.Context, *GetConversationRequest) (*GetConversationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetConversation not implemented")
 }
 func (UnimplementedMessagingServiceServer) ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListConversations not implemented")
@@ -188,6 +202,24 @@ func _MessagingService_GetOrCreateConversation_Handler(srv interface{}, ctx cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MessagingServiceServer).GetOrCreateConversation(ctx, req.(*GetOrCreateConversationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MessagingService_GetConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConversationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessagingServiceServer).GetConversation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MessagingService_GetConversation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessagingServiceServer).GetConversation(ctx, req.(*GetConversationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -292,6 +324,10 @@ var MessagingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetOrCreateConversation",
 			Handler:    _MessagingService_GetOrCreateConversation_Handler,
+		},
+		{
+			MethodName: "GetConversation",
+			Handler:    _MessagingService_GetConversation_Handler,
 		},
 		{
 			MethodName: "ListConversations",

@@ -1,9 +1,8 @@
-// Package grpc exposes the Account Service use cases over the internal gRPC
-// contract in proto/shortterm/account/v1.
+// Package grpc 通过 proto/shortterm/account/v1 中的内部 gRPC 契约暴露
+// Account Service 用例。
 //
-// The adapter only maps between generated messages and application commands.
-// Every authorization rule lives in the application and domain layers, so a
-// second transport could not bypass it.
+// 适配器只负责在生成消息和应用命令之间映射。
+// 所有授权规则都位于应用层和领域层，因此其他传输方式无法绕过这些规则。
 package grpc
 
 import (
@@ -18,22 +17,21 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/account/internal/domain"
 )
 
-// maxBatchUsers bounds one BatchGetUsers call. The Gateway completes profiles
-// for one page of results at a time, and the largest public page is 100 rows
-// with two distinct participants each.
+// maxBatchUsers 限制一次 BatchGetUsers 调用。Gateway 一次为一页结果补全资料，
+// 最大公开页面为 100 行，每行最多有两个不同参与者。
 const maxBatchUsers = 200
 
-// Server adapts application.Service to the generated service interface.
+// Server 将 application.Service 适配到生成的服务接口。
 type Server struct {
 	accountv1.UnimplementedAccountServiceServer
 
 	app *application.Service
 }
 
-// NewServer builds the gRPC adapter.
+// NewServer 构造 gRPC 适配器。
 func NewServer(app *application.Service) *Server { return &Server{app: app} }
 
-// Register creates an account and returns an access token.
+// Register 创建账户并返回访问令牌。
 func (s *Server) Register(ctx context.Context, req *accountv1.RegisterRequest) (*accountv1.RegisterResponse, error) {
 	result, err := s.app.Register(ctx, application.RegisterCommand{
 		StudentNo: req.GetStudentNo(),
@@ -48,7 +46,7 @@ func (s *Server) Register(ctx context.Context, req *accountv1.RegisterRequest) (
 	return &accountv1.RegisterResponse{Auth: authData(result)}, nil
 }
 
-// Login authenticates a student number and password pair.
+// Login 验证学号和密码组合。
 func (s *Server) Login(ctx context.Context, req *accountv1.LoginRequest) (*accountv1.LoginResponse, error) {
 	result, err := s.app.Login(ctx, application.LoginCommand{
 		StudentNo: req.GetStudentNo(),
@@ -60,7 +58,7 @@ func (s *Server) Login(ctx context.Context, req *accountv1.LoginRequest) (*accou
 	return &accountv1.LoginResponse{Auth: authData(result)}, nil
 }
 
-// GetUser returns one profile including contact details.
+// GetUser 返回一个包含联系方式的资料。
 func (s *Server) GetUser(ctx context.Context, req *accountv1.GetUserRequest) (*accountv1.GetUserResponse, error) {
 	account, err := s.app.GetUser(ctx, req.GetUserId())
 	if err != nil {
@@ -69,9 +67,8 @@ func (s *Server) GetUser(ctx context.Context, req *accountv1.GetUserRequest) (*a
 	return &accountv1.GetUserResponse{User: userContact(account)}, nil
 }
 
-// GetProfile returns the caller's own full profile, including the student
-// number. The actor check is what keeps that field private: GetUser, which any
-// aggregation path may call, cannot return it at all.
+// GetProfile 返回调用方自己的完整资料，包括学号。
+// 当前用户检查保证该字段私密：任何聚合路径都可以调用的 GetUser 完全不会返回学号。
 func (s *Server) GetProfile(ctx context.Context, req *accountv1.GetProfileRequest) (*accountv1.GetProfileResponse, error) {
 	if err := requireActor(ctx, req.GetUserId()); err != nil {
 		return nil, err
@@ -84,8 +81,8 @@ func (s *Server) GetProfile(ctx context.Context, req *accountv1.GetProfileReques
 	return &accountv1.GetProfileResponse{User: userMe(account)}, nil
 }
 
-// BatchGetUsers returns the public profiles that exist among the requested
-// identifiers. Contact details are deliberately not part of this response.
+// BatchGetUsers 返回请求标识中存在的公开资料。
+// 联系方式有意不包含在此响应中。
 func (s *Server) BatchGetUsers(ctx context.Context, req *accountv1.BatchGetUsersRequest) (*accountv1.BatchGetUsersResponse, error) {
 	if len(req.GetUserIds()) > maxBatchUsers {
 		return nil, errs.Newf(errs.CodeValidation, "单次最多查询 %d 个用户", maxBatchUsers)
@@ -103,7 +100,7 @@ func (s *Server) BatchGetUsers(ctx context.Context, req *accountv1.BatchGetUsers
 	return &accountv1.BatchGetUsersResponse{Users: users}, nil
 }
 
-// UpdateProfile changes the caller's own profile.
+// UpdateProfile 修改调用方自己的资料。
 func (s *Server) UpdateProfile(ctx context.Context, req *accountv1.UpdateProfileRequest) (*accountv1.UpdateProfileResponse, error) {
 	if err := requireActor(ctx, req.GetUserId()); err != nil {
 		return nil, err
@@ -121,7 +118,7 @@ func (s *Server) UpdateProfile(ctx context.Context, req *accountv1.UpdateProfile
 	return &accountv1.UpdateProfileResponse{User: userMe(account)}, nil
 }
 
-// ChangePassword replaces the caller's own password.
+// ChangePassword 替换调用方自己的密码。
 func (s *Server) ChangePassword(ctx context.Context, req *accountv1.ChangePasswordRequest) (*accountv1.ChangePasswordResponse, error) {
 	if err := requireActor(ctx, req.GetUserId()); err != nil {
 		return nil, err
@@ -138,14 +135,11 @@ func (s *Server) ChangePassword(ctx context.Context, req *accountv1.ChangePasswo
 	return &accountv1.ChangePasswordResponse{}, nil
 }
 
-// requireActor rejects a call whose target user disagrees with the actor the
-// caller declared in metadata.
+// requireActor 拒绝目标用户与调用方在元数据中声明的当前用户不一致的调用。
 //
-// The Gateway fills both from the same verified token, so a mismatch means the
-// call did not come from the Gateway's authenticated path. This is defence in
-// depth on top of the private network boundary, not a replacement for it:
-// internal service identity is an open decision in docs/software-design.md
-// section 11.3.
+// Gateway 根据同一个已验证令牌填写这两个值，因此不一致意味着调用没有来自 Gateway
+// 的认证路径。这是在私有网络边界之上的纵深防御，而不是替代方案：
+// 内部服务身份仍是 docs/software-design.md 第 11.3 节中的未决事项。
 func requireActor(ctx context.Context, userID string) error {
 	if userID == "" {
 		return errs.New(errs.CodeUnauthorized, "请先登录")
@@ -186,7 +180,7 @@ func userContact(account *domain.Account) *accountv1.UserContact {
 	}
 }
 
-// optional copies an optional proto string into an application pointer.
+// optional 将可选 proto 字符串复制到应用层指针。
 func optional(value *string) *string {
 	if value == nil {
 		return nil
@@ -195,9 +189,8 @@ func optional(value *string) *string {
 	return &copied
 }
 
-// patch maps the three-state NullableStringPatch onto the application patch
-// type: a nil message means the field was absent, null_value means clear it,
-// and string_value means set it.
+// patch 将线路 patch 映射为应用层类型：nil 表示缺失，string_value 表示设置；
+// null_value 被保留下来交给应用层明确拒绝。
 func patch(value *accountv1.NullableStringPatch) application.StringPatch {
 	if value == nil {
 		return application.Keep()

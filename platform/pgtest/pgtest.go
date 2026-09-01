@@ -1,13 +1,10 @@
-// Package pgtest gives integration tests a real, isolated PostgreSQL database.
+// Package pgtest 为集成测试提供真实且隔离的 PostgreSQL 数据库。
 //
-// docs/software-design.md section 10 requires the transaction, concurrency and
-// idempotency evidence to come from a real database rather than a mock, and
-// tests must be able to run in parallel without seeing each other's rows. Each
-// call to New creates a fresh database, applies the caller's migrations and
-// drops the database when the test ends.
+// docs/software-design.md 第 10 节要求事务、并发和幂等性证据来自真实数据库而非
+// mock，并且测试必须能够并行运行而不会看到彼此的行。每次调用 New 都会创建一个
+// 新数据库，应用调用方的迁移，并在测试结束时删除该数据库。
 //
-// This package imports testing on purpose and must only be imported from test
-// files.
+// 本包有意导入 testing，因此只能从测试文件导入。
 package pgtest
 
 import (
@@ -28,17 +25,15 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/pg"
 )
 
-// DSNEnvVar names the environment variable holding an administrative
-// PostgreSQL URL, for example
-// postgres://postgres:postgres@127.0.0.1:5432/postgres. The account must be
-// allowed to CREATE DATABASE.
+// DSNEnvVar 是保存管理员 PostgreSQL URL 的环境变量名，例如
+// postgres://postgres:postgres@127.0.0.1:5432/postgres。该账户必须有权执行
+// CREATE DATABASE。
 //
-// deploy/local/docker-compose.yml provides a suitable instance locally, and
-// the backend CI workflow provides one for every pull request.
+// deploy/local/docker-compose.yml 在本地提供合适的实例，后端 CI 工作流则为每个
+// pull request 提供一个实例。
 const DSNEnvVar = "SHORTTERM_TEST_POSTGRES_DSN"
 
-// AdminDSN returns the administrative DSN, or skips the test when the
-// environment does not provide a database.
+// AdminDSN 返回管理员 DSN；当环境没有提供数据库时跳过测试。
 func AdminDSN(t *testing.T) string {
 	t.Helper()
 
@@ -49,9 +44,8 @@ func AdminDSN(t *testing.T) string {
 	return dsn
 }
 
-// New creates an isolated database, applies the migrations found under dir in
-// fsys, and returns a pool connected to it. The database is dropped when the
-// test finishes.
+// New 创建隔离数据库，应用 fsys 的 dir 目录下的迁移，并返回连接到该数据库的连接池。
+// 测试结束时删除该数据库。
 func New(t *testing.T, fsys fs.FS, dir string) *pgxpool.Pool {
 	t.Helper()
 
@@ -90,8 +84,7 @@ func New(t *testing.T, fsys fs.FS, dir string) *pgxpool.Pool {
 	return pool
 }
 
-// dropDatabase removes the test database, forcing open sessions to close so a
-// leaked connection cannot leave databases behind.
+// dropDatabase 删除测试数据库，并强制关闭打开的会话，避免泄漏的连接遗留数据库。
 func dropDatabase(t *testing.T, adminDSN, name string) {
 	t.Helper()
 
@@ -110,7 +103,7 @@ func dropDatabase(t *testing.T, adminDSN, name string) {
 	}
 }
 
-// withDatabase rewrites the database name in a PostgreSQL URL.
+// withDatabase 重写 PostgreSQL URL 中的数据库名称。
 func withDatabase(dsn, name string) (string, error) {
 	parsed, err := url.Parse(dsn)
 	if err != nil {

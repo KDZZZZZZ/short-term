@@ -1,4 +1,4 @@
-// Package config loads the Account Service settings from the environment.
+// Package config 从环境变量加载 Account Service 设置。
 package config
 
 import (
@@ -8,32 +8,32 @@ import (
 	platformconfig "github.com/KDZZZZZZ/short-term/platform/config"
 )
 
-// ServiceName is the deployable unit name used in logs, traces and metrics.
+// ServiceName 是日志、追踪和指标中使用的可部署单元名称。
 const ServiceName = "account"
 
-// Config is the fully validated Account Service configuration.
+// Config 是完成校验的 Account Service 配置。
 type Config struct {
 	Runtime platformconfig.Runtime
 
-	// GRPCAddr is the private listen address. The Account Service is never
-	// exposed to the public internet (docs/software-design.md section 9.2).
+	// GRPCAddr 是私有监听地址。Account Service 永不暴露到公网
+	// （docs/software-design.md 第 9.2 节）。
 	GRPCAddr string
-	// DatabaseURL points at the account database. It is a credential.
+	// DatabaseURL 指向账户数据库，属于凭据。
 	DatabaseURL string
-	// AutoMigrate applies pending migrations at startup.
+	// AutoMigrate 在启动时应用待执行的迁移。
 	AutoMigrate bool
-	// MaxDBConns bounds the connection pool.
+	// MaxDBConns 限制连接池大小。
 	MaxDBConns int32
-	// HandlerTimeout bounds a call whose caller sent no deadline.
+	// HandlerTimeout 限制调用方未发送截止时间的调用。
 	HandlerTimeout time.Duration
 
-	// Token describes the access tokens this service signs.
+	// Token 描述该服务签发的访问令牌。
 	Token auth.Config
-	// Argon2 holds the password hashing work factors.
+	// Argon2 保存密码哈希工作因子。
 	Argon2 auth.Argon2Params
 }
 
-// Load reads and validates the configuration, reporting every problem at once.
+// Load 读取并校验配置，一次性报告所有问题。
 func Load() (Config, error) {
 	loader := platformconfig.NewLoader()
 	defaults := auth.DefaultArgon2Params()

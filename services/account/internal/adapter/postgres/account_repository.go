@@ -1,6 +1,5 @@
-// Package postgres implements the Account Service repository ports on top of
-// the service's own database. Nothing outside this package knows the table
-// layout, and no other service may connect to this database.
+// Package postgres 基于 Account Service 自有数据库实现仓储端口。
+// 本包之外没有代码知道表结构，其他服务也不能连接此数据库。
 package postgres
 
 import (
@@ -15,30 +14,28 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/account/internal/domain"
 )
 
-// studentNoConstraint is the unique index that serialises concurrent
-// registrations of the same student number.
+// studentNoConstraint 是将同一学号的并发注册串行化的唯一索引。
 const studentNoConstraint = "accounts_student_no_key"
 
-// columns is the projection every read shares, so scanRow stays in step.
+// columns 是所有读取共享的投影，因此 scanRow 始终与其保持同步。
 const columns = `id, student_no, password_hash, nickname, wechat, qq, created_at, updated_at`
 
-// AccountRepository stores accounts in PostgreSQL.
+// AccountRepository 将账户存储在 PostgreSQL 中。
 type AccountRepository struct {
 	pool *pgxpool.Pool
 }
 
-// NewAccountRepository builds a repository over an open pool.
+// NewAccountRepository 基于已打开的连接池构造仓储。
 func NewAccountRepository(pool *pgxpool.Pool) *AccountRepository {
 	return &AccountRepository{pool: pool}
 }
 
 var _ application.Repository = (*AccountRepository)(nil)
 
-// Create inserts a new account.
+// Create 插入新账户。
 //
-// It inserts first and interprets the unique violation, rather than checking
-// for an existing student number and then inserting: only the database
-// constraint can make two concurrent registrations mutually exclusive.
+// 它先插入并解释唯一约束冲突，而不是先检查学号是否存在再插入：
+// 只有数据库约束才能让两个并发注册互斥。
 func (r *AccountRepository) Create(ctx context.Context, account *domain.Account) error {
 	const query = `
 		INSERT INTO accounts (` + columns + `)
@@ -57,7 +54,7 @@ func (r *AccountRepository) Create(ctx context.Context, account *domain.Account)
 	return nil
 }
 
-// ByID loads one account by its opaque identifier.
+// ByID 按不透明标识加载一个账户。
 func (r *AccountRepository) ByID(ctx context.Context, id string) (*domain.Account, error) {
 	const query = `SELECT ` + columns + ` FROM accounts WHERE id = $1`
 
@@ -68,7 +65,7 @@ func (r *AccountRepository) ByID(ctx context.Context, id string) (*domain.Accoun
 	return account, nil
 }
 
-// ByStudentNo loads one account by its student number.
+// ByStudentNo 按学号加载一个账户。
 func (r *AccountRepository) ByStudentNo(ctx context.Context, studentNo string) (*domain.Account, error) {
 	const query = `SELECT ` + columns + ` FROM accounts WHERE student_no = $1`
 
@@ -79,7 +76,7 @@ func (r *AccountRepository) ByStudentNo(ctx context.Context, studentNo string) (
 	return account, nil
 }
 
-// ByIDs loads every account that exists among ids in one round trip.
+// ByIDs 在一次往返中加载 ids 中存在的所有账户。
 func (r *AccountRepository) ByIDs(ctx context.Context, ids []string) ([]*domain.Account, error) {
 	const query = `SELECT ` + columns + ` FROM accounts WHERE id = ANY($1)`
 
@@ -103,7 +100,7 @@ func (r *AccountRepository) ByIDs(ctx context.Context, ids []string) ([]*domain.
 	return accounts, nil
 }
 
-// Update writes back the mutable fields of an account.
+// Update 回写账户的可变字段。
 func (r *AccountRepository) Update(ctx context.Context, account *domain.Account) error {
 	const query = `
 		UPDATE accounts
@@ -123,7 +120,7 @@ func (r *AccountRepository) Update(ctx context.Context, account *domain.Account)
 	return nil
 }
 
-// scanRow reads the shared projection into a domain account.
+// scanRow 将共享投影读取为领域账户。
 func scanRow(row pgx.Row) (*domain.Account, error) {
 	var account domain.Account
 	err := row.Scan(

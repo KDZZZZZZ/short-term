@@ -1,5 +1,5 @@
-// Command migrate applies the Marketplace Service database migrations and
-// exits, so a release can run schema changes as a separate step.
+// Command migrate 应用 Marketplace Service 数据库迁移后退出，
+// 使发布过程可以单独执行 schema 变更。
 package main
 
 import (

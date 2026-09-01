@@ -1,0 +1,194 @@
+name: short-term-backend-ci
+
+x-common-environment: &common-environment
+  ENVIRONMENT: ci
+  LOG_LEVEL: info
+  SHUTDOWN_TIMEOUT: 15s
+
+x-app-security: &app-security
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 256
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+
+services:
+  postgres:
+    image: docker.io/library/postgres@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: --locale-provider=icu --icu-locale=und-x-icu --encoding=UTF8
+    volumes:
+      - ../local/postgres-init.sql:/docker-entrypoint-initdb.d/10-databases.sql:ro
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d postgres]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  account-migrate:
+    <<: *app-security
+    image: localhost/short-term/account:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    entrypoint: [/usr/local/bin/migrate]
+    environment:
+      <<: *common-environment
+      ACCOUNT_DATABASE_URL: postgres://account_svc:account_svc@postgres:5432/account_db?sslmode=disable
+      JWT_SIGNING_KEY: ci-only-signing-key-that-is-long-enough
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  marketplace-migrate:
+    <<: *app-security
+    image: localhost/short-term/marketplace:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    entrypoint: [/usr/local/bin/migrate]
+    environment:
+      <<: *common-environment
+      MARKETPLACE_DATABASE_URL: postgres://marketplace_svc:marketplace_svc@postgres:5432/marketplace_db?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  messaging-migrate:
+    <<: *app-security
+    image: localhost/short-term/messaging:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    entrypoint: [/usr/local/bin/migrate]
+    environment:
+      <<: *common-environment
+      MESSAGING_DATABASE_URL: postgres://messaging_svc:messaging_svc@postgres:5432/messaging_db?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  favorite-migrate:
+    <<: *app-security
+    image: localhost/short-term/favorite:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    entrypoint: [/usr/local/bin/migrate]
+    environment:
+      <<: *common-environment
+      FAVORITE_DATABASE_URL: postgres://favorite_svc:favorite_svc@postgres:5432/favorite_db?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  account:
+    <<: *app-security
+    image: localhost/short-term/account:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    environment:
+      <<: *common-environment
+      ACCOUNT_DATABASE_URL: postgres://account_svc:account_svc@postgres:5432/account_db?sslmode=disable
+      ACCOUNT_AUTO_MIGRATE: "false"
+      ACCOUNT_GRPC_ADDR: :9001
+      JWT_SIGNING_KEY: ci-only-signing-key-that-is-long-enough
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  marketplace:
+    <<: *app-security
+    image: localhost/short-term/marketplace:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    environment:
+      <<: *common-environment
+      MARKETPLACE_DATABASE_URL: postgres://marketplace_svc:marketplace_svc@postgres:5432/marketplace_db?sslmode=disable
+      MARKETPLACE_AUTO_MIGRATE: "false"
+      MARKETPLACE_GRPC_ADDR: :9002
+      MESSAGING_GRPC_TARGET: messaging:9003
+      MEDIA_ROOT: /var/lib/shortterm/media
+      MEDIA_PUBLIC_URL: /media
+    volumes:
+      - ${BACKEND_MEDIA_DIR:?BACKEND_MEDIA_DIR is required}:/var/lib/shortterm/media:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  messaging:
+    <<: *app-security
+    image: localhost/short-term/messaging:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    environment:
+      <<: *common-environment
+      MESSAGING_DATABASE_URL: postgres://messaging_svc:messaging_svc@postgres:5432/messaging_db?sslmode=disable
+      MESSAGING_AUTO_MIGRATE: "false"
+      MESSAGING_GRPC_ADDR: :9003
+      MARKETPLACE_GRPC_TARGET: marketplace:9002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  favorite:
+    <<: *app-security
+    image: localhost/short-term/favorite:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    environment:
+      <<: *common-environment
+      FAVORITE_DATABASE_URL: postgres://favorite_svc:favorite_svc@postgres:5432/favorite_db?sslmode=disable
+      FAVORITE_AUTO_MIGRATE: "false"
+      FAVORITE_GRPC_ADDR: :9004
+      MARKETPLACE_GRPC_TARGET: marketplace:9002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  marketplace-worker:
+    <<: *app-security
+    image: localhost/short-term/marketplace:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    entrypoint: [/usr/local/bin/worker]
+    environment:
+      <<: *common-environment
+      MARKETPLACE_DATABASE_URL: postgres://marketplace_svc:marketplace_svc@postgres:5432/marketplace_db?sslmode=disable
+      MARKETPLACE_AUTO_MIGRATE: "false"
+      MESSAGING_GRPC_TARGET: messaging:9003
+      MEDIA_ROOT: /var/lib/shortterm/media
+      MEDIA_PUBLIC_URL: /media
+    volumes:
+      - ${BACKEND_MEDIA_DIR:?BACKEND_MEDIA_DIR is required}:/var/lib/shortterm/media:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  messaging-worker:
+    <<: *app-security
+    image: localhost/short-term/messaging:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    entrypoint: [/usr/local/bin/worker]
+    environment:
+      <<: *common-environment
+      MESSAGING_DATABASE_URL: postgres://messaging_svc:messaging_svc@postgres:5432/messaging_db?sslmode=disable
+      MESSAGING_AUTO_MIGRATE: "false"
+      MARKETPLACE_GRPC_TARGET: marketplace:9002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    <<: *app-security
+    image: localhost/short-term/gateway:${BACKEND_RELEASE:?BACKEND_RELEASE is required}
+    environment:
+      <<: *common-environment
+      GATEWAY_HTTP_ADDR: :8080
+      GATEWAY_MANAGEMENT_ADDR: :9090
+      GATEWAY_BASE_PATH: /api/v1
+      GATEWAY_MEDIA_DIR: /var/lib/shortterm/media
+      GATEWAY_MEDIA_PATH: /media
+      ACCOUNT_GRPC_TARGET: account:9001
+      MARKETPLACE_GRPC_TARGET: marketplace:9002
+      MESSAGING_GRPC_TARGET: messaging:9003
+      FAVORITE_GRPC_TARGET: favorite:9004
+      JWT_SIGNING_KEY: ci-only-signing-key-that-is-long-enough
+      GATEWAY_TRUST_PROXY_HEADERS: "false"
+    ports:
+      - 127.0.0.1:28080:8080
+      - 127.0.0.1:29090:9090
+    volumes:
+      - ${BACKEND_MEDIA_DIR:?BACKEND_MEDIA_DIR is required}:/var/lib/shortterm/media:ro
+    depends_on:
+      - account
+      - marketplace
+      - messaging
+      - favorite
+
+volumes:
+  postgres-data:

@@ -20,20 +20,20 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/observability"
 )
 
-// ServerOptions configures an internal gRPC server.
+// ServerOptions 配置内部 gRPC 服务端。
 type ServerOptions struct {
-	// Logger receives one structured record per completed call.
+	// Logger 为每次完成的调用接收一条结构化记录。
 	Logger *slog.Logger
-	// MaxRecvMsgSize bounds a single request. Image uploads travel through
-	// AddProductImages, so the default is larger than the gRPC default of 4MB.
+	// MaxRecvMsgSize 限制单个请求的大小。图片上传通过 AddProductImages 传输，
+	// 因此默认值大于 gRPC 的 4MB 默认值。
 	MaxRecvMsgSize int
-	// HandlerTimeout bounds a handler when the caller sent no deadline. Zero
-	// leaves such calls unbounded, which is only appropriate in tests.
+	// HandlerTimeout 在调用方未发送截止时间时限制处理器执行时间。零值表示不限制，
+	// 仅适合测试。
 	HandlerTimeout time.Duration
 }
 
-// NewServer builds a gRPC server with the shared interceptor chain. Callers
-// register their services on the result and then call Serve.
+// NewServer 使用共享拦截器链构造 gRPC 服务端。调用方在返回的服务端上注册服务，
+// 然后调用 Serve。
 func NewServer(opts ServerOptions) *grpc.Server {
 	if opts.Logger == nil {
 		opts.Logger = slog.Default()
@@ -58,7 +58,7 @@ func NewServer(opts ServerOptions) *grpc.Server {
 	)
 }
 
-// Serve runs srv on addr until ctx is cancelled, then stops it gracefully.
+// Serve 在 addr 上运行 srv，直到 ctx 被取消，然后优雅地停止服务。
 func Serve(ctx context.Context, srv *grpc.Server, addr string, logger *slog.Logger) error {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -80,8 +80,8 @@ func Serve(ctx context.Context, srv *grpc.Server, addr string, logger *slog.Logg
 	}
 }
 
-// recoveryInterceptor converts a panic into INTERNAL_ERROR. The stack goes to
-// the log; the caller only learns that the call failed.
+// recoveryInterceptor 将 panic 转换为 INTERNAL_ERROR。堆栈写入日志；
+// 调用方只会得知调用失败。
 func recoveryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		defer func() {
@@ -98,8 +98,8 @@ func recoveryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// timeoutInterceptor bounds handlers whose caller sent no deadline, so a
-// missing client deadline cannot pin a database connection indefinitely.
+// timeoutInterceptor 限制调用方未发送截止时间的处理器，避免缺少客户端截止时间
+// 而无限期占用数据库连接。
 func timeoutInterceptor(timeout time.Duration) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if timeout <= 0 {
@@ -114,9 +114,8 @@ func timeoutInterceptor(timeout time.Duration) grpc.UnaryServerInterceptor {
 	}
 }
 
-// loggingInterceptor writes one structured record per call using the canonical
-// field names. Request and response bodies are never logged: they carry
-// passwords, contact details and message content.
+// loggingInterceptor 使用规范字段名为每次调用写入一条结构化记录。请求和响应正文
+// 从不写入日志，因为其中包含密码、联系方式和消息内容。
 func loggingInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		started := time.Now()
@@ -144,10 +143,9 @@ func loggingInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// normalizeErrorInterceptor guarantees that every error leaving a service
-// carries a contract error code. An error that is neither a domain error nor
-// an already-formed status becomes INTERNAL_ERROR with a generic message, so
-// an accidental database or driver string can never reach a client.
+// normalizeErrorInterceptor 确保离开服务的每个错误都携带契约错误码。
+// 既不是领域错误、也不是已构造状态的错误会变成带通用消息的 INTERNAL_ERROR，
+// 从而避免意外的数据库或驱动错误文本传给客户端。
 func normalizeErrorInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		resp, err := handler(ctx, req)

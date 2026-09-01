@@ -145,9 +145,8 @@ func TestNeedsRehashDetectsWeakerStoredParameters(t *testing.T) {
 	}
 }
 
-// BenchmarkHash is the harness for choosing production Argon2id parameters on
-// the target host, as required by docs/backend-development-plan.md. Report
-// measured numbers; do not assume the defaults are right for a given machine.
+// BenchmarkHash 用于按照 docs/backend-development-plan.md 的要求，在目标主机上
+// 选择生产环境的 Argon2id 参数。应报告实测数据，不要假定默认值适合所有机器。
 func BenchmarkHash(b *testing.B) {
 	hasher, err := NewHasher(DefaultArgon2Params())
 	if err != nil {

@@ -42,10 +42,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// MarketplaceService owns products, product images, trades and the
-// product/trade state machines. Product and trade transitions that must be
-// atomic (accept, cancel of accepted trade, double confirm) run in a single
-// local transaction here.
+// MarketplaceService 负责商品、商品图片、交易以及商品/交易状态机。
+// 必须保持原子性的商品和交易转换（接受、取消已接受交易、双方确认）
+// 都在此处的单一本地事务中运行。
 type MarketplaceServiceClient interface {
 	CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*CreateProductResponse, error)
 	GetProduct(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*GetProductResponse, error)
@@ -248,10 +247,9 @@ func (c *marketplaceServiceClient) ConfirmTrade(ctx context.Context, in *Confirm
 // All implementations should embed UnimplementedMarketplaceServiceServer
 // for forward compatibility.
 //
-// MarketplaceService owns products, product images, trades and the
-// product/trade state machines. Product and trade transitions that must be
-// atomic (accept, cancel of accepted trade, double confirm) run in a single
-// local transaction here.
+// MarketplaceService 负责商品、商品图片、交易以及商品/交易状态机。
+// 必须保持原子性的商品和交易转换（接受、取消已接受交易、双方确认）
+// 都在此处的单一本地事务中运行。
 type MarketplaceServiceServer interface {
 	CreateProduct(context.Context, *CreateProductRequest) (*CreateProductResponse, error)
 	GetProduct(context.Context, *GetProductRequest) (*GetProductResponse, error)

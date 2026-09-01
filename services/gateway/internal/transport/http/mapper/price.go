@@ -6,22 +6,20 @@ import (
 	"strings"
 )
 
-// Price conversion between the public decimal string and the internal minor
-// units.
+// Price 在公开十进制字符串和内部最小货币单位之间进行转换。
 //
-// openapi/components/schemas.yaml#/Price transports money as a decimal string
-// precisely so no binary floating point is involved. The conversion here is
-// integer arithmetic on the digits; parsing to float64 would reintroduce the
-// rounding the contract exists to avoid.
+// openapi/components/schemas.yaml#/Price 精确地以十进制字符串传输金额，从而不涉及
+// 二进制浮点数。这里对数字执行整数运算；解析为 float64 会重新引入契约要避免的
+// 舍入误差。
 
-// MaxPriceMinor is the largest value the Price pattern can express:
-// 99999999.99 in minor units.
+// MaxPriceMinor 是 Price 模式可以表达的最大值：
+// 以最小货币单位表示为 99999999.99。
 const MaxPriceMinor = 9999999999
 
-// ErrPriceFormat reports a value that does not match the Price schema.
+// ErrPriceFormat 表示值不符合 Price schema。
 var ErrPriceFormat = errors.New("price must be a decimal amount with at most two fraction digits")
 
-// ParsePrice converts a public price string into minor units.
+// ParsePrice 将公开价格字符串转换为最小货币单位。
 func ParsePrice(value string) (int64, error) {
 	if value == "" {
 		return 0, ErrPriceFormat
@@ -31,7 +29,7 @@ func ParsePrice(value string) (int64, error) {
 	if !validDigits(whole) || len(whole) > 8 {
 		return 0, ErrPriceFormat
 	}
-	// The pattern forbids leading zeros, so "007.00" and "00" are rejected.
+	// 模式禁止前导零，因此 "007.00" 和 "00" 会被拒绝。
 	if len(whole) > 1 && whole[0] == '0' {
 		return 0, ErrPriceFormat
 	}
@@ -60,8 +58,7 @@ func ParsePrice(value string) (int64, error) {
 	return total, nil
 }
 
-// FormatPrice converts minor units into the public price string, always with
-// two fraction digits.
+// FormatPrice 将最小货币单位转换为公开价格字符串，并始终保留两位小数。
 func FormatPrice(minor int64) string {
 	if minor < 0 {
 		minor = 0

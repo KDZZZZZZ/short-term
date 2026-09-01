@@ -7,15 +7,15 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1;accountv1";
 
-// AccountService owns student credentials, tokens and public profiles.
-// Resource-level authorization for accounts is enforced here.
+// AccountService 负责学生凭据、令牌和公开资料。
+// 账户的资源级授权在此处执行。
 service AccountService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
-  // GetProfile returns the owner's own view, including the student number.
-  // It is separate from GetUser so that no aggregation path can reach the
-  // student number by mistake: GetUser cannot return one.
+  // GetProfile 返回所有者自己的视图，其中包含学号。
+  // 它与 GetUser 分开，因此任何聚合路径都不会误取学号：
+  // GetUser 无法返回学号。
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
   rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
@@ -27,7 +27,7 @@ message UserPublic {
   string nickname = 2;
 }
 
-// UserContact adds wechat/qq; optional fields distinguish unset from empty.
+// UserContact 增加微信/QQ；可选字段用于区分未设置和空值。
 message UserContact {
   string id = 1;
   string nickname = 2;
@@ -94,13 +94,13 @@ message BatchGetUsersRequest {
 }
 
 message BatchGetUsersResponse {
-  // Batch aggregation only needs public profile data. Contact details are
-  // intentionally excluded to keep list queries on a least-privilege shape.
+  // 批量聚合只需要公开资料。联系方式被有意排除，使列表查询保持最小权限的数据形状。
   map<string, UserPublic> users = 1;
 }
 
-// NullableStringPatch preserves the three public PATCH states: field absent
-// means unchanged, string_value sets a value, and null_value clears it.
+// NullableStringPatch 保留 PATCH 字段的线路兼容性：字段不存在表示不变，
+// string_value 设置值。公开契约不再接受 null_value；服务端仍会明确拒绝它，
+// 而不是把旧客户端的删除请求静默当成“保持不变”。
 message NullableStringPatch {
   oneof value {
     string string_value = 1;

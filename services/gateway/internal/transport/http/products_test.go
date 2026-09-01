@@ -29,8 +29,8 @@ import (
 
 const testProductID = "p_01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-// newProductServer wires the real router with stub downstream services, so the
-// assertions are about the public HTTP contract the Gateway must implement.
+// newProductServer 将真实路由器与下游桩服务连接起来，因此断言针对的是 Gateway
+// 必须实现的公开 HTTP 契约。
 func newProductServer(t *testing.T, accounts *stubAccounts, marketplace *stubMarketplace) (*httptest.Server, string) {
 	t.Helper()
 
@@ -49,8 +49,8 @@ func newProductServer(t *testing.T, accounts *stubAccounts, marketplace *stubMar
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	responder := gatewayhttp.NewResponder(logger)
-	// The favorite checker is nil: the Favorite Service arrives in milestone
-	// M4, and until then is_favorited is reported as false.
+	// 这个仅覆盖商品 HTTP 契约的夹具不需要收藏状态，因此省略 checker；
+	// 生产接线始终使用真实 Favorite Service。
 	aggregator := aggregation.New(accounts, marketplace, nil)
 
 	router := gatewayhttp.NewRouter(gatewayhttp.RouterOptions{
@@ -58,10 +58,11 @@ func newProductServer(t *testing.T, accounts *stubAccounts, marketplace *stubMar
 		Verifier:     verifier,
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
-		Ready:        func() error { return nil },
+		Ready:        func(context.Context) error { return nil },
 		Auth:         handler.NewAuth(accounts, responder),
 		Users:        handler.NewUsers(accounts, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
+		Trades:       handler.NewTrades(marketplace, aggregator, responder),
 	})
 
 	server := httptest.NewServer(router)
@@ -103,7 +104,7 @@ func TestListProductsRendersTheContractShape(t *testing.T) {
 		t.Fatalf("items = %d, want 1: %s", len(envelope.Data.Items), body)
 	}
 	item := envelope.Data.Items[0]
-	// 12345 minor units must render as a decimal string, never as a number.
+	// 12345 个最小货币单位必须渲染为十进制字符串，不能是数字。
 	if item.Price != "123.45" {
 		t.Fatalf("price = %q, want \"123.45\"", item.Price)
 	}
@@ -133,7 +134,7 @@ func TestListProductsCompletesSellersInOneBatchCall(t *testing.T) {
 		t.Fatalf("status = %d, want 200: %s", status, body)
 	}
 
-	// One call for the whole page, never one per row.
+	// 整页只调用一次，绝不按行调用。
 	if accounts.batchCalls != 1 {
 		t.Fatalf("BatchGetUsers was called %d times, want exactly 1", accounts.batchCalls)
 	}
@@ -178,8 +179,7 @@ func TestProductEndpointsRequireAuthentication(t *testing.T) {
 
 	server, _ := newProductServer(t, &stubAccounts{}, &stubMarketplace{})
 
-	// openapi/openapi.yaml applies bearerAuth globally; only register and
-	// login opt out.
+	// openapi/openapi.yaml 全局应用 bearerAuth；只有注册和登录例外。
 	for _, path := range []string{"/products", "/products/" + testProductID, "/users/me/products"} {
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
@@ -227,8 +227,7 @@ func TestGetProductReturnsSellerContactWithoutTheStudentNumber(t *testing.T) {
 	if strings.Contains(body, "student_no") || strings.Contains(body, "20260001") {
 		t.Fatalf("the product detail disclosed the seller student number: %s", body)
 	}
-	// The Favorite Service is not wired yet, so the flag is present and false
-	// rather than missing.
+	// Favorite Service 尚未接入，因此标记存在且为 false，而不是缺失。
 	if envelope.Data.IsFavorited {
 		t.Fatal("is_favorited should be false while the Favorite Service is not wired")
 	}
@@ -283,7 +282,7 @@ func TestCreateProductAcceptsAMultipartListing(t *testing.T) {
 	if req.GetActorId() != testActor {
 		t.Fatalf("actor_id = %q, want the token subject", req.GetActorId())
 	}
-	// The decimal string must reach the service as minor units.
+	// 十进制字符串必须以最小货币单位的形式传到服务。
 	if req.GetPriceMinor() != 12345 {
 		t.Fatalf("price_minor = %d, want 12345", req.GetPriceMinor())
 	}
@@ -343,8 +342,8 @@ func TestCreateProductEnforcesTheImageLimits(t *testing.T) {
 		body, contentType := productForm(t, "机械键盘", "1.00", "DIGITAL", "描述", 4)
 
 		status, response := upload(t, server, http.MethodPost, basePath+"/products", token, contentType, body)
-		if status != http.StatusConflict {
-			t.Fatalf("status = %d, want 409: %s", status, response)
+		if status != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400: %s", status, response)
 		}
 		assertErrorCode(t, response, errs.CodeImageLimitExceeded)
 	})
@@ -409,9 +408,8 @@ func TestUpdateProductCannotAssignStatus(t *testing.T) {
 	marketplace := &stubMarketplace{}
 	server, token := newProductServer(t, &stubAccounts{}, marketplace)
 
-	// The contract's ProductUpdateRequest sets additionalProperties: false and
-	// has no status property, so an attempt to set one must be rejected rather
-	// than silently ignored.
+	// 契约的 ProductUpdateRequest 设置 additionalProperties: false，且没有 status
+	// 属性，因此尝试设置 status 必须被拒绝，不能静默忽略。
 	status, body := request(t, server, http.MethodPatch, basePath+"/products/"+testProductID, token,
 		`{"title":"新标题","status":"SOLD"}`)
 	if status != http.StatusBadRequest {
@@ -495,7 +493,7 @@ func TestListMineRejectsAnUnknownStatus(t *testing.T) {
 	assertErrorCode(t, body, errs.CodeValidation)
 }
 
-// --- multipart helpers ------------------------------------------------------
+// --- multipart 辅助函数 ----------------------------------------------------
 
 func productForm(t *testing.T, title, price, category, description string, images int) (*bytes.Buffer, string) {
 	t.Helper()
@@ -589,19 +587,27 @@ func smallPNG(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
-// --- stub marketplace -------------------------------------------------------
+// --- Marketplace 桩实现 -----------------------------------------------------
 
-// stubMarketplace stands in for the Marketplace Service. Its own behaviour is
-// covered by integration tests against a real database and object store.
+// stubMarketplace 代替 Marketplace Service。该服务自身的行为由基于真实数据库和
+// 对象存储的集成测试覆盖。
 type stubMarketplace struct {
 	marketplacev1.MarketplaceServiceClient
 
 	listItems    int
+	tradeItems   int
 	getErr       error
 	actionErr    error
+	tradeErr     error
+	replayed     bool
+	tradeExists  bool
 	lastCreate   *marketplacev1.CreateProductRequest
 	lastUpdate   *marketplacev1.UpdateProductRequest
 	lastListUser *marketplacev1.ListUserProductsRequest
+
+	lastCreateTrade *marketplacev1.CreateTradeRequest
+	lastAccept      *marketplacev1.AcceptTradeRequest
+	lastListTrades  *marketplacev1.ListTradesRequest
 }
 
 func (s *stubMarketplace) summary(id, sellerID string) *marketplacev1.ProductSummary {
@@ -645,8 +651,8 @@ func (s *stubMarketplace) page() *marketplacev1.ProductPage {
 	}
 	items := make([]*marketplacev1.ProductSummary, 0, count)
 	for i := range count {
-		// Two distinct sellers repeated across the page, so the test can show
-		// the batch carries distinct ids rather than one per row.
+		// 页面中重复出现两个不同卖家，这样测试可以证明批量调用携带了不同的标识，
+		// 而不是每行调用一次。
 		sellerID := testActor
 		if i%2 == 1 {
 			sellerID = "u_second_seller"

@@ -6,17 +6,16 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/dto"
 )
 
-// accountUserPublic is the batch profile shape the aggregation layer supplies.
+// accountUserPublic 是聚合层提供的批量资料结构。
 type accountUserPublic = accountv1.UserPublic
 
-// lookupSeller renders a seller identity, falling back to a placeholder when
-// the account no longer exists. A list must not fail because one seller was
-// removed, and the contract requires the field to be present.
+// lookupSeller 渲染卖家身份；账户不存在时回退到占位值。
+// 列表不能因为某个卖家被删除而失败，且契约要求该字段必须存在。
 func lookupSeller(sellerID string, sellers map[string]*accountUserPublic) dto.UserPublic {
 	return UserPublic(sellerID, sellers[sellerID])
 }
 
-// productCategories maps between the wire enum and the public string enum.
+// productCategories 在线路枚举和公开字符串枚举之间进行映射。
 var productCategories = map[marketplacev1.ProductCategory]string{
 	marketplacev1.ProductCategory_PRODUCT_CATEGORY_TEXTBOOK: "TEXTBOOK",
 	marketplacev1.ProductCategory_PRODUCT_CATEGORY_DIGITAL:  "DIGITAL",
@@ -24,7 +23,7 @@ var productCategories = map[marketplacev1.ProductCategory]string{
 	marketplacev1.ProductCategory_PRODUCT_CATEGORY_OTHER:    "OTHER",
 }
 
-// productStatuses maps between the wire enum and the public string enum.
+// productStatuses 在线路枚举和公开字符串枚举之间进行映射。
 var productStatuses = map[marketplacev1.ProductStatus]string{
 	marketplacev1.ProductStatus_PRODUCT_STATUS_ON_SALE:   "ON_SALE",
 	marketplacev1.ProductStatus_PRODUCT_STATUS_RESERVED:  "RESERVED",
@@ -32,13 +31,12 @@ var productStatuses = map[marketplacev1.ProductStatus]string{
 	marketplacev1.ProductStatus_PRODUCT_STATUS_OFF_SHELF: "OFF_SHELF",
 }
 
-// ProductCategory renders the public category string.
+// ProductCategory 渲染公开分类字符串。
 func ProductCategory(value marketplacev1.ProductCategory) string {
 	return productCategories[value]
 }
 
-// ParseProductCategory converts a public category string to the wire enum,
-// reporting whether it is one the contract defines.
+// ParseProductCategory 将公开分类字符串转换为线路枚举，并返回该值是否由契约定义。
 func ParseProductCategory(value string) (marketplacev1.ProductCategory, bool) {
 	for enum, name := range productCategories {
 		if name == value {
@@ -48,12 +46,12 @@ func ParseProductCategory(value string) (marketplacev1.ProductCategory, bool) {
 	return marketplacev1.ProductCategory_PRODUCT_CATEGORY_UNSPECIFIED, false
 }
 
-// ProductStatus renders the public status string.
+// ProductStatus 渲染公开状态字符串。
 func ProductStatus(value marketplacev1.ProductStatus) string {
 	return productStatuses[value]
 }
 
-// ParseProductStatus converts a public status string to the wire enum.
+// ParseProductStatus 将公开状态字符串转换为线路枚举。
 func ParseProductStatus(value string) (marketplacev1.ProductStatus, bool) {
 	for enum, name := range productStatuses {
 		if name == value {
@@ -63,8 +61,7 @@ func ParseProductStatus(value string) (marketplacev1.ProductStatus, bool) {
 	return marketplacev1.ProductStatus_PRODUCT_STATUS_UNSPECIFIED, false
 }
 
-// ProductSummary maps one list row, completing the seller from the batch
-// profile lookup the caller already performed.
+// ProductSummary 映射一行列表数据，并使用调用方已经执行的批量资料查询补全卖家。
 func ProductSummary(src *marketplacev1.ProductSummary, sellers map[string]*accountUserPublic) dto.ProductSummary {
 	return dto.ProductSummary{
 		ID:        src.GetId(),
@@ -78,8 +75,8 @@ func ProductSummary(src *marketplacev1.ProductSummary, sellers map[string]*accou
 	}
 }
 
-// ProductDetail maps the detail response. is_favorited and the seller contact
-// are resolved by the caller, which knows whether the request was authenticated.
+// ProductDetail 映射详情响应。is_favorited 和卖家联系方式由调用方解析，
+// 因为调用方知道请求是否已通过认证。
 func ProductDetail(src *marketplacev1.ProductDetail, seller dto.SellerContact, isFavorited bool) dto.ProductDetail {
 	return dto.ProductDetail{
 		ID:          src.GetId(),
@@ -96,8 +93,7 @@ func ProductDetail(src *marketplacev1.ProductDetail, seller dto.SellerContact, i
 	}
 }
 
-// ProductImages maps an image list, always producing a non-nil slice so the
-// JSON array is never null.
+// ProductImages 映射图片列表，并始终返回非 nil 切片，使 JSON 数组不会为 null。
 func ProductImages(src []*marketplacev1.ProductImage) []dto.ProductImage {
 	images := make([]dto.ProductImage, 0, len(src))
 	for _, image := range src {
@@ -111,7 +107,7 @@ func ProductImages(src []*marketplacev1.ProductImage) []dto.ProductImage {
 	return images
 }
 
-// ProductPage maps a page of summaries.
+// ProductPage 映射一页摘要。
 func ProductPage(src *marketplacev1.ProductPage, sellers map[string]*accountUserPublic) dto.ProductPage {
 	items := make([]dto.ProductSummary, 0, len(src.GetItems()))
 	for _, item := range src.GetItems() {

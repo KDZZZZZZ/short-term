@@ -10,13 +10,11 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
-// Migrate applies every pending migration in fsys to the database named by
-// dsn and reports the version in effect afterwards.
+// Migrate 将 fsys 中所有待执行的迁移应用到 dsn 指定的数据库，并返回应用后的版本。
 //
-// Migrations are plain SQL files embedded in the owning service, named
-// NNNNNN_description.up.sql with a matching .down.sql, per
-// docs/backend-conventions.md. golang-migrate takes an advisory lock for the
-// duration, so running this from several replicas at once is safe.
+// 迁移是嵌入所属服务的普通 SQL 文件，按照 docs/backend-conventions.md 命名为
+// NNNNNN_description.up.sql，并配有对应的 .down.sql。golang-migrate 在执行期间
+// 获取咨询锁，因此可以安全地同时从多个副本运行。
 func Migrate(dsn string, fsys fs.FS, dir string) (version uint, err error) {
 	source, err := iofs.New(fsys, dir)
 	if err != nil {
@@ -46,8 +44,7 @@ func Migrate(dsn string, fsys fs.FS, dir string) (version uint, err error) {
 	return version, nil
 }
 
-// migratePgxDSN rewrites a libpq DSN into the URL scheme golang-migrate's pgx
-// driver registers itself under.
+// migratePgxDSN 将 libpq DSN 改写为 golang-migrate 的 pgx 驱动注册使用的 URL scheme。
 func migratePgxDSN(dsn string) string {
 	if len(dsn) > 11 && dsn[:11] == "postgres://" {
 		return "pgx5://" + dsn[11:]
@@ -58,5 +55,5 @@ func migratePgxDSN(dsn string) string {
 	return dsn
 }
 
-// ensure the pgx/v5 migrate driver is linked in; it registers itself in init.
+// 确保链接 pgx/v5 迁移驱动；它会在 init 中自行注册。
 var _ = migratepgx.Postgres{}

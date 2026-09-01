@@ -1,10 +1,8 @@
-// Package config loads service configuration from the process environment.
+// Package config 从进程环境变量加载服务配置。
 //
-// Secrets are injected by the runtime (GitHub Actions secrets or the server
-// environment) and never committed, so the environment is the only supported
-// source. A Loader accumulates problems and reports them together, which makes
-// a misconfigured deployment fail fast with one complete message instead of
-// one variable at a time.
+// 密钥由运行时（GitHub Actions 密钥或服务器环境）注入，绝不提交到仓库，
+// 因此环境变量是唯一支持的来源。Loader 会收集所有问题并一次性报告，
+// 使错误配置的部署通过一条完整消息快速失败，而不是每次只报告一个变量。
 package config
 
 import (
@@ -16,17 +14,16 @@ import (
 	"time"
 )
 
-// Loader reads typed values from the environment and collects every problem it
-// finds.
+// Loader 从环境变量读取类型化的值，并收集发现的所有问题。
 type Loader struct {
 	lookup func(string) (string, bool)
 	errs   []error
 }
 
-// NewLoader builds a Loader over os.LookupEnv.
+// NewLoader 基于 os.LookupEnv 构造 Loader。
 func NewLoader() *Loader { return &Loader{lookup: os.LookupEnv} }
 
-// NewLoaderFrom builds a Loader over an explicit environment, for tests.
+// NewLoaderFrom 基于显式环境构造 Loader，供测试使用。
 func NewLoaderFrom(env map[string]string) *Loader {
 	return &Loader{lookup: func(key string) (string, bool) {
 		value, ok := env[key]
@@ -34,10 +31,10 @@ func NewLoaderFrom(env map[string]string) *Loader {
 	}}
 }
 
-// Err returns the joined configuration errors, or nil when everything loaded.
+// Err 返回合并后的配置错误；全部加载成功时返回 nil。
 func (l *Loader) Err() error { return errors.Join(l.errs...) }
 
-// String returns the variable or fallback when it is unset or empty.
+// String 在变量未设置或为空时返回备用值，否则返回变量值。
 func (l *Loader) String(key, fallback string) string {
 	value, ok := l.lookup(key)
 	if !ok || strings.TrimSpace(value) == "" {
@@ -46,7 +43,7 @@ func (l *Loader) String(key, fallback string) string {
 	return value
 }
 
-// Required returns the variable and records an error when it is missing.
+// Required 返回变量；变量缺失时记录错误。
 func (l *Loader) Required(key string) string {
 	value, ok := l.lookup(key)
 	if !ok || strings.TrimSpace(value) == "" {
@@ -56,7 +53,7 @@ func (l *Loader) Required(key string) string {
 	return value
 }
 
-// Int returns an integer variable or fallback.
+// Int 返回整数变量；变量缺失或为空时返回备用值。
 func (l *Loader) Int(key string, fallback int) int {
 	raw, ok := l.lookup(key)
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -70,8 +67,7 @@ func (l *Loader) Int(key string, fallback int) int {
 	return value
 }
 
-// Duration returns a duration variable or fallback, accepting Go syntax such
-// as "250ms" or "5s".
+// Duration 返回时长变量或备用值，并接受 Go 语法，例如 "250ms" 或 "5s"。
 func (l *Loader) Duration(key string, fallback time.Duration) time.Duration {
 	raw, ok := l.lookup(key)
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -85,7 +81,7 @@ func (l *Loader) Duration(key string, fallback time.Duration) time.Duration {
 	return value
 }
 
-// Bool returns a boolean variable or fallback.
+// Bool 返回布尔变量或备用值。
 func (l *Loader) Bool(key string, fallback bool) bool {
 	raw, ok := l.lookup(key)
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -99,8 +95,8 @@ func (l *Loader) Bool(key string, fallback bool) bool {
 	return value
 }
 
-// Fail records a validation problem discovered after loading, so callers can
-// report configuration and cross-field errors through one channel.
+// Fail 记录加载后发现的校验问题，使调用方可以通过一个渠道报告配置错误和
+// 跨字段错误。
 func (l *Loader) Fail(format string, args ...any) {
 	l.errs = append(l.errs, fmt.Errorf(format, args...))
 }

@@ -1,7 +1,6 @@
-// Package http implements the public REST surface defined by
-// openapi/openapi.yaml. Every response body, status code and error code in
-// this package must match that contract; the contract is the source of truth
-// and this code follows it, never the other way round.
+// Package http 实现 openapi/openapi.yaml 定义的公开 REST 接口。
+// 本包中的每个响应正文、状态码和错误码都必须符合该契约；契约是事实真源，
+// 代码遵循契约，而不是反过来。
 package http
 
 import (
@@ -15,30 +14,30 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/dto"
 )
 
-// httpStatus maps a contract error code to its public HTTP status, following
-// docs/software-design.md section 7.3 and the responses each path declares in
-// openapi/paths.
+// httpStatus 按照 docs/software-design.md 第 7.3 节及 openapi/paths 中各路径声明的
+// 响应，将契约错误码映射为公开 HTTP 状态。
 //
-// The contract has no 503 or 504, so a downstream that is unavailable or out
-// of time is reported as 500 INTERNAL_ERROR. Whether to extend the contract is
-// an open question in docs/software-design.md section 11.3.
+// 契约没有 503 或 504，因此不可用或超时的下游会报告为 500 INTERNAL_ERROR。
+// 是否扩展契约是 docs/software-design.md 第 11.3 节中的未决问题。
 var httpStatus = map[errs.Code]int{
 	errs.CodeValidation:           http.StatusBadRequest,
 	errs.CodeContactRequired:      http.StatusBadRequest,
-	errs.CodeSelfActionNotAllowed: http.StatusBadRequest,
+	errs.CodeImageLimitExceeded:   http.StatusBadRequest,
 	errs.CodeUnauthorized:         http.StatusUnauthorized,
 	errs.CodeForbidden:            http.StatusForbidden,
 	errs.CodeResourceNotFound:     http.StatusNotFound,
 	errs.CodeStudentNoExists:      http.StatusConflict,
-	errs.CodeImageLimitExceeded:   http.StatusConflict,
 	errs.CodeProductNotAvailable:  http.StatusConflict,
 	errs.CodeProductStateConflict: http.StatusConflict,
 	errs.CodeTradeStateConflict:   http.StatusConflict,
+	errs.CodeConversationMismatch: http.StatusConflict,
+	errs.CodeSelfActionNotAllowed: http.StatusConflict,
 	errs.CodePayloadTooLarge:      http.StatusRequestEntityTooLarge,
+	errs.CodeRateLimited:          http.StatusTooManyRequests,
 	errs.CodeInternal:             http.StatusInternalServerError,
 }
 
-// StatusFor reports the public HTTP status for a contract error code.
+// StatusFor 返回契约错误码对应的公开 HTTP 状态。
 func StatusFor(code errs.Code) int {
 	if status, ok := httpStatus[code]; ok {
 		return status
@@ -46,12 +45,12 @@ func StatusFor(code errs.Code) int {
 	return http.StatusInternalServerError
 }
 
-// Responder writes contract-shaped responses and logs failures.
+// Responder 写入符合契约结构的响应并记录失败。
 type Responder struct {
 	logger *slog.Logger
 }
 
-// NewResponder builds a Responder.
+// NewResponder 构造 Responder。
 func NewResponder(logger *slog.Logger) *Responder {
 	if logger == nil {
 		logger = slog.Default()
@@ -59,35 +58,34 @@ func NewResponder(logger *slog.Logger) *Responder {
 	return &Responder{logger: logger}
 }
 
-// OK writes a 200 success envelope.
+// OK 写入 200 成功信封。
 func (r *Responder) OK(w http.ResponseWriter, req *http.Request, data any) {
 	r.Success(w, req, http.StatusOK, data)
 }
 
-// Created writes a 201 success envelope.
+// Created 写入 201 成功信封。
 func (r *Responder) Created(w http.ResponseWriter, req *http.Request, data any) {
 	r.Success(w, req, http.StatusCreated, data)
 }
 
-// Empty writes a success envelope whose data is the empty object, which is
-// what the contract's EmptySuccess schema requires.
+// Empty 写入 data 为空对象的成功信封，这是契约 EmptySuccess schema 所要求的形式。
 func (r *Responder) Empty(w http.ResponseWriter, req *http.Request) {
 	r.Success(w, req, http.StatusOK, struct{}{})
 }
 
-// Success writes a success envelope with an explicit status.
+// Success 以指定状态写入成功信封。
 func (r *Responder) Success(w http.ResponseWriter, req *http.Request, status int, data any) {
 	r.write(w, req, status, dto.SuccessEnvelope{Code: "OK", Message: "success", Data: data})
 }
 
-// Error maps err to its contract error code and writes the matching response.
-// The cause is logged, never sent: it may contain database or driver text.
+// Error 将 err 映射为契约错误码，并写入匹配的响应。
+// 原因只记录到日志而不发送给客户端，因为其中可能包含数据库或驱动文本。
 func (r *Responder) Error(w http.ResponseWriter, req *http.Request, err error) {
 	code := errs.CodeOf(err)
 	status := StatusFor(code)
 	message := errs.MessageOf(err)
 	if code == errs.CodeInternal {
-		// A downstream failure message is written for operators, not clients.
+		// 下游失败消息供运维人员使用，不返回给客户端。
 		message = "服务暂时不可用"
 	}
 	if message == "" {
@@ -109,7 +107,7 @@ func (r *Responder) Error(w http.ResponseWriter, req *http.Request, err error) {
 	r.write(w, req, status, dto.ErrorEnvelope{Code: string(code), Message: message})
 }
 
-// Fail writes a specific contract error code with a client-safe message.
+// Fail 使用客户端安全消息写入指定的契约错误码。
 func (r *Responder) Fail(w http.ResponseWriter, req *http.Request, code errs.Code, message string) {
 	r.Error(w, req, errs.New(code, message))
 }

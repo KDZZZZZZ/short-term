@@ -19,6 +19,7 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/errs"
 	gatewayhttp "github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/handler"
+	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/middleware"
 )
 
 const (
@@ -59,7 +60,7 @@ func newServer(t *testing.T, accounts accountv1.AccountServiceClient) (*httptest
 		Verifier:     verifier,
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
-		Ready:        func() error { return nil },
+		Ready:        func(context.Context) error { return nil },
 		Auth:         handler.NewAuth(accounts, responder),
 		Users:        handler.NewUsers(accounts, responder),
 	})
@@ -180,7 +181,7 @@ func TestGetMeReturnsTheOwnersProfile(t *testing.T) {
 	if envelope.Data.StudentNo == "" {
 		t.Fatal("the owner's own profile must include the student number")
 	}
-	// UserMe requires every property, including the nullable ones.
+	// UserMe 要求每个属性都存在，包括可为空的属性。
 	for _, field := range []string{"wechat", "qq", "created_at", "updated_at"} {
 		if !strings.Contains(body, `"`+field+`"`) {
 			t.Fatalf("response omits the required field %q: %s", field, body)
@@ -188,14 +189,14 @@ func TestGetMeReturnsTheOwnersProfile(t *testing.T) {
 	}
 }
 
-func TestPatchMeSendsTheThreePatchStatesDownstream(t *testing.T) {
+func TestPatchMeSendsOmittedAndSetPatchesDownstream(t *testing.T) {
 	t.Parallel()
 
 	accounts := &stubAccounts{}
 	server, token := newServer(t, accounts)
 
 	status, body := request(t, server, http.MethodPatch, basePath+"/users/me", token,
-		`{"wechat":null,"qq":"987654321"}`)
+		`{"wechat":"wx_updated","qq":"987654321"}`)
 	if status != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", status, body)
 	}
@@ -207,8 +208,9 @@ func TestPatchMeSendsTheThreePatchStatesDownstream(t *testing.T) {
 	if req.Nickname != nil {
 		t.Fatal("an absent nickname must not be sent downstream")
 	}
-	if _, isNull := req.GetWechat().GetValue().(*accountv1.NullableStringPatch_NullValue); !isNull {
-		t.Fatalf("wechat patch = %v, want an explicit null", req.GetWechat())
+	wechat, isSet := req.GetWechat().GetValue().(*accountv1.NullableStringPatch_StringValue)
+	if !isSet || wechat.StringValue != "wx_updated" {
+		t.Fatalf("wechat patch = %v, want wx_updated", req.GetWechat())
 	}
 	value, isSet := req.GetQq().GetValue().(*accountv1.NullableStringPatch_StringValue)
 	if !isSet || value.StringValue != "987654321" {
@@ -231,6 +233,8 @@ func TestPatchMeRejectsInvalidBodies(t *testing.T) {
 		{name: "unknown field", body: `{"student_no":"20260002"}`},
 		{name: "empty object", body: `{}`},
 		{name: "null nickname", body: `{"nickname":null}`},
+		{name: "null wechat", body: `{"wechat":null}`},
+		{name: "null qq", body: `{"qq":null}`},
 		{name: "non-string wechat", body: `{"wechat":42}`},
 		{name: "not json", body: `nope`},
 		{name: "trailing content", body: `{"nickname":"a"}{"nickname":"b"}`},
@@ -351,7 +355,7 @@ func TestReadinessFailsWhileADependencyIsDown(t *testing.T) {
 		Verifier:     verifier,
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
-		Ready:        func() error { return errs.New(errs.CodeInternal, "database unavailable") },
+		Ready:        func(context.Context) error { return errs.New(errs.CodeInternal, "database unavailable") },
 		Auth:         handler.NewAuth(accounts, responder),
 		Users:        handler.NewUsers(accounts, responder),
 	})
@@ -362,14 +366,63 @@ func TestReadinessFailsWhileADependencyIsDown(t *testing.T) {
 	if status != http.StatusServiceUnavailable {
 		t.Fatalf("readyz status = %d, want 503", status)
 	}
-	// Liveness must stay healthy so a dependency outage does not trigger a
-	// restart loop.
+	// Liveness 必须保持健康，这样依赖故障才不会触发重启循环。
 	if liveStatus, _ := requestRaw(t, server, http.MethodGet, "/healthz", "", ""); liveStatus != http.StatusOK {
 		t.Fatalf("healthz status = %d, want 200", liveStatus)
 	}
 }
 
-// --- helpers ----------------------------------------------------------------
+func TestRegisterRateLimitUsesTheContractEnvelopeAndHeaders(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	responder := gatewayhttp.NewResponder(logger)
+	verifier, err := auth.NewVerifier(tokenConfig(), nil)
+	if err != nil {
+		t.Fatalf("NewVerifier: %v", err)
+	}
+	limiter, err := middleware.NewRateLimiter(middleware.RateLimitConfig{
+		Window: time.Minute, Register: 1, MaxKeys: 10,
+	}, responder)
+	if err != nil {
+		t.Fatalf("NewRateLimiter: %v", err)
+	}
+	accounts := &stubAccounts{}
+	router := gatewayhttp.NewRouter(gatewayhttp.RouterOptions{
+		BasePath:     basePath,
+		Verifier:     verifier,
+		MaxBodyBytes: 1 << 20,
+		Logger:       logger,
+		Ready:        func(context.Context) error { return nil },
+		RateLimiter:  limiter,
+		Auth:         handler.NewAuth(accounts, responder),
+		Users:        handler.NewUsers(accounts, responder),
+	})
+
+	for attempt := 1; attempt <= 2; attempt++ {
+		request := httptest.NewRequest(http.MethodPost, basePath+"/auth/register",
+			strings.NewReader(`{"student_no":"20269999","password":"correct-horse-battery"}`))
+		request.Header.Set("Content-Type", "application/json")
+		request.RemoteAddr = "192.0.2.10:4321"
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		if attempt == 1 && response.Code != http.StatusCreated {
+			t.Fatalf("first status = %d: %s", response.Code, response.Body.String())
+		}
+		if attempt == 2 {
+			if response.Code != http.StatusTooManyRequests {
+				t.Fatalf("second status = %d: %s", response.Code, response.Body.String())
+			}
+			assertErrorCode(t, response.Body.String(), errs.CodeRateLimited)
+			if response.Header().Get("Retry-After") == "" || response.Header().Get("Cache-Control") != "no-store" {
+				t.Fatalf("rate limit headers = %v", response.Header())
+			}
+		}
+	}
+}
+
+// --- 辅助函数 ---------------------------------------------------------------
 
 func request(t *testing.T, server *httptest.Server, method, path, token, body string) (int, string) {
 	t.Helper()
@@ -379,6 +432,41 @@ func request(t *testing.T, server *httptest.Server, method, path, token, body st
 		header = "Bearer " + token
 	}
 	return requestRaw(t, server, method, path, header, body)
+}
+
+// requestWithHeaders issues a request with extra headers alongside the token.
+func requestWithHeaders(t *testing.T, server *httptest.Server, method, path, token, body string, headers map[string]string) (int, string) {
+	t.Helper()
+
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(t.Context(), method, server.URL+path, reader)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	for name, value := range headers {
+		req.Header.Set(name, value)
+	}
+
+	resp, err := server.Client().Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	payload, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	return resp.StatusCode, string(payload)
 }
 
 func requestRaw(t *testing.T, server *httptest.Server, method, path, authorization, body string) (int, string) {
@@ -456,11 +544,10 @@ func foreignToken(t *testing.T) string {
 	return token
 }
 
-// --- stub downstream --------------------------------------------------------
+// --- 下游桩实现 -------------------------------------------------------------
 
-// stubAccounts stands in for the Account Service. The service's own behaviour
-// is covered by its integration tests against a real database; these tests are
-// about the public HTTP contract the Gateway must implement.
+// stubAccounts 代替 Account Service。该服务自身的行为由基于真实数据库的集成测试
+// 覆盖；这里的测试关注 Gateway 必须实现的公开 HTTP 契约。
 type stubAccounts struct {
 	changePasswordErr error
 	withoutContact    bool

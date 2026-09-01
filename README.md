@@ -18,6 +18,7 @@
 - 状态机：`docs/state-machines.md`
 - 微服务架构设计：`docs/software-design.md`
 - Git 协作规范：`CONTRIBUTING.md`
+- 单机生产部署：`deploy/backend/README.md`
 
 本地校验：
 
@@ -28,12 +29,23 @@ npm run openapi:check
 
 `openapi:check` 会执行规范校验、重新生成 bundle，并通过 Git diff 阻止源契约与生成产物漂移。
 
+后端完整门禁与本地容器验收：
+
+```bash
+npm run proto:check
+npm run go:vet
+npm run go:test:race
+scripts/build-backend-images.sh local-dev
+```
+
 ## 分支与发布
 
 - `main` 是唯一基线和部署分支。
 - 所有工作从最新 `main` 创建 `feature/<short-topic>`。
 - 只能通过 PR 合入 `main`，不要求同行审批，但必须通过 CI。
 - 仓库只允许 squash merge，合入后自动删除 feature 分支。
-- `main` 更新后，GitHub Actions 自动把 Swagger UI 部署到配置的阿里云 ECS。
+- `main` 的 Backend workflow 全绿后，GitHub Actions 自动部署五个独立后端镜像、
+  PostgreSQL 和 Swagger UI，并通过公开 REST 主流程、Trace 与 Outbox 验收决定部署
+  workflow 是否成功。
 
 详细规则见 `CONTRIBUTING.md`。

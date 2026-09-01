@@ -1,5 +1,4 @@
-// Package postgres implements the Marketplace repository ports against the
-// service's own database.
+// Package postgres 基于 Marketplace Service 自有数据库实现仓储端口。
 package postgres
 
 import (
@@ -15,27 +14,25 @@ import (
 	"github.com/KDZZZZZZ/short-term/services/marketplace/internal/domain"
 )
 
-// imageSlotConstraint is the unique index that serialises two writers racing
-// for the same image slot.
+// imageSlotConstraint 是串行化争抢同一图片位置的两个写入方的唯一索引。
 const imageSlotConstraint = "product_images_slot_unique"
 
-// productColumns is the projection every product read shares.
+// productColumns 是所有商品读取共享的字段投影。
 const productColumns = `id, seller_id, title, price_minor, category, description, status, version, created_at, updated_at`
 
-// ProductRepository stores products and their images in PostgreSQL.
+// ProductRepository 在 PostgreSQL 中存储商品及其图片。
 type ProductRepository struct {
 	pool *pgxpool.Pool
 }
 
-// NewProductRepository builds a repository over an open pool.
+// NewProductRepository 基于已打开的连接池构造仓储。
 func NewProductRepository(pool *pgxpool.Pool) *ProductRepository {
 	return &ProductRepository{pool: pool}
 }
 
 var _ application.ProductRepository = (*ProductRepository)(nil)
 
-// Create inserts a product and its initial images in one transaction, so a
-// listing is never visible without the images it was published with.
+// Create 在一条事务中插入商品及其初始图片，因此列表永远不会看到缺少发布时图片的商品。
 func (r *ProductRepository) Create(ctx context.Context, product *domain.Product) error {
 	return pg.InTx(ctx, r.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
 		const insertProduct = `
@@ -60,7 +57,7 @@ func (r *ProductRepository) Create(ctx context.Context, product *domain.Product)
 	})
 }
 
-// ByID loads one product with its images.
+// ByID 加载一个商品及其图片。
 func (r *ProductRepository) ByID(ctx context.Context, id string) (*domain.Product, error) {
 	const query = `SELECT ` + productColumns + ` FROM products WHERE id = $1`
 
@@ -77,7 +74,7 @@ func (r *ProductRepository) ByID(ctx context.Context, id string) (*domain.Produc
 	return product, nil
 }
 
-// ByIDs loads several products with their images in two round trips.
+// ByIDs 通过两次往返加载多个商品及其图片。
 func (r *ProductRepository) ByIDs(ctx context.Context, ids []string) ([]*domain.Product, error) {
 	const query = `SELECT ` + productColumns + ` FROM products WHERE id = ANY($1)`
 
@@ -93,7 +90,7 @@ func (r *ProductRepository) ByIDs(ctx context.Context, ids []string) ([]*domain.
 	return r.attachImages(ctx, products)
 }
 
-// List returns one page of products in a deterministic order.
+// List 按确定性顺序返回一页商品。
 func (r *ProductRepository) List(ctx context.Context, filter application.ProductFilter, page application.Page) (application.ProductPage, error) {
 	where, args := buildFilter(filter)
 
@@ -103,9 +100,8 @@ func (r *ProductRepository) List(ctx context.Context, filter application.Product
 		return application.ProductPage{}, fmt.Errorf("postgres: count products: %w", err)
 	}
 
-	// created_at alone is not unique, so id is the tie-breaker. Without it a
-	// page boundary could repeat or skip products published in the same
-	// instant (docs/software-design.md section 8.2).
+	// created_at 单独并不唯一，因此使用 id 作为平局裁决。没有它，分页边界可能会重复
+	// 或跳过在同一时刻发布的商品（docs/software-design.md 第 8.2 节）。
 	listQuery := fmt.Sprintf(
 		`SELECT %s FROM products%s ORDER BY created_at DESC, id DESC LIMIT $%d OFFSET $%d`,
 		productColumns, where, len(args)+1, len(args)+2,
@@ -133,8 +129,128 @@ func (r *ProductRepository) List(ctx context.Context, filter application.Product
 	}, nil
 }
 
-// Update writes the product back only if its stored version still matches the
-// one that was read, which is how a lost update is detected.
+// Mutate serializes product changes with purchase-intent creation by locking
+// the Product row first. It then observes PENDING intents and persists product
+// fields plus the complete image-order diff in the same transaction.
+func (r *ProductRepository) Mutate(ctx context.Context, productID string, mutation application.ProductMutation) (*domain.Product, error) {
+	var result *domain.Product
+	err := pg.InTx(ctx, r.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		const lockProduct = `SELECT ` + productColumns + ` FROM products WHERE id = $1 FOR UPDATE`
+		product, err := scanProduct(tx.QueryRow(ctx, lockProduct, productID))
+		if err != nil {
+			return fmt.Errorf("postgres: lock product mutation: %w", err)
+		}
+
+		images, err := lockedImages(ctx, tx, productID)
+		if err != nil {
+			return err
+		}
+		product.Images = images
+		original := make(map[string]domain.Image, len(images))
+		for _, image := range images {
+			original[image.ID] = image
+		}
+
+		var hasPending bool
+		if err := tx.QueryRow(ctx,
+			`SELECT EXISTS (SELECT 1 FROM trades WHERE product_id = $1 AND status = 'PENDING')`,
+			productID,
+		).Scan(&hasPending); err != nil {
+			return fmt.Errorf("postgres: inspect pending intents: %w", err)
+		}
+
+		expectedVersion := product.Version
+		if err := mutation(product, hasPending); err != nil {
+			return err
+		}
+
+		const updateProduct = `
+			UPDATE products
+			   SET title = $3, price_minor = $4, category = $5, description = $6,
+			       status = $7, version = $8, updated_at = $9
+			 WHERE id = $1 AND version = $2`
+		tag, err := tx.Exec(ctx, updateProduct,
+			product.ID, expectedVersion, product.Title, product.PriceMinor,
+			string(product.Category), product.Description, string(product.Status),
+			product.Version, product.UpdatedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("postgres: persist product mutation: %w", err)
+		}
+		if tag.RowsAffected() == 0 {
+			return application.ErrVersionConflict
+		}
+
+		current := make(map[string]domain.Image, len(product.Images))
+		for _, image := range product.Images {
+			current[image.ID] = image
+		}
+		// Delete removed rows first, which frees their unique sort slots before
+		// the remaining images are compacted toward the front.
+		for id := range original {
+			if _, ok := current[id]; ok {
+				continue
+			}
+			if _, err := tx.Exec(ctx,
+				`DELETE FROM product_images WHERE product_id = $1 AND id = $2`, productID, id,
+			); err != nil {
+				return fmt.Errorf("postgres: delete product image in mutation: %w", err)
+			}
+		}
+		for i := range product.Images {
+			image := &product.Images[i]
+			if _, existed := original[image.ID]; !existed {
+				if err := insertImage(ctx, tx, image); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, err := tx.Exec(ctx,
+				`UPDATE product_images SET sort_order = $3 WHERE product_id = $1 AND id = $2`,
+				productID, image.ID, image.SortOrder,
+			); err != nil {
+				return fmt.Errorf("postgres: reorder product image: %w", err)
+			}
+		}
+
+		result = product
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func lockedImages(ctx context.Context, tx pgx.Tx, productID string) ([]domain.Image, error) {
+	const query = `
+		SELECT id, product_id, object_key, sort_order, created_at
+		  FROM product_images
+		 WHERE product_id = $1
+		 ORDER BY sort_order
+		 FOR UPDATE`
+
+	rows, err := tx.Query(ctx, query, productID)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: lock product images: %w", err)
+	}
+	defer rows.Close()
+
+	var images []domain.Image
+	for rows.Next() {
+		var image domain.Image
+		if err := rows.Scan(&image.ID, &image.ProductID, &image.ObjectKey, &image.SortOrder, &image.CreatedAt); err != nil {
+			return nil, fmt.Errorf("postgres: scan locked product image: %w", err)
+		}
+		images = append(images, image)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres: read locked product images: %w", err)
+	}
+	return images, nil
+}
+
+// Update 仅在存储版本仍与读取时一致的情况下回写商品，以此检测丢失更新。
 func (r *ProductRepository) Update(ctx context.Context, product *domain.Product, expectedVersion int64) error {
 	const query = `
 		UPDATE products
@@ -156,12 +272,12 @@ func (r *ProductRepository) Update(ctx context.Context, product *domain.Product,
 	return nil
 }
 
-// AddImage inserts one image.
+// AddImage 插入一张图片。
 func (r *ProductRepository) AddImage(ctx context.Context, image *domain.Image) error {
 	return insertImage(ctx, r.pool, image)
 }
 
-// DeleteImage removes one image and returns its object key.
+// DeleteImage 删除一张图片，并返回其对象键。
 func (r *ProductRepository) DeleteImage(ctx context.Context, productID, imageID string) (string, error) {
 	const query = `DELETE FROM product_images WHERE product_id = $1 AND id = $2 RETURNING object_key`
 
@@ -176,8 +292,7 @@ func (r *ProductRepository) DeleteImage(ctx context.Context, productID, imageID 
 	return objectKey, nil
 }
 
-// explainMissingUpdate distinguishes a product that no longer exists from one
-// that another writer changed first.
+// explainMissingUpdate 区分商品已不存在和其他写入方已先行修改商品这两种情况。
 func (r *ProductRepository) explainMissingUpdate(ctx context.Context, productID string) error {
 	var exists bool
 	err := r.pool.QueryRow(ctx, `SELECT true FROM products WHERE id = $1`, productID).Scan(&exists)
@@ -190,7 +305,7 @@ func (r *ProductRepository) explainMissingUpdate(ctx context.Context, productID 
 	return application.ErrVersionConflict
 }
 
-// attachImages loads the images of every product in one query.
+// attachImages 通过一次查询加载每个商品的图片。
 func (r *ProductRepository) attachImages(ctx context.Context, products []*domain.Product) ([]*domain.Product, error) {
 	if len(products) == 0 {
 		return products, nil
@@ -210,8 +325,7 @@ func (r *ProductRepository) attachImages(ctx context.Context, products []*domain
 	return products, nil
 }
 
-// imagesFor loads images for several products at once, avoiding one query per
-// row in list responses.
+// imagesFor 一次加载多个商品的图片，避免列表响应中每行执行一次查询。
 func (r *ProductRepository) imagesFor(ctx context.Context, productIDs []string) (map[string][]domain.Image, error) {
 	const query = `
 		SELECT id, product_id, object_key, sort_order, created_at
@@ -239,7 +353,7 @@ func (r *ProductRepository) imagesFor(ctx context.Context, productIDs []string) 
 	return byProduct, nil
 }
 
-// buildFilter turns a filter into a WHERE clause and its arguments.
+// buildFilter 将筛选条件转换为 WHERE 子句及其参数。
 func buildFilter(filter application.ProductFilter) (string, []any) {
 	var conditions []string
 	var args []any
@@ -257,8 +371,7 @@ func buildFilter(filter application.ProductFilter) (string, []any) {
 		conditions = append(conditions, fmt.Sprintf("seller_id = $%d", len(args)))
 	}
 	if filter.Keyword != nil {
-		// The keyword is a literal substring, so LIKE metacharacters in user
-		// input are escaped rather than interpreted as a pattern.
+		// 关键词是字面子串，因此用户输入中的 LIKE 元字符会被转义，而不是被解释为模式。
 		args = append(args, "%"+escapeLike(*filter.Keyword)+"%")
 		conditions = append(conditions, fmt.Sprintf(`title ILIKE $%d ESCAPE '\'`, len(args)))
 	}
@@ -269,14 +382,13 @@ func buildFilter(filter application.ProductFilter) (string, []any) {
 	return " WHERE " + strings.Join(conditions, " AND "), args
 }
 
-// escapeLike neutralises the LIKE wildcards so a search for "100%" matches the
-// literal text rather than every title.
+// escapeLike 中和 LIKE 通配符，使搜索 "100%" 匹配字面文本，而不是匹配所有标题。
 func escapeLike(value string) string {
 	replacer := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 	return replacer.Replace(value)
 }
 
-// insertImage writes one image row through either the pool or a transaction.
+// insertImage 通过连接池或事务写入一行图片记录。
 func insertImage(ctx context.Context, tx pg.Tx, image *domain.Image) error {
 	const query = `
 		INSERT INTO product_images (id, product_id, object_key, sort_order, created_at)

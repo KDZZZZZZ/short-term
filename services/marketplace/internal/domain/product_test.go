@@ -74,8 +74,7 @@ func TestNewProductRejectsInvalidFields(t *testing.T) {
 func TestTitleAndDescriptionLimitsCountRunesNotBytes(t *testing.T) {
 	t.Parallel()
 
-	// A 100-character Chinese title is 300 bytes. Counting bytes would reject a
-	// title the public contract accepts.
+	// 100 个中文字符的标题占 300 字节。按字节计数会错误拒绝公开契约允许的标题。
 	if err := ValidateTitle(strings.Repeat("字", 100)); err != nil {
 		t.Fatalf("ValidateTitle(100 runes) = %v, want nil", err)
 	}
