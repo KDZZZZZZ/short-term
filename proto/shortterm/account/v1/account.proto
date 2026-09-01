@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package shortterm.account.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1;accountv1";
+
+// AccountService owns student credentials, tokens and public profiles.
+// Resource-level authorization for accounts is enforced here.
+service AccountService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+}
+
+message UserPublic {
+  string id = 1;
+  string nickname = 2;
+}
+
+// UserContact adds wechat/qq; optional fields distinguish unset from empty.
+message UserContact {
+  string id = 1;
+  string nickname = 2;
+  optional string wechat = 3;
+  optional string qq = 4;
+}
+
+message UserMe {
+  string id = 1;
+  string student_no = 2;
+  string nickname = 3;
+  optional string wechat = 4;
+  optional string qq = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message RegisterRequest {
+  string student_no = 1;
+  string password = 2;
+  optional string nickname = 3;
+  optional string wechat = 4;
+  optional string qq = 5;
+}
+
+message AuthData {
+  string access_token = 1;
+  string token_type = 2;
+  int64 expires_in = 3;
+  UserMe user = 4;
+}
+
+message RegisterResponse {
+  AuthData auth = 1;
+}
+
+message LoginRequest {
+  string student_no = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  AuthData auth = 1;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  UserContact user = 1;
+}
+
+message BatchGetUsersRequest {
+  repeated string user_ids = 1;
+}
+
+message BatchGetUsersResponse {
+  // Batch aggregation only needs public profile data. Contact details are
+  // intentionally excluded to keep list queries on a least-privilege shape.
+  map<string, UserPublic> users = 1;
+}
+
+// NullableStringPatch preserves the three public PATCH states: field absent
+// means unchanged, string_value sets a value, and null_value clears it.
+message NullableStringPatch {
+  oneof value {
+    string string_value = 1;
+    google.protobuf.NullValue null_value = 2;
+  }
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;
+  optional string nickname = 2;
+  NullableStringPatch wechat = 3;
+  NullableStringPatch qq = 4;
+}
+
+message UpdateProfileResponse {
+  UserMe user = 1;
+}
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {}

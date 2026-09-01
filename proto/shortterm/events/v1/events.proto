@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package shortterm.events.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/events/v1;eventsv1";
+
+// EventEnvelope is the canonical outbox event shape shared by all services.
+// Events are facts notified after commit; consumers must deduplicate on
+// event_id and must not mutate source-service state through events.
+// The event bus product is intentionally unspecified (design doc pending
+// decision); this schema only fixes the contract.
+message EventEnvelope {
+  string event_id = 1;
+  string event_type = 2;
+  int32 schema_version = 3;
+  string aggregate_type = 4;
+  string aggregate_id = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  string trace_id = 7;
+  bytes payload = 8;
+}

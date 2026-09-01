@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package shortterm.messaging.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/messaging/v1;messagingv1";
+
+// MessagingService owns product-contextual conversations, text messages and
+// read state. Participation rules are enforced locally against stored
+// buyer_id/seller_id; product facts are fetched from MarketplaceService when
+// a conversation is created.
+service MessagingService {
+  rpc GetOrCreateConversation(GetOrCreateConversationRequest) returns (GetOrCreateConversationResponse);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc MarkConversationRead(MarkConversationReadRequest) returns (MarkConversationReadResponse);
+}
+
+message LastMessage {
+  string id = 1;
+  string sender_id = 2;
+  string content = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message ConversationItem {
+  string id = 1;
+  string product_id = 2;
+  string buyer_id = 3;
+  string seller_id = 4;
+  optional LastMessage last_message = 5;
+  int64 unread_count = 6;
+  google.protobuf.Timestamp created_at = 7;
+  optional google.protobuf.Timestamp last_message_at = 8;
+}
+
+message MessageItem {
+  string id = 1;
+  string conversation_id = 2;
+  string sender_id = 3;
+  string content = 4;
+  optional google.protobuf.Timestamp read_at = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message GetOrCreateConversationRequest {
+  string actor_id = 1;
+  string product_id = 2;
+  optional string idempotency_key = 3;
+}
+
+message GetOrCreateConversationResponse {
+  ConversationItem conversation = 1;
+  bool replayed = 2;
+}
+
+message ListConversationsRequest {
+  string actor_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ConversationPage {
+  repeated ConversationItem items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total = 4;
+}
+
+message ListConversationsResponse {
+  ConversationPage page = 1;
+}
+
+message GetUnreadCountRequest {
+  string actor_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int64 unread_count = 1;
+}
+
+message ListMessagesRequest {
+  string actor_id = 1;
+  string conversation_id = 2;
+  optional string before = 3;
+  int32 limit = 4;
+}
+
+message MessagePage {
+  repeated MessageItem items = 1;
+  optional string next_before = 2;
+}
+
+message ListMessagesResponse {
+  MessagePage page = 1;
+}
+
+message SendMessageRequest {
+  string actor_id = 1;
+  string conversation_id = 2;
+  string content = 3;
+  optional string idempotency_key = 4;
+}
+
+message SendMessageResponse {
+  MessageItem message = 1;
+  bool replayed = 2;
+}
+
+message MarkConversationReadRequest {
+  string actor_id = 1;
+  string conversation_id = 2;
+  string last_message_id = 3;
+}
+
+message MarkConversationReadResponse {}

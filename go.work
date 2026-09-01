@@ -1,0 +1,12 @@
+go 1.25.0
+
+toolchain go1.27.0
+
+use (
+	./gen/go
+	./services/account
+	./services/favorite
+	./services/gateway
+	./services/marketplace
+	./services/messaging
+)

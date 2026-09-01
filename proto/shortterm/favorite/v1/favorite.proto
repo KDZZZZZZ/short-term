@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package shortterm.favorite.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/KDZZZZZZ/short-term/gen/go/shortterm/favorite/v1;favoritev1";
+
+// FavoriteService owns the user/product favorite relation. It validates
+// product existence and ownership through MarketplaceService when adding a
+// favorite, but never stores product truth.
+service FavoriteService {
+  rpc AddFavorite(AddFavoriteRequest) returns (AddFavoriteResponse);
+  rpc RemoveFavorite(RemoveFavoriteRequest) returns (RemoveFavoriteResponse);
+  rpc ListFavorites(ListFavoritesRequest) returns (ListFavoritesResponse);
+  rpc IsFavorited(IsFavoritedRequest) returns (IsFavoritedResponse);
+}
+
+message FavoriteItem {
+  string product_id = 1;
+  google.protobuf.Timestamp favorited_at = 2;
+}
+
+message AddFavoriteRequest {
+  string actor_id = 1;
+  string product_id = 2;
+}
+
+message AddFavoriteResponse {}
+
+message RemoveFavoriteRequest {
+  string actor_id = 1;
+  string product_id = 2;
+}
+
+message RemoveFavoriteResponse {}
+
+message ListFavoritesRequest {
+  string actor_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message FavoritePage {
+  repeated FavoriteItem items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total = 4;
+}
+
+message ListFavoritesResponse {
+  FavoritePage page = 1;
+}
+
+message IsFavoritedRequest {
+  string actor_id = 1;
+  string product_id = 2;
+}
+
+message IsFavoritedResponse {
+  bool favorited = 1;
+}
