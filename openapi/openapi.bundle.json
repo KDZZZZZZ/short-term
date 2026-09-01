@@ -1310,7 +1310,7 @@
         ],
         "summary": "取消交易",
         "operationId": "cancelTrade",
-        "description": "`PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，\n商品必须从 `RESERVED` 恢复为 `ON_SALE`。\n",
+        "description": "`PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，\n商品必须从 `RESERVED` 恢复为 `ON_SALE`。`ACCEPTED` 交易取消时，交易和\n商品的状态变化必须原子提交，任一变化失败都不得保留另一项变化。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1370,7 +1370,7 @@
         ],
         "summary": "确认线下交易完成",
         "operationId": "confirmTrade",
-        "description": "仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持\n`ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品\n`RESERVED -> SOLD`。\n",
+        "description": "仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持\n`ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品\n`RESERVED -> SOLD`。双方完成确认时，确认时间、交易和商品的状态变化必须\n原子提交，任一变化失败都不得保留其他变化。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -2907,7 +2907,7 @@
         "name": "Idempotency-Key",
         "in": "header",
         "required": false,
-        "description": "客户端生成的不透明幂等键。同一用户、接口和键的重复请求必须返回首次成功结果，\n建议使用 UUID。\n",
+        "description": "客户端生成的不透明幂等键。同一用户、接口和键的重复请求必须重放首次成功的\nHTTP 状态码与响应体，即使资源当前状态已经变化；建议使用 UUID。\n",
         "schema": {
           "type": "string",
           "minLength": 16,

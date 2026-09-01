@@ -114,8 +114,8 @@ IdempotencyKey:
   in: header
   required: false
   description: |
-    客户端生成的不透明幂等键。同一用户、接口和键的重复请求必须返回首次成功结果，
-    建议使用 UUID。
+    客户端生成的不透明幂等键。同一用户、接口和键的重复请求必须重放首次成功的
+    HTTP 状态码与响应体，即使资源当前状态已经变化；建议使用 UUID。
   schema:
     type: string
     minLength: 16

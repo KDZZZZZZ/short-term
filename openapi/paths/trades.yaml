@@ -164,7 +164,8 @@ cancel:
     operationId: cancelTrade
     description: |
       `PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，
-      商品必须从 `RESERVED` 恢复为 `ON_SALE`。
+      商品必须从 `RESERVED` 恢复为 `ON_SALE`。`ACCEPTED` 交易取消时，交易和
+      商品的状态变化必须原子提交，任一变化失败都不得保留另一项变化。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     requestBody:
@@ -204,7 +205,8 @@ confirm:
     description: |
       仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持
       `ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品
-      `RESERVED -> SOLD`。
+      `RESERVED -> SOLD`。双方完成确认时，确认时间、交易和商品的状态变化必须
+      原子提交，任一变化失败都不得保留其他变化。
     parameters:
       - $ref: ../components/parameters.yaml#/IdempotencyKey
     responses:
