@@ -140,7 +140,18 @@ jobs:
 
       - name: Validate deployment sources
         run: |
-          bash -n scripts/build-backend-images.sh deploy/backend/short-term-backend.sh
+          bash -n \
+            scripts/build-backend-images.sh \
+            deploy/backend/bootstrap-host.sh \
+            deploy/backend/short-term-backend.sh
+          test -x deploy/backend/bootstrap-host.sh
+          test -x deploy/backend/short-term-backend.sh
+          grep -Fq 'systemctl_bin" --user' deploy/backend/short-term-backend.sh
+          if grep -Eq '(^|[[:space:]])sudo([[:space:]]|$)|/etc/short-term|/var/lib/short-term' \
+            deploy/backend/short-term-backend.sh; then
+            echo "backend runtime must remain rootless" >&2
+            exit 1
+          fi
           python3 -m py_compile scripts/backend-e2e.py
           backend_media_dir="$(mktemp -d)"
           BACKEND_RELEASE="$GITHUB_SHA" BACKEND_MEDIA_DIR="$backend_media_dir" \

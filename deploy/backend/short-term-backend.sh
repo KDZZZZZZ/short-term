@@ -5,16 +5,18 @@ readonly podman=/usr/bin/podman
 readonly curl_bin=/usr/bin/curl
 readonly python_bin=/usr/bin/python3
 readonly systemctl_bin=/usr/bin/systemctl
-readonly state_dir=/etc/short-term
+readonly loginctl_bin=/usr/bin/loginctl
+readonly install_root=/opt/short-term
+readonly state_dir=$install_root/state
 readonly release_file=$state_dir/backend-release.env
 readonly previous_release_file=$state_dir/backend-release.previous.env
 readonly secret_file=$state_dir/backend-secrets.env
-readonly runtime_dir=/var/lib/short-term
+readonly runtime_dir=$install_root/runtime
 readonly media_dir=$runtime_dir/media
 readonly network_name=short-term-backend
 readonly postgres_volume=short-term-postgres-data
 readonly postgres_container=short-term-postgres
-readonly gateway_port=18080
+readonly gateway_port=18083
 readonly gateway_management_port=19090
 
 readonly app_containers=(
@@ -32,11 +34,28 @@ die() {
   exit 1
 }
 
-require_root() {
-  [[ $(id -u) -eq 0 ]] || die "must run as root"
+require_deploy_user() {
+  [[ $(id -u) -ne 0 ]] || die "must run as the non-root deployment user"
   [[ -x "$podman" ]] || die "podman is not installed at $podman"
   [[ -x "$curl_bin" ]] || die "curl is not installed at $curl_bin"
   [[ -x "$python_bin" ]] || die "python3 is not installed at $python_bin"
+  [[ -x "$systemctl_bin" ]] || die "systemctl is not installed at $systemctl_bin"
+  [[ -x "$loginctl_bin" ]] || die "loginctl is not installed at $loginctl_bin"
+  [[ -d "$install_root" && ! -L "$install_root" && -w "$install_root" ]] || \
+    die "$install_root must be a writable, non-symlink directory owned by the deployment user"
+  [[ $("$podman" info --format '{{.Host.Security.Rootless}}') == true ]] || \
+    die "Podman must run rootless for the deployment user"
+}
+
+require_linger() {
+  local linger
+  linger=$("$loginctl_bin" show-user "$(id -u)" -p Linger --value 2>/dev/null || true)
+  [[ "$linger" == yes ]] || \
+    die "user-service persistence is disabled; run deploy/backend/bootstrap-host.sh once as root"
+}
+
+user_systemctl() {
+  "$systemctl_bin" --user "$@"
 }
 
 random_hex() {
@@ -60,7 +79,7 @@ load_secrets() {
   [[ -f "$secret_file" && ! -L "$secret_file" ]] || die "missing $secret_file"
   validate_assignment_file "$secret_file" 6 \
     '^(POSTGRES_PASSWORD|ACCOUNT_DB_PASSWORD|MARKETPLACE_DB_PASSWORD|MESSAGING_DB_PASSWORD|FAVORITE_DB_PASSWORD|JWT_SIGNING_KEY)=[0-9a-f]{64}$'
-  # The file is generated locally, owned by root and mode 0600.
+  # The file is generated on the host, owned by the deployment user and mode 0600.
   # shellcheck disable=SC1090
   source "$secret_file"
   validate_hex_secret POSTGRES_PASSWORD "${POSTGRES_PASSWORD:-}"
@@ -72,7 +91,7 @@ load_secrets() {
 }
 
 ensure_secrets() {
-  install -d -o root -g root -m 0700 "$state_dir"
+  install -d -m 0700 "$state_dir"
   if [[ ! -e "$secret_file" ]]; then
     local temporary
     temporary=$(mktemp "$state_dir/backend-secrets.env.XXXXXX")
@@ -88,7 +107,6 @@ ensure_secrets() {
     mv "$temporary" "$secret_file"
   fi
   [[ ! -L "$secret_file" ]] || die "$secret_file must not be a symlink"
-  chown root:root "$secret_file"
   chmod 0600 "$secret_file"
   load_secrets
 }
@@ -99,7 +117,7 @@ install_env_file() {
   temporary=$(mktemp "$state_dir/$(basename "$target").XXXXXX")
   chmod 0600 "$temporary"
   cat >"$temporary"
-  install -o root -g root -m 0600 "$temporary" "$target"
+  install -m 0600 "$temporary" "$target"
   rm -f "$temporary"
 }
 
@@ -202,7 +220,11 @@ load_release() {
 ensure_network_and_storage() {
   "$podman" network exists "$network_name" || "$podman" network create "$network_name" >/dev/null
   "$podman" volume exists "$postgres_volume" || "$podman" volume create "$postgres_volume" >/dev/null
-  install -d -o 65532 -g 65532 -m 0750 "$media_dir"
+  install -d -m 0700 "$runtime_dir"
+  if [[ ! -d "$media_dir" ]]; then
+    mkdir -m 0750 "$media_dir"
+  fi
+  "$podman" unshare chown -R 65532:65532 "$media_dir"
 }
 
 remove_container() {
@@ -341,7 +363,7 @@ start_apps() {
 
   base_run_args short-term-gateway gateway "$state_dir/gateway.env"
   "$podman" run "${BASE_RUN_ARGS[@]}" \
-    --publish "0.0.0.0:$gateway_port:8080" \
+    --publish "127.0.0.1:$gateway_port:8080" \
     --publish "127.0.0.1:$gateway_management_port:9090" \
     --volume "$media_dir:/var/lib/shortterm/media:ro,z" \
     "$GATEWAY_IMAGE" >/dev/null
@@ -388,7 +410,7 @@ write_release_file() {
   local source=$1 target=$2
   local temporary
   temporary=$(mktemp "$state_dir/backend-release.env.XXXXXX")
-  install -o root -g root -m 0644 "$source" "$temporary"
+  install -m 0644 "$source" "$temporary"
   mv "$temporary" "$target"
 }
 
@@ -414,18 +436,19 @@ rollback_release() {
   if [[ -f "$previous_release_file" ]]; then
     echo "new release failed readiness; restoring previous application images" >&2
     cp "$previous_release_file" "$release_file"
-    "$systemctl_bin" restart short-term-backend.service
+    user_systemctl restart short-term-backend.service
     wait_ready
   else
     echo "initial release failed; no prior image release is available" >&2
     rm -f "$release_file"
-    "$systemctl_bin" stop short-term-backend.service || true
+    user_systemctl stop short-term-backend.service || true
     return 1
   fi
 }
 
 deploy_release() {
   local release_dir=$1
+  require_linger
   load_image_bundle "$release_dir"
   ensure_secrets
   write_runtime_envs
@@ -437,9 +460,9 @@ deploy_release() {
   fi
   write_release_file "$release_dir/manifest.env" "$release_file"
 
-  "$systemctl_bin" daemon-reload
-  "$systemctl_bin" enable short-term-backend.service >/dev/null
-  if ! "$systemctl_bin" restart short-term-backend.service; then
+  user_systemctl daemon-reload
+  user_systemctl enable short-term-backend.service >/dev/null
+  if ! user_systemctl restart short-term-backend.service; then
     rollback_release || true
     return 1
   fi
@@ -453,7 +476,7 @@ manual_rollback() {
   if [[ ! -f "$previous_release_file" ]]; then
     echo "initial release has no previous version; stopping the failed application stack" >&2
     rm -f "$release_file"
-    "$systemctl_bin" stop short-term-backend.service || true
+    user_systemctl stop short-term-backend.service || true
     return 0
   fi
   local failed_release
@@ -462,7 +485,7 @@ manual_rollback() {
   cp "$previous_release_file" "$release_file"
   cp "$failed_release" "$previous_release_file"
   rm -f "$failed_release"
-  "$systemctl_bin" restart short-term-backend.service
+  user_systemctl restart short-term-backend.service
   wait_ready || die "rolled-back release did not become ready"
 }
 
@@ -578,7 +601,7 @@ verify_trace() {
 }
 
 main() {
-  require_root
+  require_deploy_user
   case "${1:-}" in
     deploy)
       [[ $# -eq 2 ]] || die "usage: $0 deploy /opt/short-term/releases/<sha>"

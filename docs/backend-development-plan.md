@@ -111,11 +111,11 @@ GitHub run、远端容器状态和公开 HTTP E2E 输出为准。
 
 - 限流（登录、注册、发消息、上传、交易动作分别配置；阈值先保守取值并标注待压测校准）。
 - 健康检查区分存活/就绪；核心指标（交易转换与冲突数、Outbox 积压等）与跨 REST/gRPC 的 trace 串联验证。
-- 部署：各服务与 worker 的容器镜像（固定版本/摘要）、私有容器网络拓扑、迁移执行步骤、扩展现有 deploy workflow 或新增后端 workflow；公网仅暴露 Gateway。
+- 部署：各服务与 worker 的容器镜像（固定版本/摘要）、私有容器网络拓扑、迁移执行步骤、扩展现有 deploy workflow 或新增后端 workflow；当前 Gateway 只绑定主机回环并经 SSH 隧道验收，接入公网时仅由 TLS 反向代理访问 Gateway。
 - 性能基线：在目标 ECS 同环境对真实路径建立基线数据，只报告实测结果，不设虚构 SLA。
 - E2E 主流程回归：注册 → 发布 → 收藏 → 会话 → 交易全状态机 → 完成。
 
-验收：合入 `main` 后部署 workflow 成功，远端 Gateway 健康且全链路 E2E 通过；提供 GitHub run 日志、容器状态与真实 HTTP 证据。
+验收：合入 `main` 后部署 workflow 成功，远端 Gateway 健康且经 SSH 隧道的全链路 E2E 通过；提供 GitHub run 日志、容器状态与真实服务器 HTTP 证据。
 
 ## 4. 前置决策清单（阻塞项）
 
