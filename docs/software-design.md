@@ -584,14 +584,15 @@ erDiagram
 同一镜像启动独立 Outbox worker。生产工作流只消费已经在 `main` 的 Backend workflow
 验证成功的精确 SHA，通过带 SHA-256 校验的离线镜像 bundle 发布到当前阿里云 ECS。
 服务器使用 Podman 私有网络、一个持久化 PostgreSQL 18 实例内的四个隔离数据库账号、
-持久媒体目录和 systemd 生命周期管理。密钥首次部署时在服务器本地生成并以 root 0600
-文件保存，不进入仓库、GitHub 日志或 release bundle。
+持久媒体目录和用户级 systemd 生命周期管理。部署账号运行 rootless Podman；管理员只需
+一次性启用 systemd linger，CI 不获得任意 sudo 权限。密钥首次部署时在服务器本地生成，
+以部署账号所有的 0600 文件保存，不进入仓库、GitHub 日志或 release bundle。
 
 ### 9.2 目标初始拓扑
 
 当前在现有阿里云 ECS 上部署多个独立容器：
 
-- 一个 Gateway 容器当前对公网开放 HTTP 18080；管理指标仅绑定主机回环 19090。正式用户凭据进入系统前仍须补可信 TLS 终止层；
+- 一个 Gateway 容器当前仅绑定主机回环 HTTP 18083，管理指标仅绑定主机回环 19090；GitHub runner 通过 SSH 隧道做服务器验收。正式用户流量接入时，由可信 TLS 终止层反向代理到 18083；
 - Account、Marketplace、Messaging、Favorite 只加入私有容器网络；
 - 每个服务使用独立数据库或独立 Schema 和独立数据库账号，禁止跨 Schema 查询；
 - 对象存储只由 Marketplace 的 OSS Adapter 访问；

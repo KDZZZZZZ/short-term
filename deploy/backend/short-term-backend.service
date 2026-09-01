@@ -1,15 +1,13 @@
 [Unit]
 Description=short-term backend container stack
-Wants=network-online.target
-After=network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/sbin/short-term-backend up
-ExecStop=/usr/local/sbin/short-term-backend down
+ExecStart=/opt/short-term/bin/short-term-backend up
+ExecStop=/opt/short-term/bin/short-term-backend down
 TimeoutStartSec=10min
 TimeoutStopSec=2min
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
