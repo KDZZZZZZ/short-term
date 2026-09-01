@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 我的收藏</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f5f7fa; padding-bottom: 2rem; }
+        .navbar { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .search-box { max-width: 600px; margin: 1.5rem auto 1rem; }
+        .category-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; }
+        .category-tabs .btn { border-radius: 20px; padding: 0.3rem 1.2rem; font-size: 0.9rem; }
+        .category-tabs .btn.active { background-color: #0d6efd; color: white; }
+        .product-card { transition: transform 0.15s; height: 100%; border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; }
+        .product-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.10); }
+        .product-card .card-img-top { height: 160px; object-fit: cover; background-color: #e9ecef; border-radius: 12px 12px 0 0; }
+        .product-card .card-body { padding: 0.75rem 1rem; }
+        .product-card .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-card .price { color: #e74c3c; font-weight: 700; font-size: 1.1rem; }
+        .product-card .category-badge { font-size: 0.7rem; background-color: #e9ecef; padding: 0.2rem 0.6rem; border-radius: 12px; color: #6c757d; }
+        .no-products { text-align: center; padding: 3rem 0; color: #6c757d; }
+        .container-main { max-width: 1200px; }
+        .hidden { display: none !important; }
+        .back-btn { margin-bottom: 1rem; }
+        .nav-user { display: flex; align-items: center; gap: 0.8rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store-alt"></i> 校园易淘</a>
+            <div class="nav-user">
+                <span class="text-muted me-2" id="userNicknameDisplay">👤 昵称</span>
+                <button id="logoutNavBtn" class="btn btn-outline-danger btn-sm">登出</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container container-main">
+        <div class="back-btn">
+            <button class="btn btn-outline-secondary" id="backBtn"><i class="fas fa-arrow-left"></i> 返回首页</button>
+        </div>
+
+        <h3 class="mb-3"><i class="fas fa-heart text-danger"></i> 我的收藏</h3>
+
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" class="form-control" id="searchInput" placeholder="搜索收藏的商品..." aria-label="搜索">
+                <button class="btn btn-primary" id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+
+        <div class="category-tabs" id="categoryTabs">
+            <button class="btn btn-outline-secondary active" data-category="all">全部</button>
+            <button class="btn btn-outline-secondary" data-category="数码">数码</button>
+            <button class="btn btn-outline-secondary" data-category="书本">书本</button>
+            <button class="btn btn-outline-secondary" data-category="生活用品">生活用品</button>
+            <button class="btn btn-outline-secondary" data-category="其他">其他</button>
+        </div>
+
+        <div id="productList" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3"></div>
+        <div id="emptyMessage" class="no-products hidden"><i class="fas fa-heart-broken fa-3x mb-2"></i><p>还没有收藏的商品，快去逛逛吧</p></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+            const FAVORITES_KEY_PREFIX = 'favorites_';
+
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.replace('./login.html');
+                return;
+            }
+            document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
+
+            function getFavorites() {
+                const key = FAVORITES_KEY_PREFIX + user.studentNumber;
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            }
+
+            function getProducts() {
+                let data = localStorage.getItem(PRODUCTS_KEY);
+                let products = data ? JSON.parse(data) : [];
+                // 迁移旧分类
+                products = products.map(p => {
+                    if (p.category === '笔记') p.category = '生活用品';
+                    return p;
+                });
+                return products;
+            }
+
+            // 渲染收藏列表
+            const productListEl = document.getElementById('productList');
+            const emptyMessageEl = document.getElementById('emptyMessage');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const categoryTabs = document.getElementById('categoryTabs');
+
+            let currentCategory = 'all';
+            let searchKeyword = '';
+
+            const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
+
+            function renderFavorites() {
+                const favIds = getFavorites();
+                const allProducts = getProducts();
+                let filtered = allProducts.filter(p => favIds.includes(p.id));
+
+                if (currentCategory !== 'all') {
+                    filtered = filtered.filter(p => p.category === currentCategory);
+                }
+                if (searchKeyword.trim() !== '') {
+                    const kw = searchKeyword.trim().toLowerCase();
+                    filtered = filtered.filter(p => p.title.toLowerCase().includes(kw));
+                }
+
+                productListEl.innerHTML = '';
+                if (filtered.length === 0) {
+                    emptyMessageEl.classList.remove('hidden');
+                    return;
+                }
+                emptyMessageEl.classList.add('hidden');
+
+                filtered.forEach(p => {
+                    const col = document.createElement('div');
+                    col.className = 'col';
+                    const imgSrc = p.images && p.images.length > 0 ? p.images[0] : fallbackSvg;
+                    const statusText = p.status === 'selling' ? '出售中' : '已售出';
+                    const statusClass = p.status === 'selling' ? 'badge bg-success' : 'badge bg-danger';
+                    col.innerHTML = `
+                        <div class="card product-card" data-id="${p.id}">
+                            <img src="${imgSrc}" class="card-img-top" alt="${p.title}" onerror="this.src='${fallbackSvg}'">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title" title="${p.title}">${p.title}</h5>
+                                    <span class="${statusClass}">${statusText}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="price">¥${p.price}</span>
+                                    <span class="category-badge">${p.category}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    productListEl.appendChild(col);
+                });
+
+                document.querySelectorAll('.product-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const id = this.dataset.id;
+                        window.location.href = `./detail.html?id=${id}`;
+                    });
+                });
+            }
+
+            // 事件绑定
+            categoryTabs.addEventListener('click', function(e) {
+                const btn = e.target.closest('button');
+                if (!btn || btn.classList.contains('active')) return;
+                categoryTabs.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentCategory = btn.dataset.category;
+                renderFavorites();
+            });
+
+            function doSearch() {
+                searchKeyword = searchInput.value;
+                renderFavorites();
+            }
+            searchBtn.addEventListener('click', doSearch);
+            searchInput.addEventListener('keyup', e => { if (e.key === 'Enter') doSearch(); });
+
+            document.getElementById('backBtn').addEventListener('click', function() {
+                window.location.replace('./main.html');
+            });
+            document.getElementById('logoutNavBtn').addEventListener('click', function() {
+                localStorage.removeItem(SESSION_KEY);
+                window.location.replace('./login.html');
+            });
+
+            renderFavorites();
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    renderFavorites();
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>

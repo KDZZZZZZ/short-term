@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 编辑商品</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { max-width: 560px; margin: 2.5rem auto; border-radius: 1rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08); border: none; }
+        .card-header { background-color: white; border-bottom: 1px solid #eee; font-weight: 600; font-size: 1.2rem; }
+        .preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
+        #message { min-height: 2.8rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store-alt"></i> 校园易淘</a>
+            <span class="text-muted">编辑商品</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card p-4">
+            <div class="card-header bg-white">✏️ 编辑商品信息</div>
+            <div class="card-body">
+                <form id="editForm">
+                    <!-- 商品名称 -->
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">商品名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="productName" required maxlength="100">
+                    </div>
+
+                    <!-- 商品类别 -->
+                    <div class="mb-3">
+                        <label class="form-label">商品类别 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="productCategory" required>
+                            <option value="数码">数码</option>
+                            <option value="书本">书本</option>
+                            <option value="生活用品">生活用品</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+
+                    <!-- 商品价格 -->
+                    <div class="mb-3">
+                        <label for="productPrice" class="form-label">价格（元） <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+
+                    <!-- 商品描述 -->
+                    <div class="mb-3">
+                        <label for="productDescription" class="form-label">商品描述（可选）</label>
+                        <textarea class="form-control" id="productDescription" rows="3" placeholder="请描述商品的新旧程度、使用情况等"></textarea>
+                    </div>
+
+                    <!-- 商品状态 -->
+                    <div class="mb-3">
+                        <label class="form-label">商品状态</label>
+                        <select class="form-select" id="productStatus">
+                            <option value="selling">出售中</option>
+                            <option value="sold">已售出</option>
+                        </select>
+                    </div>
+
+                    <!-- 商品图片（多图） -->
+                    <div class="mb-3">
+                        <label class="form-label">商品图片（至少1张，最多3张）</label>
+                        <div id="currentImages" class="preview-container"></div>
+                        <input type="file" class="form-control mt-2" id="productImages" accept="image/*" multiple>
+                        <small class="text-muted">重新选择图片会替换现有图片，若不选择则保留原图</small>
+                    </div>
+
+                    <div id="message" class="mb-3"></div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                        <button type="submit" class="btn btn-primary">💾 保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+
+            // ----- DOM -----
+            const productName = document.getElementById('productName');
+            const productCategory = document.getElementById('productCategory');
+            const productPrice = document.getElementById('productPrice');
+            const productDescription = document.getElementById('productDescription');
+            const productStatus = document.getElementById('productStatus');
+            const productImages = document.getElementById('productImages');
+            const currentImagesContainer = document.getElementById('currentImages');
+            const messageDiv = document.getElementById('message');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const editForm = document.getElementById('editForm');
+
+            // ----- 工具 -----
+            function showMessage(text, isError = true) {
+                messageDiv.innerHTML = `<div class="alert ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
+                    ${text}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            }
+            function clearMessage() { messageDiv.innerHTML = ''; }
+
+            // ----- 获取当前用户 -----
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.replace('./login.html');
+                return;
+            }
+
+            // ----- 获取商品ID -----
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = parseInt(urlParams.get('id'));
+            if (!productId) {
+                alert('商品ID无效');
+                window.location.replace('./myproducts.html');
+                return;
+            }
+
+            // ----- 读取商品数据 -----
+            let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+            // 迁移分类
+            products = products.map(p => {
+                if (p.category === '笔记') p.category = '生活用品';
+                return p;
+            });
+            const productIndex = products.findIndex(p => p.id === productId);
+            if (productIndex === -1) {
+                alert('商品不存在');
+                window.location.replace('./myproducts.html');
+                return;
+            }
+            const product = products[productIndex];
+
+            // 检查权限：仅允许卖家本人编辑
+            if (product.sellerStudentNumber !== user.studentNumber) {
+                alert('您无权编辑此商品');
+                window.location.replace('./myproducts.html');
+                return;
+            }
+
+            // ----- 填充表单 -----
+            productName.value = product.title;
+            productCategory.value = product.category || '其他';
+            productPrice.value = product.price;
+            productDescription.value = product.description || '';
+            productStatus.value = product.status || 'selling';
+
+            // 显示当前图片
+            const images = product.images || [];
+            if (images.length > 0) {
+                currentImagesContainer.innerHTML = images.map(img =>
+                    `<img src="${img}" class="preview-img" alt="当前图片">`
+                ).join('');
+            } else {
+                currentImagesContainer.innerHTML = '<span class="text-muted">暂无图片</span>';
+            }
+
+            // 文件选择：替换图片（如果用户选择了新图片，则覆盖原图，否则保留）
+            let newFiles = [];
+            productImages.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) {
+                    newFiles = [];
+                    return;
+                }
+                if (files.length > 3) {
+                    showMessage('最多只能选择3张图片');
+                    productImages.value = '';
+                    newFiles = [];
+                    return;
+                }
+                for (let f of files) {
+                    if (!f.type.startsWith('image/')) {
+                        showMessage('请选择图片文件');
+                        productImages.value = '';
+                        newFiles = [];
+                        return;
+                    }
+                }
+                newFiles = files;
+                // 预览新图片
+                currentImagesContainer.innerHTML = '';
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const img = document.createElement('img');
+                        img.src = ev.target.result;
+                        img.className = 'preview-img';
+                        currentImagesContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                clearMessage();
+            });
+
+            // ----- 提交修改 -----
+            editForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearMessage();
+
+                const name = productName.value.trim();
+                const category = productCategory.value;
+                const price = parseFloat(productPrice.value);
+                const description = productDescription.value.trim() || '';
+                const status = productStatus.value;
+
+                if (!name) {
+                    showMessage('请输入商品名称');
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    showMessage('请输入有效价格');
+                    return;
+                }
+
+                // 处理图片：如果用户选择了新图片，则替换；否则保留原图
+                let finalImages;
+                if (newFiles.length > 0) {
+                    // 读取新图片为 base64
+                    const imagePromises = newFiles.map(file => {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = ev => resolve(ev.target.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                    });
+                    Promise.all(imagePromises)
+                        .then(imagesBase64 => {
+                            finalImages = imagesBase64;
+                            saveProduct(finalImages);
+                        })
+                        .catch(err => {
+                            showMessage('图片读取失败，请重试');
+                            console.error(err);
+                        });
+                } else {
+                    // 保留原图
+                    finalImages = product.images || [];
+                    saveProduct(finalImages);
+                }
+
+                function saveProduct(imagesArray) {
+                    // 更新商品数据
+                    products[productIndex] = {
+                        ...product,
+                        title: name,
+                        category: category,
+                        price: price,
+                        description: description,
+                        status: status,
+                        images: imagesArray
+                    };
+                    // 确保 sellerStudentNumber 不变
+                    products[productIndex].sellerStudentNumber = user.studentNumber;
+                    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+
+                    showMessage('✅ 商品信息已更新！', false);
+                    setTimeout(() => {
+                        window.location.replace('./myproducts.html');
+                    }, 1500);
+                }
+            });
+
+            // ----- 取消 -----
+            cancelBtn.addEventListener('click', function() {
+                window.location.replace('./myproducts.html');
+            });
+
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 个人主页</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            max-width: 560px;
+            margin: 2.5rem auto;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08);
+            border: none;
+        }
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .readonly-field {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        .btn-back {
+            margin-right: 0.5rem;
+        }
+        #message {
+            min-height: 2.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store-alt"></i> 校园易淘</a>
+            <span class="text-muted">个人资料</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card p-4">
+            <div class="card-header bg-white">👤 编辑个人信息</div>
+            <div class="card-body">
+                <form id="profileForm">
+                    <!-- 学号：只读 -->
+                    <div class="mb-3">
+                        <label class="form-label">学号</label>
+                        <input type="text" class="form-control readonly-field" id="profileStudentNumber" readonly>
+                    </div>
+                    <!-- 昵称 -->
+                    <div class="mb-3">
+                        <label for="profileNickname" class="form-label">昵称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="profileNickname" required maxlength="50">
+                    </div>
+                    <!-- 手机号 -->
+                    <div class="mb-3">
+                        <label for="profilePhone" class="form-label">手机号 <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="profilePhone" required pattern="[0-9]{11}" maxlength="11">
+                    </div>
+                    <!-- 微信号（可选） -->
+                    <div class="mb-3">
+                        <label for="profileWechat" class="form-label">微信号（可选）</label>
+                        <input type="text" class="form-control" id="profileWechat" maxlength="64">
+                    </div>
+                    <!-- QQ号（可选） -->
+                    <div class="mb-3">
+                        <label for="profileQQ" class="form-label">QQ号（可选）</label>
+                        <input type="text" class="form-control" id="profileQQ" pattern="[0-9]{5,20}" maxlength="20" placeholder="5-20位数字">
+                    </div>
+
+                    <div id="message" class="mb-3"></div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary btn-back" id="backBtn">← 返回首页</button>
+                        <button type="submit" class="btn btn-primary">💾 保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Font Awesome（图标库） -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            // ----- 常量 -----
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+
+            // ----- DOM 元素 -----
+            const studentNumberInput = document.getElementById('profileStudentNumber');
+            const nicknameInput = document.getElementById('profileNickname');
+            const phoneInput = document.getElementById('profilePhone');
+            const wechatInput = document.getElementById('profileWechat');
+            const qqInput = document.getElementById('profileQQ');
+            const messageDiv = document.getElementById('message');
+            const backBtn = document.getElementById('backBtn');
+            const profileForm = document.getElementById('profileForm');
+
+            // ----- 工具函数 -----
+            function showMessage(text, isError = true) {
+                messageDiv.innerHTML = `<div class="alert ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
+                    ${text}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            }
+            function clearMessage() { messageDiv.innerHTML = ''; }
+
+            // ----- 获取当前用户 -----
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                // 未登录，跳回登录页
+                window.location.replace('./login.html');
+                return;
+            }
+
+            // ----- 填充表单 -----
+            studentNumberInput.value = user.studentNumber;
+            nicknameInput.value = user.nickname || '';
+            phoneInput.value = user.phone || '';
+            wechatInput.value = user.wechat || '';
+            qqInput.value = user.qq || '';
+
+            // ----- 保存修改 -----
+            profileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearMessage();
+
+                // 获取新值
+                const nickname = nicknameInput.value.trim();
+                const phone = phoneInput.value.trim();
+                const wechat = wechatInput.value.trim() || null;
+                const qq = qqInput.value.trim() || null;
+
+                // 基本校验
+                if (!nickname) {
+                    showMessage('昵称不能为空');
+                    return;
+                }
+                if (!/^\d{11}$/.test(phone)) {
+                    showMessage('手机号必须为11位数字');
+                    return;
+                }
+                if (qq && !/^\d{5,20}$/.test(qq)) {
+                    showMessage('QQ号必须为5-20位数字');
+                    return;
+                }
+
+                // 更新用户数据
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                const currentUser = users[user.studentNumber];
+                if (!currentUser) {
+                    showMessage('用户数据异常，请重新登录');
+                    return;
+                }
+
+                // 只更新允许修改的字段
+                currentUser.nickname = nickname;
+                currentUser.phone = phone;
+                currentUser.wechat = wechat;
+                currentUser.qq = qq;
+
+                // 保存回 localStorage
+                users[user.studentNumber] = currentUser;
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+                showMessage('✅ 个人信息已保存！', false);
+                // 2秒后自动返回首页
+                setTimeout(() => {
+                    window.location.replace('./main.html');
+                }, 1500);
+            });
+
+            // ----- 返回首页 -----
+            backBtn.addEventListener('click', function() {
+                window.location.replace('./main.html');
+            });
+
+        })();
+    </script>
+</body>
+</html>

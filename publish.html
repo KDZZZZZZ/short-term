@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 发布商品</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { max-width: 560px; margin: 2.5rem auto; border-radius: 1rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08); border: none; }
+        .card-header { background-color: white; border-bottom: 1px solid #eee; font-weight: 600; font-size: 1.2rem; }
+        .preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
+        #message { min-height: 2.8rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store-alt"></i> 校园易淘</a>
+            <span class="text-muted">发布商品</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card p-4">
+            <div class="card-header bg-white">📦 发布新商品</div>
+            <div class="card-body">
+                <form id="publishForm">
+                    <!-- 商品名称 -->
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">商品名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="productName" required maxlength="100">
+                    </div>
+
+                    <!-- 商品类别 -->
+                    <div class="mb-3">
+                        <label class="form-label">商品类别 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="productCategory" required>
+                            <option value="数码">数码</option>
+                            <option value="书本">书本</option>
+                            <option value="生活用品">生活用品</option>
+                            <option value="其他" selected>其他</option>
+                        </select>
+                    </div>
+
+                    <!-- 商品价格 -->
+                    <div class="mb-3">
+                        <label for="productPrice" class="form-label">价格（元） <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+
+                    <!-- 商品描述 -->
+                    <div class="mb-3">
+                        <label for="productDescription" class="form-label">商品描述（可选）</label>
+                        <textarea class="form-control" id="productDescription" rows="3" placeholder="请描述商品的新旧程度、使用情况等"></textarea>
+                    </div>
+
+                    <!-- 商品图片（最多3张，至少1张） -->
+                    <div class="mb-3">
+                        <label class="form-label">商品图片 <span class="text-danger">*</span>（至少1张，最多3张）</label>
+                        <input type="file" class="form-control" id="productImages" accept="image/*" multiple>
+                        <small class="text-muted">按住 Ctrl 或 Shift 可多选</small>
+                        <div class="preview-container" id="previewContainer"></div>
+                    </div>
+
+                    <!-- 商家手机号 -->
+                    <div class="mb-3">
+                        <label for="sellerPhone" class="form-label">商家手机号 <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="sellerPhone" required pattern="[0-9]{11}" maxlength="11">
+                        <small class="text-muted">默认使用您的注册手机号，可修改</small>
+                    </div>
+
+                    <div id="message" class="mb-3"></div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                        <button type="submit" class="btn btn-success">发布商品</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+
+            // ----- DOM -----
+            const productName = document.getElementById('productName');
+            const productCategory = document.getElementById('productCategory');
+            const productPrice = document.getElementById('productPrice');
+            const productDescription = document.getElementById('productDescription');
+            const productImages = document.getElementById('productImages');
+            const previewContainer = document.getElementById('previewContainer');
+            const sellerPhone = document.getElementById('sellerPhone');
+            const messageDiv = document.getElementById('message');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const publishForm = document.getElementById('publishForm');
+
+            // ----- 工具 -----
+            function showMessage(text, isError = true) {
+                messageDiv.innerHTML = `<div class="alert ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
+                    ${text}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            }
+            function clearMessage() { messageDiv.innerHTML = ''; }
+
+            // ----- 获取当前用户 -----
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.replace('./login.html');
+                return;
+            }
+            sellerPhone.value = user.phone || '';
+
+            // ----- 图片预览（多张） -----
+            let selectedFiles = [];
+            productImages.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) {
+                    previewContainer.innerHTML = '';
+                    selectedFiles = [];
+                    return;
+                }
+                if (files.length > 3) {
+                    showMessage('最多只能选择3张图片');
+                    productImages.value = '';
+                    previewContainer.innerHTML = '';
+                    selectedFiles = [];
+                    return;
+                }
+                for (let f of files) {
+                    if (!f.type.startsWith('image/')) {
+                        showMessage('请选择图片文件');
+                        productImages.value = '';
+                        previewContainer.innerHTML = '';
+                        selectedFiles = [];
+                        return;
+                    }
+                }
+                previewContainer.innerHTML = '';
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const img = document.createElement('img');
+                        img.src = ev.target.result;
+                        img.className = 'preview-img';
+                        previewContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                selectedFiles = files;
+                clearMessage();
+            });
+
+            // ----- 提交发布 -----
+            publishForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearMessage();
+
+                const name = productName.value.trim();
+                const category = productCategory.value;
+                const price = parseFloat(productPrice.value);
+                const description = productDescription.value.trim() || '';
+                const phone = sellerPhone.value.trim();
+
+                if (!name) {
+                    showMessage('请输入商品名称');
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    showMessage('请输入有效价格');
+                    return;
+                }
+                if (!/^\d{11}$/.test(phone)) {
+                    showMessage('手机号必须为11位数字');
+                    return;
+                }
+                if (selectedFiles.length === 0) {
+                    showMessage('请至少上传一张商品图片');
+                    return;
+                }
+                if (selectedFiles.length > 3) {
+                    showMessage('最多上传3张图片');
+                    return;
+                }
+
+                const imagePromises = selectedFiles.map(file => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = ev => resolve(ev.target.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                });
+
+                Promise.all(imagePromises)
+                    .then(imagesBase64 => {
+                        const newProduct = {
+                            id: Date.now(),
+                            title: name,
+                            category: category,
+                            price: price,
+                            description: description,
+                            images: imagesBase64,
+                            status: 'selling',
+                            sellerPhone: phone,
+                            sellerStudentNumber: user.studentNumber
+                        };
+
+                        let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+                        // 迁移旧数据（确保新商品入库前统一分类）
+                        products = products.map(p => {
+                            if (p.category === '笔记') p.category = '生活用品';
+                            return p;
+                        });
+                        products.push(newProduct);
+                        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+
+                        showMessage('✅ 商品发布成功！', false);
+                        setTimeout(() => {
+                            window.location.replace('./main.html');
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        showMessage('图片读取失败，请重试');
+                        console.error(err);
+                    });
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                window.location.replace('./main.html');
+            });
+
+        })();
+    </script>
+</body>
+</html>

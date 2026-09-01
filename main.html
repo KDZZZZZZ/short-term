@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 首页</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f5f7fa; padding-bottom: 2rem; }
+        .navbar { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .search-box { max-width: 600px; margin: 1.5rem auto 1rem; }
+        .category-tabs, .status-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; }
+        .category-tabs .btn, .status-tabs .btn { border-radius: 20px; padding: 0.3rem 1.2rem; font-size: 0.9rem; }
+        .category-tabs .btn.active { background-color: #0d6efd; color: white; }
+        .status-tabs .btn.active { background-color: #198754; color: white; }
+        .product-card { transition: transform 0.15s; height: 100%; border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; }
+        .product-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.10); }
+        .product-card .card-img-top { height: 160px; object-fit: cover; background-color: #e9ecef; border-radius: 12px 12px 0 0; }
+        .product-card .card-body { padding: 0.75rem 1rem; }
+        .product-card .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-card .price { color: #e74c3c; font-weight: 700; font-size: 1.1rem; }
+        .product-card .category-badge { font-size: 0.7rem; background-color: #e9ecef; padding: 0.2rem 0.6rem; border-radius: 12px; color: #6c757d; }
+        .product-card .status-badge { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 12px; }
+        .status-badge.selling { background-color: #d1e7dd; color: #0f5132; }
+        .status-badge.sold { background-color: #f8d7da; color: #842029; }
+        .user-actions { display: flex; gap: 1rem; align-items: center; }
+        .user-actions .icon-btn { font-size: 1.5rem; color: #495057; cursor: pointer; background: none; border: none; transition: color 0.2s; }
+        .user-actions .icon-btn:hover { color: #0d6efd; }
+        .navbar .nav-user { display: flex; align-items: center; gap: 0.8rem; }
+        .no-products { text-align: center; padding: 3rem 0; color: #6c757d; }
+        .container-main { max-width: 1200px; }
+        .hidden { display: none !important; }
+        @media (max-width: 576px) {
+            .category-tabs .btn, .status-tabs .btn { font-size: 0.8rem; padding: 0.2rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store-alt"></i> 校园易淘</a>
+            <div class="nav-user">
+                <span class="text-muted me-2" id="userNicknameDisplay">👤 昵称</span>
+                <button class="btn btn-outline-primary btn-sm" id="profileBtn">👤 个人主页</button>
+                <button class="btn btn-outline-success btn-sm" id="myProductsBtn">📦 我的卖品</button>
+                <button id="logoutNavBtn" class="btn btn-outline-danger btn-sm">登出</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container container-main">
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" class="form-control" id="searchInput" placeholder="搜索商品标题..." aria-label="搜索">
+                <button class="btn btn-primary" id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mb-3">
+            <button class="icon-btn" id="favoritesBtn" title="我的收藏"><i class="fas fa-heart"></i></button>
+            <button class="icon-btn" id="publishBtn" title="发布商品"><i class="fas fa-plus-circle"></i></button>
+        </div>
+
+        <div class="category-tabs" id="categoryTabs">
+            <button class="btn btn-outline-secondary active" data-category="all">全部</button>
+            <button class="btn btn-outline-secondary" data-category="数码">数码</button>
+            <button class="btn btn-outline-secondary" data-category="书本">书本</button>
+            <button class="btn btn-outline-secondary" data-category="生活用品">生活用品</button>
+            <button class="btn btn-outline-secondary" data-category="其他">其他</button>
+        </div>
+
+        <div class="status-tabs" id="statusTabs">
+            <button class="btn btn-outline-success active" data-status="selling">出售中</button>
+            <button class="btn btn-outline-secondary" data-status="sold">已售出</button>
+        </div>
+
+        <div id="productList" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3"></div>
+        <div id="emptyMessage" class="no-products hidden"><i class="fas fa-box-open fa-3x mb-2"></i><p>没有找到符合条件的商品</p></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+
+            // ----- 当前用户 -----
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                console.log('未登录，跳回 login.html');
+                window.location.replace('./login.html');
+                return;
+            }
+            document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
+
+            // ----- 页面跳转 -----
+            document.getElementById('profileBtn').addEventListener('click', function() {
+                window.location.replace('./profile.html');
+            });
+            document.getElementById('myProductsBtn').addEventListener('click', function() {
+                window.location.replace('./myproducts.html');
+            });
+            document.getElementById('publishBtn').addEventListener('click', function() {
+                window.location.replace('./publish.html');
+            });
+            document.getElementById('favoritesBtn').addEventListener('click', function() {
+                window.location.replace('./favorites.html');
+            });
+
+            // ----- 商品数据管理（含迁移） -----
+            function getProducts() {
+                let products = localStorage.getItem(PRODUCTS_KEY);
+                if (products) {
+                    let parsed = JSON.parse(products);
+                    parsed = parsed.map(p => {
+                        if (!p.images && p.image) {
+                            p.images = [p.image];
+                            delete p.image;
+                        }
+                        if (!p.images || p.images.length === 0) {
+                            p.images = [];
+                        }
+                        if (!p.description) p.description = '';
+                        if (p.category === '笔记') p.category = '生活用品';
+                        return p;
+                    });
+                    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(parsed));
+                    return parsed;
+                } else {
+                    // 初始化数据（使用新分类“生活用品”）
+                    const svgPlaceholder = (text) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E${text}%3C/text%3E%3C/svg%3E`;
+                    const initialProducts = [
+                        { id: 1, title: '二手 iPhone 13 256G 蓝色', price: 4200, category: '数码', status: 'selling', images: [svgPlaceholder('iPhone 1'), svgPlaceholder('iPhone 2')], description: '外观完好，带原装充电器', sellerPhone: '13800138001', sellerStudentNumber: '202001' },
+                        { id: 2, title: '全新未拆封 小米手环7', price: 180, category: '数码', status: 'selling', images: [svgPlaceholder('手环')], description: '全新未拆封，官方保修', sellerPhone: '13800138002', sellerStudentNumber: '202002' },
+                        { id: 3, title: '高等数学 同济第七版 上册', price: 25, category: '书本', status: 'selling', images: [svgPlaceholder('数学')], description: '九成新，无笔记', sellerPhone: '13800138003', sellerStudentNumber: '202003' },
+                        { id: 4, title: '数据结构与算法分析 C++版', price: 30, category: '书本', status: 'sold', images: [svgPlaceholder('数据结构')], description: '已售出', sellerPhone: '13800138004', sellerStudentNumber: '202004' },
+                        { id: 5, title: '宿舍收纳盒 大号', price: 15, category: '生活用品', status: 'selling', images: [svgPlaceholder('收纳盒1'), svgPlaceholder('收纳盒2')], description: '全新，可折叠', sellerPhone: '13800138005', sellerStudentNumber: '202005' },
+                        { id: 6, title: '床上小桌子 可折叠', price: 20, category: '生活用品', status: 'sold', images: [svgPlaceholder('小桌子')], description: '已售出', sellerPhone: '13800138006', sellerStudentNumber: '202006' },
+                        { id: 7, title: '宿舍小风扇 便携式 USB', price: 35, category: '其他', status: 'selling', images: [svgPlaceholder('风扇')], description: '静音，三档调速', sellerPhone: '13800138007', sellerStudentNumber: '202007' },
+                        { id: 8, title: '二手 羽毛球拍 一对', price: 60, category: '其他', status: 'sold', images: [svgPlaceholder('球拍')], description: '已售出', sellerPhone: '13800138008', sellerStudentNumber: '202008' },
+                    ];
+                    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(initialProducts));
+                    return initialProducts;
+                }
+            }
+
+            let allProducts = getProducts();
+
+            // ----- 状态 -----
+            let currentCategory = 'all';
+            let currentStatus = 'selling';
+            let searchKeyword = '';
+
+            const productListEl = document.getElementById('productList');
+            const emptyMessageEl = document.getElementById('emptyMessage');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const categoryTabs = document.getElementById('categoryTabs');
+            const statusTabs = document.getElementById('statusTabs');
+
+            const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
+
+            function renderProducts() {
+                allProducts = getProducts();
+
+                let filtered = allProducts
+                    .filter(p => p.status === currentStatus)
+                    .filter(p => currentCategory === 'all' || p.category === currentCategory)
+                    .filter(p => searchKeyword.trim() === '' || p.title.toLowerCase().includes(searchKeyword.trim().toLowerCase()));
+
+                productListEl.innerHTML = '';
+                if (filtered.length === 0) {
+                    emptyMessageEl.classList.remove('hidden');
+                    return;
+                }
+                emptyMessageEl.classList.add('hidden');
+
+                filtered.forEach(p => {
+                    const col = document.createElement('div');
+                    col.className = 'col';
+                    const badge = p.status === 'selling' ? 'selling' : 'sold';
+                    const text = p.status === 'selling' ? '出售中' : '已售出';
+                    const imgSrc = p.images && p.images.length > 0 ? p.images[0] : fallbackSvg;
+                    col.innerHTML = `
+                        <div class="card product-card" data-id="${p.id}">
+                            <img src="${imgSrc}" class="card-img-top" alt="${p.title}" onerror="this.src='${fallbackSvg}'">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title" title="${p.title}">${p.title}</h5>
+                                    <span class="status-badge ${badge}">${text}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="price">¥${p.price}</span>
+                                    <span class="category-badge">${p.category}</span>
+                                </div>
+                                <div class="mt-2 small text-muted">
+                                    <i class="fas fa-phone"></i> ${p.sellerPhone || '未留电话'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    productListEl.appendChild(col);
+                });
+
+                document.querySelectorAll('.product-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const id = this.dataset.id;
+                        window.location.href = `./detail.html?id=${id}`;
+                    });
+                });
+            }
+
+            // ----- 事件绑定 -----
+            categoryTabs.addEventListener('click', function(e) {
+                const btn = e.target.closest('button');
+                if (!btn || btn.classList.contains('active')) return;
+                categoryTabs.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentCategory = btn.dataset.category;
+                renderProducts();
+            });
+
+            statusTabs.addEventListener('click', function(e) {
+                const btn = e.target.closest('button');
+                if (!btn || btn.classList.contains('active')) return;
+                statusTabs.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentStatus = btn.dataset.status;
+                renderProducts();
+            });
+
+            function doSearch() {
+                searchKeyword = searchInput.value;
+                renderProducts();
+            }
+            searchBtn.addEventListener('click', doSearch);
+            searchInput.addEventListener('keyup', e => { if (e.key === 'Enter') doSearch(); });
+
+            document.getElementById('logoutNavBtn').addEventListener('click', function() {
+                localStorage.removeItem(SESSION_KEY);
+                window.location.replace('./login.html');
+            });
+
+            // ----- 初始化渲染 -----
+            renderProducts();
+
+            // 页面可见时刷新
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    renderProducts();
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>
