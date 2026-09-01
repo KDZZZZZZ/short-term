@@ -164,42 +164,57 @@ jobs:
           rollback_required=false
           REMOTE
 
-      - name: Run production-host acceptance over SSH
+      - name: Run public production acceptance
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" "RELEASE_SHA='$RELEASE_SHA' bash -s" <<'REMOTE'
           set -euo pipefail
+          ssh_base=(
+            -i "$HOME/.ssh/deploy_key"
+            -p "$DEPLOY_PORT"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
           rollback_required=true
           rollback_on_exit() {
             exit_code=$?
+            trap - EXIT
             if [ "$exit_code" -ne 0 ] && [ "$rollback_required" = true ]; then
-              /opt/short-term/bin/short-term-backend rollback || true
+              ssh "${ssh_base[@]}" "$remote" \
+                /opt/short-term/bin/short-term-backend rollback || true
             fi
             exit "$exit_code"
           }
           trap rollback_on_exit EXIT
 
-          release_dir="/opt/short-term/releases/$RELEASE_SHA"
-          result_file="$release_dir/production-e2e.json"
-          test -f "$release_dir/backend-e2e.py"
-          test ! -L "$release_dir/backend-e2e.py"
-          curl --fail --silent --show-error --max-time 3 \
-            http://127.0.0.1:18083/readyz >/dev/null
-          python3 "$release_dir/backend-e2e.py" \
-            --base-url http://127.0.0.1:18083 \
+          public_base_url="http://$DEPLOY_HOST:18083"
+          result_file="$RUNNER_TEMP/production-e2e.json"
+          curl --noproxy '*' --fail --silent --show-error \
+            --retry 12 --retry-delay 2 --retry-connrefused --max-time 5 \
+            "$public_base_url/healthz" >/dev/null
+          curl --noproxy '*' --fail --silent --show-error --max-time 5 \
+            "$public_base_url/readyz" >/dev/null
+          NO_PROXY="$DEPLOY_HOST" no_proxy="$DEPLOY_HOST" python3 scripts/backend-e2e.py \
+            --base-url "$public_base_url" \
             --tag "$RELEASE_SHA" \
             --baseline-samples 20 \
             --result-file "$result_file"
 
           request_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["trace_request_id"])' "$result_file")"
-          /opt/short-term/bin/short-term-backend verify-trace "$request_id"
+          [[ "$request_id" =~ ^[0-9A-Za-z._-]{1,128}$ ]]
+          rsync -az \
+            -e "ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
+            "$result_file" \
+            "$remote:/opt/short-term/releases/$RELEASE_SHA/production-e2e.json"
+
+          ssh "${ssh_base[@]}" "$remote" "REQUEST_ID='$request_id' bash -s" <<'REMOTE'
+          set -euo pipefail
+          /opt/short-term/bin/short-term-backend verify-trace "$REQUEST_ID"
           /opt/short-term/bin/short-term-backend verify-outbox
           /opt/short-term/bin/short-term-backend metrics
-          rollback_required=false
           REMOTE
+          rollback_required=false

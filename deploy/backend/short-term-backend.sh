@@ -366,7 +366,7 @@ start_apps() {
 
   base_run_args short-term-gateway gateway "$state_dir/gateway.env"
   "$podman" run "${BASE_RUN_ARGS[@]}" \
-    --publish "127.0.0.1:$gateway_port:8080" \
+    --publish "0.0.0.0:$gateway_port:8080" \
     --publish "127.0.0.1:$gateway_management_port:9090" \
     --volume "$media_dir:/var/lib/shortterm/media:ro,z" \
     "$GATEWAY_IMAGE" >/dev/null
