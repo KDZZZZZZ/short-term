@@ -112,6 +112,7 @@ jobs:
             "$RUNNER_TEMP/backend-images.tar.gz" \
             "$RUNNER_TEMP/backend-images.tar.gz.sha256" \
             "$RUNNER_TEMP/manifest.env" \
+            scripts/backend-e2e.py \
             "$remote:$release_dir/"
           rsync -az \
             -e "ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
@@ -162,60 +163,42 @@ jobs:
           rollback_required=false
           REMOTE
 
-      - name: Run production-host acceptance through SSH
+      - name: Run production-host acceptance over SSH
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          set -euo pipefail
-          tunnel_port=38083
           ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
             -o BatchMode=yes -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 \
-            -N -L "127.0.0.1:$tunnel_port:127.0.0.1:18083" \
-            "$DEPLOY_USER@$DEPLOY_HOST" &
-          tunnel_pid=$!
-          cleanup_tunnel() {
-            kill "$tunnel_pid" 2>/dev/null || true
-            wait "$tunnel_pid" 2>/dev/null || true
+            "$DEPLOY_USER@$DEPLOY_HOST" "RELEASE_SHA='$RELEASE_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          rollback_required=true
+          rollback_on_exit() {
+            exit_code=$?
+            if [ "$exit_code" -ne 0 ] && [ "$rollback_required" = true ]; then
+              /opt/short-term/bin/short-term-backend rollback || true
+            fi
+            exit "$exit_code"
           }
-          trap cleanup_tunnel EXIT
-          for attempt in $(seq 1 20); do
-            if curl --fail --silent --show-error --max-time 3 \
-              "http://127.0.0.1:$tunnel_port/readyz" >/dev/null; then
-              break
-            fi
-            if [ "$attempt" -eq 20 ]; then
-              exit 1
-            fi
-            sleep 1
-          done
-          base_url="http://127.0.0.1:$tunnel_port"
-          if ! python3 scripts/backend-e2e.py \
-            --base-url "$base_url" \
+          trap rollback_on_exit EXIT
+
+          release_dir="/opt/short-term/releases/$RELEASE_SHA"
+          result_file="$release_dir/production-e2e.json"
+          test -f "$release_dir/backend-e2e.py"
+          test ! -L "$release_dir/backend-e2e.py"
+          curl --fail --silent --show-error --max-time 3 \
+            http://127.0.0.1:18083/readyz >/dev/null
+          python3 "$release_dir/backend-e2e.py" \
+            --base-url http://127.0.0.1:18083 \
             --tag "$RELEASE_SHA" \
             --baseline-samples 20 \
-            --result-file "$RUNNER_TEMP/production-e2e.json"; then
-            ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-              -o BatchMode=yes -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-              "$DEPLOY_USER@$DEPLOY_HOST" \
-              '/opt/short-term/bin/short-term-backend rollback' || true
-            exit 1
-          fi
+            --result-file "$result_file"
 
-          request_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["trace_request_id"])' "$RUNNER_TEMP/production-e2e.json")"
-          if ! ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "/opt/short-term/bin/short-term-backend verify-trace '$request_id' && /opt/short-term/bin/short-term-backend verify-outbox && /opt/short-term/bin/short-term-backend metrics"; then
-            ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
-              -o BatchMode=yes -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-              "$DEPLOY_USER@$DEPLOY_HOST" \
-              '/opt/short-term/bin/short-term-backend rollback' || true
-            exit 1
-          fi
+          request_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["trace_request_id"])' "$result_file")"
+          /opt/short-term/bin/short-term-backend verify-trace "$request_id"
+          /opt/short-term/bin/short-term-backend verify-outbox
+          /opt/short-term/bin/short-term-backend metrics
+          rollback_required=false
+          REMOTE

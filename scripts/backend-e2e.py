@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the real public REST journey against a deployed short-term Gateway."""
+"""Run the real REST journey against a deployed short-term Gateway."""
 
 from __future__ import annotations
 

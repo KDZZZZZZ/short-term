@@ -592,7 +592,7 @@ erDiagram
 
 当前在现有阿里云 ECS 上部署多个独立容器：
 
-- 一个 Gateway 容器当前仅绑定主机回环 HTTP 18083，管理指标仅绑定主机回环 19090；GitHub runner 通过 SSH 隧道做服务器验收。正式用户流量接入时，由可信 TLS 终止层反向代理到 18083；
+- 一个 Gateway 容器当前仅绑定主机回环 HTTP 18083，管理指标仅绑定主机回环 19090；GitHub runner 通过 SSH 在目标主机执行同一 SHA 的验收脚本。正式用户流量接入时，由可信 TLS 终止层反向代理到 18083；
 - Account、Marketplace、Messaging、Favorite 只加入私有容器网络；
 - 每个服务使用独立数据库或独立 Schema 和独立数据库账号，禁止跨 Schema 查询；
 - 对象存储只由 Marketplace 的 OSS Adapter 访问；
