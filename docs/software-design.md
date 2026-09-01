@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本/状态 | 0.2 / 草案，待人类评审 |
+| 版本/状态 | 0.3 / 草案，待人类评审 |
 | 日期 | 2026-09-01 |
 | 责任角色 | 项目维护者批准；Codex 起草 |
 | 目标读者 | 后端、前端、测试、运维与后续架构评审人员 |
@@ -15,14 +15,15 @@
 
 | 版本 | 日期 | 修订人/责任角色 | 修订内容 | 状态 |
 | --- | --- | --- | --- | --- |
+| 0.3 | 2026-09-01 | Codex / 项目维护者 | 明确商品可见性、联系方式不可删除、PENDING 下架保护、商品编辑状态和唯一购买意向；补齐会话校验、错误、图片、分页及限流契约 | 已确认产品语义；代理细节见下文 |
 | 0.2 | 2026-09-01 | Codex / 项目维护者待评审 | 补全交易命令幂等结果与 Product/Trade 原子状态转换 | 草案 |
 | 0.1 | 2026-09-01 | Codex / 项目维护者待评审 | 建立微服务、REST/gRPC、DTO、数据一致性及部署目标设计 | 草案 |
 
 ### 事实状态
 
-- **Human Design**：系统采用微服务；前端继续使用 REST；同一用户可同时作为买家和卖家；实现收藏、站内文字聊天和交易状态流转；商品列表与商品详情返回商品状态。
+- **Human Design**：系统采用微服务；前端继续使用 REST；同一用户可同时作为买家和卖家；实现收藏、站内文字聊天和交易状态流转；商品列表与商品详情返回商品状态；任意状态商品详情保持可见；联系方式只允许新增或修改、不得删除；存在 `PENDING` 意向时商品不得下架；`RESERVED`/`SOLD` 商品不得编辑字段或图片；同一买家对同一商品的重复请求归入同一购买意向。
 - **已批准基线**：OpenAPI 是公开 HTTP API 唯一真源；[状态机文档](state-machines.md)治理商品与交易的跨资源状态变化。
-- **Agent Self-Claimed**：API Gateway、内部 gRPC、服务边界、DTO 分层、数据库所有权、Outbox、目标目录和部署拓扑均为本设计提出的方案，尚未视为已实现或已批准。
+- **Agent Self-Claimed**：API Gateway、内部 gRPC、服务边界、DTO 分层、数据库所有权、Outbox、目标目录和部署拓扑均为本设计提出的方案，尚未视为已实现或已批准。此次纠错中，`(product_id, buyer_id)` 终生唯一及 create-or-get 的 `200/201` 细节、PENDING 期间冻结商品内容、默认昵称、任意状态可收藏、403/404 隐藏规则、图片连续排序、页码漂移说明和 429 映射由代理补充。
 
 ## 1. 背景、目标与范围
 
@@ -71,6 +72,11 @@
 | 已确认约束 | 商品与交易的耦合状态转换必须原子联动 | 接受、已接受交易取消和双方确认完成均在 Marketplace Service 本地事务中更新 Product 与 Trade |
 | 已确认约束 | 用户没有固定买家/卖家角色 | 权限根据 seller_id、buyer_id 和当前用户动态判断 |
 | 已确认约束 | 商品列表和详情返回 status | 所有 ProductSummary、ProductDetail 和嵌套商品投影保留状态字段 |
+| 已确认约束 | 任意商品状态的详情保持可见 | 详情 404 只表示商品不存在；公开列表仍只返回 ON_SALE |
+| 已确认约束 | 已填写联系方式不得删除 | 更新只接受非空微信/QQ；省略字段保持原值 |
+| 已确认约束 | PENDING 是进行中的购买意向 | 存在任意 PENDING Trade 时商品不能下架 |
+| 已确认约束 | RESERVED/SOLD 商品内容冻结 | PATCH、加图和删图均返回状态冲突 |
+| 已确认语义 | 同一买家对同一商品复用购买意向 | 精确唯一键、终生范围和 200/201 返回由代理补充并进入 OpenAPI |
 | 建议 | Go 微服务内部使用 gRPC | 需要建立 Protobuf、Buf 和生成代码治理 |
 | 建议 | 每个服务独占自己的逻辑数据库 | 可以初期共享 PostgreSQL 集群，但禁止跨服务直接访问表或 Schema |
 | 待确认 | 峰值请求量、数据规模、延迟和可用性目标 | 暂不能确定副本数、连接池、缓存及容量 |
@@ -81,12 +87,12 @@
 | 编号 | 需求或场景 | 验收标准 | 状态/证据 |
 | --- | --- | --- | --- |
 | FR-01 | 学号和密码注册登录 | 合法账号可注册、登录并取得访问令牌；密码不出现在响应或日志 | 已确认，OpenAPI |
-| FR-02 | 用户维护资料及联系方式 | 用户只能读写自己的完整资料 | 已确认，OpenAPI |
-| FR-03 | 发布与查询商品 | 支持分类、价格、描述、最多三张图片、倒序列表和标题搜索 | 已确认，OpenAPI |
+| FR-02 | 用户维护资料及联系方式 | 用户只能读写自己的完整资料；联系方式只允许新增或修改为非空值，不得删除 | 已确认，OpenAPI |
+| FR-03 | 发布与查询商品 | 支持分类、价格、描述、最多三张图片、倒序列表和标题搜索；所有状态详情可见，交易中/已售商品不可编辑 | 已确认，OpenAPI |
 | FR-04 | 返回商品状态 | 商品列表、我的商品、收藏中的商品、交易商品投影和商品详情均携带 status | Human Design；OpenAPI Schema 已包含 |
-| FR-05 | 收藏 | 收藏和取消收藏幂等，不能收藏自己的商品 | 已确认，OpenAPI 与状态机 |
+| FR-05 | 收藏 | 任意状态商品可收藏，收藏和取消收藏幂等，不能收藏自己的商品 | 已确认，OpenAPI 与状态机 |
 | FR-06 | 站内聊天 | 仅商品买卖双方访问会话；消息已读单向且幂等 | 已确认，OpenAPI 与状态机 |
-| FR-07 | 交易流转 | 状态动作、操作者权限和商品副作用符合状态机 | 已确认，状态机 |
+| FR-07 | 交易流转 | 状态动作、操作者权限和商品副作用符合状态机；同一买家与商品只有一个购买意向 | 已确认语义；唯一键和 HTTP 细节为 Agent Self-Claimed |
 | NFR-01 | 契约兼容 | OpenAPI lint/bundle 无漂移；Proto lint、breaking 和生成代码无漂移 | OpenAPI 已建立；Proto 为建议目标 |
 | NFR-02 | 一致性 | 同一商品最多一笔 ACCEPTED 交易，商品与交易状态不分裂；重复幂等请求返回首次成功结果 | 已确认，OpenAPI 与状态机 |
 | NFR-03 | 安全 | 内部服务不直接公网暴露；资源级授权在拥有资源的服务中执行 | 建议目标 |
@@ -198,6 +204,10 @@ Protocol Buffers 官方建议 RPC API 消息与存储消息分开，并要求演
 
 **RESERVED** 的业务含义是：卖家已经接受一笔交易，商品正在交易中，尚未由双方确认完成。若未来希望公开 GET /products 同时展示 RESERVED 商品，需要先修改 OpenAPI 的列表语义和筛选规则；当前批准契约仍只展示 ON_SALE。
 
+公开列表的状态过滤与详情可见性相互独立。`GET /products/{productId}` 对所有已认证用户返回
+任意状态的现存商品，`OFF_SHELF`、`RESERVED` 和 `SOLD` 不因状态返回 404。详情仍按
+OpenAPI 返回卖家联系方式且不返回学号；本次按人类决定不扩展 Trade 中的买家联系方式。
+
 ### 4.3 目标 Monorepo 结构
 
 ~~~text
@@ -257,25 +267,50 @@ stateDiagram-v2
     ON_SALE --> RESERVED: 卖家接受交易
     RESERVED --> SOLD: 双方确认完成
     RESERVED --> ON_SALE: 已接受交易取消
-    ON_SALE --> OFF_SHELF: 卖家下架
+    ON_SALE --> OFF_SHELF: 卖家下架且不存在 PENDING
     OFF_SHELF --> ON_SALE: 卖家重新上架
     SOLD --> [*]
 ~~~
 
-状态只能通过专用动作或交易状态机改变，不能通过通用商品 PATCH 直接赋值。所有返回商品投影的查询读取 Marketplace Service 的当前状态。
+状态只能通过专用动作或交易状态机改变，不能通过通用商品 PATCH 直接赋值。所有返回商品投影的查询读取 Marketplace Service 的当前状态。`PENDING` 是进行中的购买意向但不预留商品，Product 仍为 `ON_SALE` 并可接收其他买家的唯一意向；只要存在任意 `PENDING` Trade，商品就不能下架或修改内容/图片。商品字段与图片只允许在 `ON_SALE`、`OFF_SHELF` 且没有 `PENDING` 时修改，在 `RESERVED`、`SOLD` 冻结。
+
+图片顺序始终为连续的 `1..N`，`cover_url` 指向第一张图片。新增图片按上传顺序追加；删除后保持剩余图片相对顺序并重排，删除封面后下一张自动成为封面，无图时封面为 `null`。
 
 ### 5.2 商品列表和详情
 
 1. Gateway 验证请求格式和访问令牌，生成或透传 trace_id。
 2. Gateway 调用 Marketplace Service 的 ListProducts 或 GetProduct。
-3. Marketplace Service 根据授权上下文查询商品真值并返回 seller_id、商品字段和 status。
+3. Marketplace Service 查询商品真值并返回 seller_id、商品字段和 status；任意状态商品详情均可见，只有资源确实不存在才返回 404。
 4. Gateway 通过 Account Service 的批量接口补全公开卖家资料；详情按 OpenAPI 补全微信/QQ，禁止返回学号。
 5. 登录用户的商品详情需要 is_favorited 时，Gateway 调用 Favorite Service 查询当前关系。
 6. Gateway 将 gRPC DTO 映射为 ProductSummary 或 ProductDetail HTTP DTO，并再次按 OpenAPI 序列化。
 
 Marketplace 是商品状态的唯一事实源。Gateway 不缓存状态，除非后续定义了明确的最大陈旧时间和失效策略。
 
-### 5.3 接受交易的强一致与幂等流程
+### 5.3 唯一购买意向与创建流程
+
+Trade 表达买家对一个商品挂牌的购买意向，不表达一次 HTTP 尝试。借鉴支付意向将一次
+业务购买过程聚合到单一、可追踪资源的做法，本项目为 `(product_id, buyer_id)` 建立终生
+唯一约束：首次调用创建 `PENDING` Trade 并返回 201；任何后续调用都返回同一 Trade 的
+当前表示和 200，不改变状态、价格快照、会话绑定，也不产生新通知。`CANCELLED` 和
+`COMPLETED` 仍为终态，因此重复创建不会重新开启已结束意向。这项限制能防止更换
+`Idempotency-Key` 或卖家拒绝后反复创建记录；代价是同一买家不能对同一挂牌再次表达意向，
+如将来需要重开，应新增受控动作而不是创建第二条 Trade。
+
+业务唯一性与请求幂等是两层规则：
+
+1. 相同 `Idempotency-Key` 优先重放首次成功的 HTTP 状态与响应体，因此首次 201 的重试仍为 201。
+2. 不同 key 或无 key 的请求通过 `(product_id, buyer_id)` 命中既有意向并返回当前表示和 200。
+3. 并发首次创建由唯一约束串行化；唯一冲突必须转为读取既有 Trade，不能泄漏为 500。
+4. 首次创建先按统一顺序锁定 Product，验证 `ON_SALE` 后创建 Trade；商品下架和内容/图片更新使用同一把 Product 锁并验证不存在 PENDING，保证不会提交 `OFF_SHELF + PENDING` 或交错的商品版本。
+
+请求携带 `conversation_id` 时，Marketplace 必须向 Messaging 获取或验证该会话的
+`product_id`、`buyer_id`、`seller_id`，三者必须与本次商品、当前买家和商品卖家一致。
+不存在或不可见返回 404，不匹配返回 409，校验失败不得创建 Trade。首次创建后会话绑定
+不可由重复 create-or-get 请求修改；已有 Trade 时，显式值必须与已存绑定相同，省略字段
+只读取既有 Trade。
+
+### 5.4 接受交易的强一致与幂等流程
 
 ~~~mermaid
 sequenceDiagram
@@ -322,7 +357,7 @@ sequenceDiagram
 
 事件只能在提交后投递。Outbox 允许至少一次投递，因此消费者必须根据 event_id 或业务幂等键去重。
 
-### 5.4 取消与确认完成的强一致流程
+### 5.5 取消与确认完成的强一致流程
 
 所有同时改变 Product 与 Trade 的动作都使用 Marketplace DB 的单个本地事务，并统一按 **Product -> Trade** 顺序加锁：
 
@@ -335,11 +370,11 @@ sequenceDiagram
 
 事务还必须写入该动作产生的 Outbox；请求携带幂等键时，还必须在同一事务写入首次成功的规范化命令结果。任何校验、领域更新、Outbox 或 Idempotency 写入失败都回滚整个动作，不允许出现 `CANCELLED + RESERVED`、`COMPLETED + RESERVED` 或 `ACCEPTED + SOLD`。取消与第二次确认并发时，只有先取得锁并满足前置状态的一方提交，另一方返回状态冲突且不得产生部分副作用。
 
-### 5.5 聊天和收藏
+### 5.6 聊天和收藏
 
 - 创建会话前，Messaging Service 通过 Marketplace gRPC 获取 product_id 对应的 seller_id，拒绝自我会话；相同 product_id、buyer_id、seller_id 使用唯一约束保证只有一个会话。
 - 发送和标记已读只依赖 Messaging Service 本地参与者数据，不在每条消息上同步调用 Account 或 Marketplace。
-- Favorite Service 使用 user_id、product_id 唯一键实现 PUT/DELETE 幂等；添加时批量或单次向 Marketplace 验证商品存在及 seller_id，拒绝收藏自己的商品。
+- Favorite Service 使用 user_id、product_id 唯一键实现 PUT/DELETE 幂等；添加时批量或单次向 Marketplace 验证商品存在及 seller_id，拒绝收藏自己的商品，但不按商品状态拒绝，`OFF_SHELF`、`RESERVED`、`SOLD` 均可收藏。
 - 收藏列表由 Gateway 先读取收藏关系，再一次性批量查询 Marketplace，从而返回当前商品 status。
 
 ## 6. 数据设计
@@ -417,10 +452,10 @@ erDiagram
 
 | 实体 | 关键约束 |
 | --- | --- |
-| Account | student_no 唯一；password_hash 为敏感字段，永不进入响应、事件和普通日志 |
+| Account | student_no 唯一；password_hash 为敏感字段，永不进入响应、事件和普通日志；未提供 nickname 时使用“校园用户”且不得从学号派生；已填写微信/QQ 只能改为另一非空值，不得删除 |
 | Product | ID 对外是不透明字符串；status 受状态机控制；version 用于并发检测 |
-| ProductImage | 同商品最多三条；sort_order 为 1 至 3；对象删除失败需要可重试清理 |
-| Trade | buyer_id 不等于 seller_id；price_snapshot 创建后不可变；同商品最多一个 ACCEPTED |
+| ProductImage | 同商品最多三条；sort_order 为连续 1..N；第一张是封面；删除后保持相对顺序并重排；对象删除失败需要可重试清理 |
+| Trade | buyer_id 不等于 seller_id；price_snapshot 创建后不可变；product_id、buyer_id 终生联合唯一；同商品最多一个 ACCEPTED；conversation_id 非空时商品和双方必须匹配 |
 | Conversation | product_id、buyer_id、seller_id 联合唯一 |
 | Message | sender_id 必须是会话参与者；只能把对方发给自己的消息标记已读 |
 | Favorite | user_id、product_id 联合主键；PUT 和 DELETE 均幂等 |
@@ -465,11 +500,20 @@ erDiagram
 | 领域错误 | gRPC status | HTTP / ErrorCode |
 | --- | --- | --- |
 | 未认证 | Unauthenticated | 401 / UNAUTHORIZED |
-| 非资源所有者或非参与者 | PermissionDenied | 403 / FORBIDDEN |
-| 商品或交易不存在 | NotFound | 404 / RESOURCE_NOT_FOUND |
+| 已知资源的参与者角色不允许执行动作 | PermissionDenied | 403 / FORBIDDEN |
+| 商品不存在；交易/会话不存在或当前用户不是参与者 | NotFound | 404 / RESOURCE_NOT_FOUND |
+| 收藏自己的商品或购买自己的商品 | FailedPrecondition | 409 / SELF_ACTION_NOT_ALLOWED |
 | 商品当前不可交易 | FailedPrecondition 或 Aborted | 409 / PRODUCT_NOT_AVAILABLE |
 | 并发交易冲突 | Aborted | 409 / TRADE_STATE_CONFLICT |
+| PENDING 意向期间下架或修改商品内容/图片 | FailedPrecondition 或 Aborted | 409 / TRADE_STATE_CONFLICT |
+| RESERVED/SOLD 商品内容或图片变更 | FailedPrecondition | 409 / PRODUCT_STATE_CONFLICT |
+| 会话商品或参与者与购买意向不匹配 | FailedPrecondition | 409 / CONVERSATION_MISMATCH |
 | 输入不合法 | InvalidArgument | 400 / VALIDATION_ERROR |
+| 达到请求频率限制 | ResourceExhausted | 429 / RATE_LIMITED，并尽可能返回 Retry-After |
+
+交易和会话是参与者私有资源。根据 RFC 9110 允许用 404 隐藏禁止访问资源存在性的语义，
+非参与者统一得到 404；已知参与者调用错误角色的专用动作（例如买家调用卖家 accept）
+才返回 403。公开商品详情不采用隐藏规则，任意状态都可见，404 只表示不存在。
 
 当前 OpenAPI 没有 503/504 和依赖不可用错误码。在增加这些公开错误前，Gateway 只能按现有契约返回 500 / INTERNAL_ERROR；是否扩展契约列为待确认项。
 
@@ -495,9 +539,10 @@ erDiagram
 - Gateway 验证 JWT 签名、允许算法、issuer、audience、exp 和其他必需声明；服务执行资源级授权，不能只信任前端角色。
 - 密码使用自带随机盐的慢速、内存困难哈希。建议优先评估 Argon2id，工作参数必须在实际 ECS 上基准测试，不能照抄为未验证的性能结论。
 - 商品详情可按当前 OpenAPI 返回卖家微信/QQ，但不得返回 seller.student_no；联系方式不得进入公共缓存键、追踪属性或错误日志。
+- 微信/QQ 更新只接受非空值，防止卖家发布商品后清空全部联系方式；客户端省略字段表示保持原值。
 - 图片上传采用流式限制，校验数量、真实 MIME、尺寸和对象键；单文件大小和允许类型尚未由 OpenAPI 定义，实施前必须确认并补充契约。
 - 密钥只从 GitHub Actions Secrets 和服务器运行环境注入，禁止提交仓库。
-- 对登录、注册、消息发送、图片上传和交易动作分别限流；具体阈值依据压测和滥用模型确定。
+- 对登录、注册、消息发送、图片上传和交易动作分别限流；具体阈值依据压测和滥用模型确定。触发限制时按 OpenAPI 返回 `429 / RATE_LIMITED` 并尽可能携带 `Retry-After`，而不是退化为 400 或 500。
 
 ### 8.2 性能与容量
 
@@ -508,7 +553,7 @@ erDiagram
 3. 分别测量 REST 到 gRPC、数据库查询、密码校验、图片上传和交易锁竞争。
 4. 只针对已测瓶颈增加索引、缓存、副本或拆分服务。
 
-列表查询必须稳定排序并使用确定性次级键；商品列表建议围绕 status、created_at、id 建索引。标题搜索的数据库能力和索引策略需在数据库版本及中文搜索要求确认后决定。
+列表查询必须稳定排序并使用确定性次级键：商品和交易使用 `created_at DESC, id DESC`，收藏使用 `favorited_at DESC, product.id DESC`，会话使用 `coalesce(last_message_at, created_at) DESC, id DESC`。除消息外，MVP 继续使用非快照页码分页；并发新增、删除或排序变化可能导致跨页重复或遗漏，客户端刷新时从第一页重新读取。这是已记录的 MVP 取舍，不得宣称页码结果是时间点快照。商品列表建议围绕 status、created_at、id 建索引。标题搜索的数据库能力和索引策略需在数据库版本及中文搜索要求确认后决定。
 
 ### 8.3 可用性与韧性
 
@@ -564,10 +609,17 @@ erDiagram
 | OpenAPI 漂移 | 契约 CI | lint、bundle、Git diff | 已有 npm scripts；源契约和生成 bundle 同步维护 |
 | Proto 破坏性变更 | 契约 CI | buf lint、buf breaking、buf generate drift | 待 Proto 建立 |
 | 商品状态返回 | 契约/集成/E2E | 所有 ProductSummary、ProductDetail、ConversationProduct、TradeProduct 返回当前 status | OpenAPI Schema 已定义；实现待建 |
+| 非在售详情可见 | 契约/E2E | 非卖家访问 OFF_SHELF、RESERVED、SOLD 商品详情均为 200；不存在才为 404 | OpenAPI 已定义；实现待建 |
+| 联系方式不可删除 | 契约/Account 集成 | 已填写或未填写联系方式都不能通过 null/空字符串删除；非空新增和修改成功 | OpenAPI 已定义；实现待建 |
+| PENDING 与下架/编辑并发 | 数据库集成/并发测试 | 创建意向与下架或内容变更只有一个合法顺序提交；永不出现 OFF_SHELF + PENDING 或交错商品版本 | 状态规则已定义；实现待建 |
+| 唯一购买意向 | 数据库集成/并发测试 | 同一 buyer/product 并发及换 key 请求只产生一个 Trade；首次 201，后续 200；终态不重开 | OpenAPI 与状态规则已定义；实现待建 |
+| 会话绑定校验 | 契约/集成测试 | conversation 的商品或任一参与者不匹配时不创建 Trade 并返回 409/CONVERSATION_MISMATCH | OpenAPI 已定义；实现待建 |
 | 并发接受交易 | 数据库集成测试 | 并发请求只有一个成功；商品 RESERVED；其他交易 CANCELLED | 状态规则已定义；实现待建 |
 | 响应丢失后的重复命令 | 数据库集成测试 | 首次事务提交但响应丢失后，同 actor、operation、idempotency_key 返回首次成功的 HTTP 状态与响应体，不因当前状态变化返回 409 | OpenAPI 已定义重放语义；实现待建 |
 | 取消与完成原子性 | 数据库集成/并发测试 | 任一步骤失败时 Product、Trade、Outbox、Idempotency 全部回滚；取消与第二次确认并发时仅一个合法转换提交 | 状态规则已定义；实现待建 |
 | 越权访问 | 安全测试 | 非卖家不能改商品，非参与者不能读消息/交易 | 契约已定义；实现待建 |
+| 图片顺序与封面 | 数据库/对象存储集成测试 | 上传按顺序追加；删除后连续重排；cover_url 始终对应第一张或 null | OpenAPI 已定义；实现待建 |
+| 限流响应 | Gateway 集成测试 | 登录、注册、消息、上传和交易动作触发阈值后返回 429/RATE_LIMITED 与可用 Retry-After | OpenAPI 已定义；阈值待压测 |
 | 密码和联系方式泄漏 | 契约/日志检查 | 响应、日志、trace 不出现禁泄漏字段 | 实现待建 |
 | Outbox 故障恢复 | 集成测试 | 提交后发布失败可恢复；重复投递无重复副作用 | 设计建议；实现待建 |
 | 依赖故障 | E2E/故障注入 | deadline 生效，不无限等待，不产生半完成交易 | 设计建议；实现待建 |
@@ -580,6 +632,10 @@ erDiagram
 4. 双方确认完成后，上述可访问查询返回 SOLD。
 5. 卖家下架和重新上架后返回 OFF_SHELF 与 ON_SALE。
 6. 公开 GET /products 仍只返回 ON_SALE，除非先修改公开契约。
+7. 已认证用户通过详情接口读取 OFF_SHELF、RESERVED、SOLD 商品均返回 200。
+8. 商品存在任意 PENDING Trade 时下架返回 409；逐笔拒绝后才可下架。
+9. 商品存在任意 PENDING Trade 时字段修改、加图和删图均返回 409。
+10. RESERVED、SOLD 商品的字段修改、加图和删图均返回 409。
 
 ## 11. 决策、风险与待确认项
 
@@ -596,6 +652,8 @@ erDiagram
 | ADR-07 | 所有商品投影返回当前 status | 满足用户可见交易中状态，避免过期快照 | Human Design |
 | ADR-08 | 本地事务加 Outbox | 避免数据库与事件双写不一致；增加 Worker 和幂等消费成本 | Agent Self-Claimed |
 | ADR-09 | 幂等成功结果与领域写入同事务 | 满足响应丢失后的安全重试，避免领域状态已提交但幂等结果缺失；增加结果存储与保留成本 | Agent Self-Claimed；实现前复审保留周期 |
+| ADR-10 | 同一 buyer/product 终生只有一个 Trade 意向 | 把重复 HTTP 尝试归入同一业务意向并阻断拒绝后重复建单；代价是终态不能再次表达意向，未来如需重开必须新增受控动作 | Human Design 确认“同一 intent”；唯一键、终生范围和 200/201 为 Agent Self-Claimed |
+| ADR-11 | 私有交易/会话对非参与者返回 404 | 隐藏私有资源存在性；参与者调用错误角色动作仍用 403，增加授权错误映射分支 | Agent Self-Claimed；依据 RFC 9110 |
 
 ### 11.2 风险
 
@@ -607,6 +665,7 @@ erDiagram
 | 事件重复或乱序 | 高 / 中 | event_id 去重、aggregate_id 顺序策略、Outbox 和幂等消费者 | 各服务负责人 |
 | 单 ECS 故障导致全站不可用 | 中 / 高 | 明确不宣称 HA；确认 SLA 后增加多节点和托管数据库 | 运维负责人 |
 | JWT 退出语义不明确 | 中 / 中 | 在实现前决定仅客户端丢弃或服务端 jti 撤销，并同步 OpenAPI | 产品与安全负责人 |
+| 终生唯一 Trade 限制买家再次表达意向 | 中 / 中 | MVP 保持终态不可重开；出现真实重开需求时设计显式 reopen 动作及卖家反骚扰规则，不通过创建第二条 Trade 绕过 | 产品与 Marketplace 负责人 |
 
 ### 11.3 待确认项
 
@@ -650,6 +709,9 @@ erDiagram
 | Proto 破坏性变更检查 | Agent Self-Claimed | [Buf: Detecting breaking changes](https://buf.build/docs/breaking/)，检索于 2026-09-01 | Buf 版本在引入工具时固定 |
 | 数据库与事件双写使用 Outbox | Agent Self-Claimed | [AWS Prescriptive Guidance: Transactional outbox](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)，检索于 2026-09-01 | 借鉴模式，不绑定 AWS 服务 |
 | 幂等令牌与领域写入构成单个 ACID 操作 | Agent Self-Claimed | [AWS Builders' Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)，检索于 2026-09-01 | 用于响应丢失后的结果重放；本项目键空间额外包含 actor_id 与 operation |
+| 一个业务购买过程复用同一意向资源 | Human Design + Agent Self-Claimed | [Stripe: The Payment Intents API](https://docs.stripe.com/payments/payment-intents)，检索于 2026-09-01 | 借鉴“一个订单/会话一个 intent”和中断后复用；本项目不接入 Stripe，并自行选择 buyer/product 终生唯一与终态不重开 |
+| 私有资源可用 404 隐藏存在性 | Agent Self-Claimed | [RFC 9110 §15.5.4–15.5.5](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.4)，发布于 2022-06，检索于 2026-09-01 | 交易/会话非参与者用 404；公开商品和已知参与者错误角色不套用 |
+| 限流使用 429 与可选 Retry-After | Agent Self-Claimed | [RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585.html#section-4)，发布于 2012-04，检索于 2026-09-01 | 阈值仍由压测和滥用模型决定；契约固定可表达的状态与错误码 |
 | 密码使用慢速加盐哈希并在真实主机调参 | Agent Self-Claimed | [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)，检索于 2026-09-01 | 算法和参数实施前需安全评审与基准 |
 | JWT 实现遵守当前最佳实践 | Agent Self-Claimed | [RFC 8725: JSON Web Token Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725.html)，检索于 2026-09-01 | 退出和撤销策略仍待产品确认 |
 | 跨进程传播 Trace Context | Agent Self-Claimed | [OpenTelemetry: Context propagation](https://opentelemetry.io/docs/concepts/context-propagation/)，检索于 2026-09-01 | SDK 与版本在 Go 工程建立后固定 |

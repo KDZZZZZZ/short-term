@@ -4,7 +4,9 @@ collection:
       - Products
     summary: 浏览和搜索在售商品
     operationId: listProducts
-    description: 仅返回 `ON_SALE` 商品，并固定按发布时间倒序排列。
+    description: |
+      仅返回 `ON_SALE` 商品，固定按 `created_at DESC, id DESC` 排列。页码分页
+      不提供跨请求快照，并发发布可能导致后续页面漂移。
     parameters:
       - $ref: ../components/parameters.yaml#/Keyword
       - $ref: ../components/parameters.yaml#/Category
@@ -28,7 +30,9 @@ collection:
       - Products
     summary: 发布商品
     operationId: createProduct
-    description: 当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。
+    description: |
+      当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。图片按 multipart 中的
+      出现顺序获得连续 `sort_order`，第一张图片成为封面。
     requestBody:
       required: true
       content:
@@ -52,6 +56,8 @@ collection:
         $ref: ../components/responses.yaml#/Unauthorized
       '413':
         $ref: ../components/responses.yaml#/PayloadTooLarge
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 item:
@@ -62,7 +68,10 @@ item:
       - Products
     summary: 获取商品详情和卖家联系方式
     operationId: getProduct
-    description: 返回卖家昵称、微信和 QQ，但不返回卖家学号。
+    description: |
+      对所有已认证用户返回任意状态商品的详情；`ON_SALE`、`OFF_SHELF`、
+      `RESERVED` 和 `SOLD` 的可见性相同。`404` 只表示商品不存在。响应返回
+      卖家昵称、微信和 QQ，但不返回卖家学号。
     responses:
       '200':
         description: 商品详情。
@@ -81,7 +90,12 @@ item:
       - Products
     summary: 修改自己发布的商品
     operationId: updateProduct
-    description: 仅商品卖家可操作，且不能借此接口修改商品状态。
+    description: |
+      仅商品卖家可操作，且不能借此接口修改商品状态。只有 `ON_SALE` 或
+      `OFF_SHELF` 且不存在 `PENDING` 购买意向的商品可以修改；存在 `PENDING`
+      意向时返回 `409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回
+      `409 / PRODUCT_STATE_CONFLICT`。修改与创建意向必须共同锁定 Product，保证
+      新意向的价格快照和商品内容来自同一已提交版本。
     requestBody:
       required: true
       content:
@@ -116,7 +130,13 @@ images:
       - Products
     summary: 为自己的商品补充图片
     operationId: addProductImages
-    description: 新增后商品图片总数不能超过三张。
+    description: |
+      只有商品卖家可以操作，且商品必须为 `ON_SALE` 或 `OFF_SHELF`；
+      商品还不得存在 `PENDING` 购买意向。存在 `PENDING` 意向时返回
+      `409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回
+      `409 / PRODUCT_STATE_CONFLICT`。新增后商品图片总数不能超过三张；新图片按
+      上传顺序追加到现有图片之后并取得连续 `sort_order`，仅当此前没有图片时第一张
+      新图片成为封面。
     requestBody:
       required: true
       content:
@@ -146,6 +166,8 @@ images:
         $ref: ../components/responses.yaml#/Conflict
       '413':
         $ref: ../components/responses.yaml#/PayloadTooLarge
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
@@ -158,6 +180,13 @@ image:
       - Products
     summary: 删除自己商品的一张图片
     operationId: deleteProductImage
+    description: |
+      只有商品卖家可以操作，且商品必须为 `ON_SALE` 或 `OFF_SHELF`；
+      商品还不得存在 `PENDING` 购买意向。存在 `PENDING` 意向时返回
+      `409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回
+      `409 / PRODUCT_STATE_CONFLICT`。删除后其余图片保持相对顺序并重新编号为连续的
+      `1..N`；若删除封面，新的第一张图片成为封面，没有剩余图片时 `cover_url` 为
+      `null`。
     responses:
       '200':
         description: 图片已删除。
@@ -184,7 +213,11 @@ offShelf:
       - Products
     summary: 下架自己的商品
     operationId: offShelfProduct
-    description: 仅允许 `ON_SALE -> OFF_SHELF`。
+    description: |
+      仅商品卖家可执行 `ON_SALE -> OFF_SHELF`，且商品不得存在任何 `PENDING`
+      购买意向。存在 `PENDING` 意向时必须先逐笔拒绝，由该意向与下架操作共同锁定
+      Product 后返回 `409 / TRADE_STATE_CONFLICT`，不得出现已下架商品仍有
+      `PENDING` 意向的提交结果。
     responses:
       '200':
         description: 下架后的商品详情。

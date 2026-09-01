@@ -3,7 +3,7 @@
   "info": {
     "title": "校园二手交易平台 API",
     "version": "1.0.0",
-    "description": "校园二手交易平台 MVP 的唯一公开 HTTP API 契约。\n\n用户没有固定买家或卖家角色。用户在自己发布的商品中是卖家，\n在自己发起的交易中是买家。推荐算法和邮件通知不在 MVP 范围内。\n\n跨资源状态变化及并发约束见 `docs/state-machines.md`。\n",
+    "description": "校园二手交易平台 MVP 的唯一公开 HTTP API 契约。\n\n用户没有固定买家或卖家角色。用户在自己发布的商品中是卖家，\n在自己发起的交易中是买家。推荐算法和邮件通知不在 MVP 范围内。\n\n公开商品列表只展示在售商品，但已认证用户可查看任意状态商品详情。同一买家对\n同一商品只有一个 Trade 购买意向，重复创建请求返回既有意向而不生成第二笔。\n\n跨资源状态变化及并发约束见 `docs/state-machines.md`。\n",
     "contact": {
       "name": "short-term maintainers",
       "url": "https://github.com/KDZZZZZZ/short-term"
@@ -82,6 +82,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -122,6 +125,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -188,6 +194,7 @@
         ],
         "summary": "修改当前用户资料",
         "operationId": "updateCurrentUser",
+        "description": "仅修改请求中出现的字段。微信和 QQ 只允许设置或修改为非空值；显式 `null`\n或空字符串返回 `400 / VALIDATION_ERROR`，省略字段表示保持原值。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -269,6 +276,7 @@
         ],
         "summary": "获取当前用户发布的商品",
         "operationId": "listCurrentUserProducts",
+        "description": "固定按 `created_at DESC, id DESC` 排列。页码分页不提供跨请求快照，并发变更\n可能导致后续页面漂移。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/ProductStatus"
@@ -310,7 +318,7 @@
         ],
         "summary": "浏览和搜索在售商品",
         "operationId": "listProducts",
-        "description": "仅返回 `ON_SALE` 商品，并固定按发布时间倒序排列。",
+        "description": "仅返回 `ON_SALE` 商品，固定按 `created_at DESC, id DESC` 排列。页码分页\n不提供跨请求快照，并发发布可能导致后续页面漂移。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/Keyword"
@@ -353,7 +361,7 @@
         ],
         "summary": "发布商品",
         "operationId": "createProduct",
-        "description": "当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。",
+        "description": "当前用户微信或 QQ 至少填写一项，最多同时上传三张图片。图片按 multipart 中的\n出现顺序获得连续 `sort_order`，第一张图片成为封面。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -390,6 +398,9 @@
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -408,7 +419,7 @@
         ],
         "summary": "获取商品详情和卖家联系方式",
         "operationId": "getProduct",
-        "description": "返回卖家昵称、微信和 QQ，但不返回卖家学号。",
+        "description": "对所有已认证用户返回任意状态商品的详情；`ON_SALE`、`OFF_SHELF`、\n`RESERVED` 和 `SOLD` 的可见性相同。`404` 只表示商品不存在。响应返回\n卖家昵称、微信和 QQ，但不返回卖家学号。\n",
         "responses": {
           "200": {
             "description": "商品详情。",
@@ -437,7 +448,7 @@
         ],
         "summary": "修改自己发布的商品",
         "operationId": "updateProduct",
-        "description": "仅商品卖家可操作，且不能借此接口修改商品状态。",
+        "description": "仅商品卖家可操作，且不能借此接口修改商品状态。只有 `ON_SALE` 或\n`OFF_SHELF` 且不存在 `PENDING` 购买意向的商品可以修改；存在 `PENDING`\n意向时返回 `409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回\n`409 / PRODUCT_STATE_CONFLICT`。修改与创建意向必须共同锁定 Product，保证\n新意向的价格快照和商品内容来自同一已提交版本。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -492,7 +503,7 @@
         ],
         "summary": "为自己的商品补充图片",
         "operationId": "addProductImages",
-        "description": "新增后商品图片总数不能超过三张。",
+        "description": "只有商品卖家可以操作，且商品必须为 `ON_SALE` 或 `OFF_SHELF`；\n商品还不得存在 `PENDING` 购买意向。存在 `PENDING` 意向时返回\n`409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回\n`409 / PRODUCT_STATE_CONFLICT`。新增后商品图片总数不能超过三张；新图片按\n上传顺序追加到现有图片之后并取得连续 `sort_order`，仅当此前没有图片时第一张\n新图片成为封面。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -538,6 +549,9 @@
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -559,6 +573,7 @@
         ],
         "summary": "删除自己商品的一张图片",
         "operationId": "deleteProductImage",
+        "description": "只有商品卖家可以操作，且商品必须为 `ON_SALE` 或 `OFF_SHELF`；\n商品还不得存在 `PENDING` 购买意向。存在 `PENDING` 意向时返回\n`409 / TRADE_STATE_CONFLICT`，`RESERVED` 或 `SOLD` 返回\n`409 / PRODUCT_STATE_CONFLICT`。删除后其余图片保持相对顺序并重新编号为连续的\n`1..N`；若删除封面，新的第一张图片成为封面，没有剩余图片时 `cover_url` 为\n`null`。\n",
         "responses": {
           "200": {
             "description": "图片已删除。",
@@ -600,7 +615,7 @@
         ],
         "summary": "下架自己的商品",
         "operationId": "offShelfProduct",
-        "description": "仅允许 `ON_SALE -> OFF_SHELF`。",
+        "description": "仅商品卖家可执行 `ON_SALE -> OFF_SHELF`，且商品不得存在任何 `PENDING`\n购买意向。存在 `PENDING` 意向时必须先逐笔拒绝，由该意向与下架操作共同锁定\nProduct 后返回 `409 / TRADE_STATE_CONFLICT`，不得出现已下架商品仍有\n`PENDING` 意向的提交结果。\n",
         "responses": {
           "200": {
             "description": "下架后的商品详情。",
@@ -679,7 +694,7 @@
         ],
         "summary": "获取当前用户的收藏列表",
         "operationId": "listFavorites",
-        "description": "已下架、已预留或已售商品仍可返回，并携带当前商品状态。",
+        "description": "已下架、已预留或已售商品仍可返回，并携带当前商品状态。固定按\n`favorited_at DESC, product.id DESC` 排列；页码分页不提供跨请求快照。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -723,7 +738,7 @@
         ],
         "summary": "收藏商品",
         "operationId": "addFavorite",
-        "description": "接口幂等；用户不能收藏自己发布的商品。",
+        "description": "接口幂等；任意状态的现存商品均可收藏，包括 `OFF_SHELF`、`RESERVED` 和\n`SOLD`。用户不能收藏自己发布的商品；该情况固定返回\n`409 / SELF_ACTION_NOT_ALLOWED`。`400` 仅用于请求格式或参数值无效。\n",
         "responses": {
           "200": {
             "description": "商品处于已收藏状态。",
@@ -794,7 +809,7 @@
         ],
         "summary": "创建或获取商品会话",
         "operationId": "getOrCreateProductConversation",
-        "description": "当前用户作为买家，商品发布者作为卖家。相同商品、买家和卖家的会话只存在一个；\n重复调用返回原会话。用户不能针对自己的商品创建会话。\n",
+        "description": "当前用户作为买家，商品发布者作为卖家。相同商品、买家和卖家的会话只存在一个；\n重复调用返回原会话。用户不能针对自己的商品创建会话，该情况固定返回\n`409 / SELF_ACTION_NOT_ALLOWED`；`400` 仅用于请求格式或参数值无效。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -836,7 +851,7 @@
         ],
         "summary": "获取当前用户的会话列表",
         "operationId": "listConversations",
-        "description": "按最后消息时间倒序排列，无消息会话按创建时间倒序排列。",
+        "description": "固定按 `coalesce(last_message_at, created_at) DESC, id DESC` 排列。页码分页\n不提供跨请求快照，并发消息可能改变会话顺序并导致后续页面漂移。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -907,7 +922,7 @@
         ],
         "summary": "获取会话消息",
         "operationId": "listConversationMessages",
-        "description": "只有会话买卖双方可以访问，使用不透明游标向前分页。",
+        "description": "只有会话买卖双方可以访问，使用不透明游标向前分页。非参与者与不存在的会话\n均返回 `404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露会话是否存在。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/Before"
@@ -933,9 +948,6 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
@@ -950,7 +962,7 @@
         ],
         "summary": "发送文字消息",
         "operationId": "sendConversationMessage",
-        "description": "MVP 仅支持 1 至 1000 字的文字消息。",
+        "description": "MVP 仅支持 1 至 1000 字的文字消息。非参与者与不存在的会话均返回\n`404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露会话是否存在。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -983,14 +995,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1010,7 +1022,7 @@
         ],
         "summary": "将对方消息标记为已读",
         "operationId": "markConversationRead",
-        "description": "将指定消息及其之前由对方发送的消息标记为已读，接口幂等。",
+        "description": "将指定消息及其之前由对方发送的消息标记为已读，接口幂等。非参与者与不存在\n的会话均返回 `404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露会话是否存在。\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -1038,9 +1050,6 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
@@ -1060,9 +1069,9 @@
         "tags": [
           "Trades"
         ],
-        "summary": "针对商品发起交易",
+        "summary": "创建或获取商品购买意向",
         "operationId": "createTrade",
-        "description": "当前用户成为买家，商品发布者成为卖家。价格快照由服务端读取商品价格，\n创建后交易为 `PENDING`，商品仍为 `ON_SALE`。用户不能购买自己的商品。\n",
+        "description": "当前用户成为买家，商品发布者成为卖家。一个 `(product_id, buyer_id)` 在商品\n整个生命周期内只对应一个 Trade 购买意向，数据库必须以该组合唯一约束并在\n并发请求中执行 create-or-get：首次创建返回 `201`；已经存在时不创建、不改变\n状态，返回该意向当前表示和 `200`，即使旧意向已经 `CANCELLED` 或 `COMPLETED`。\n更换 `Idempotency-Key` 不能创建第二个意向；使用同一 key 重试仍按幂等规则重放\n首次成功的 HTTP 状态与响应体。首次创建时价格快照由服务端读取商品价格，状态为\n`PENDING`，商品保持 `ON_SALE`。用户不能购买自己的商品，该情况返回\n`409 / SELF_ACTION_NOT_ALLOWED`。请求携带 `conversation_id` 时必须验证会话商品\n与买卖双方完全一致；已有 Trade 时，显式提供的值还必须与已存绑定完全相同\n（`null` 也视为显式值）。任一不匹配返回 `409 / CONVERSATION_MISMATCH`，省略该\n字段则只返回既有意向而不修改绑定。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1079,6 +1088,16 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "已存在的同一购买意向；未创建新记录，也未改变其当前状态。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuccess"
+                }
+              }
+            }
+          },
           "201": {
             "description": "已创建的待处理交易。",
             "content": {
@@ -1101,6 +1120,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -1114,7 +1136,7 @@
         ],
         "summary": "获取当前用户的交易列表",
         "operationId": "listTrades",
-        "description": "`as` 仅表示当前用户在结果中的关系，不是用户固定角色。",
+        "description": "`as` 仅表示当前用户在结果中的关系，不是用户固定角色。固定按\n`created_at DESC, id DESC` 排列；页码分页不提供跨请求快照。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/TradeRole"
@@ -1164,7 +1186,7 @@
         ],
         "summary": "获取交易详情",
         "operationId": "getTrade",
-        "description": "只有交易买卖双方可以访问。",
+        "description": "只有交易买卖双方可以访问。非参与者与不存在的交易均返回\n`404 / RESOURCE_NOT_FOUND`，不通过 `403` 暴露交易是否存在。\n",
         "responses": {
           "200": {
             "description": "交易详情。",
@@ -1178,9 +1200,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -1203,7 +1222,7 @@
         ],
         "summary": "卖家接受待处理交易",
         "operationId": "acceptTrade",
-        "description": "仅卖家可执行 `PENDING -> ACCEPTED`。服务端必须在同一数据库事务中将商品\n`ON_SALE -> RESERVED`，并取消该商品的其他 `PENDING` 交易。\n",
+        "description": "仅卖家可执行 `PENDING -> ACCEPTED`。服务端必须在同一数据库事务中将商品\n`ON_SALE -> RESERVED`，并取消该商品的其他 `PENDING` 交易。\n非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`；交易买家调用此卖家\n专用动作返回 `403 / FORBIDDEN`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1232,6 +1251,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -1250,7 +1272,7 @@
         ],
         "summary": "卖家拒绝待处理交易",
         "operationId": "rejectTrade",
-        "description": "仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。",
+        "description": "仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。该 Trade 是该买家对商品\n的唯一购买意向，拒绝后再次调用创建意向接口只返回同一 `CANCELLED` Trade，\n不产生新意向或新通知。非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`；\n交易买家调用此卖家专用动作返回 `403 / FORBIDDEN`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1292,6 +1314,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -1310,7 +1335,7 @@
         ],
         "summary": "取消交易",
         "operationId": "cancelTrade",
-        "description": "`PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，\n商品必须从 `RESERVED` 恢复为 `ON_SALE`。`ACCEPTED` 交易取消时，交易和\n商品的状态变化必须原子提交，任一变化失败都不得保留另一项变化。\n",
+        "description": "`PENDING` 时仅买家可取消且商品不变；`ACCEPTED` 时买卖双方均可取消，\n商品必须从 `RESERVED` 恢复为 `ON_SALE`。`ACCEPTED` 交易取消时，交易和\n商品的状态变化必须原子提交，任一变化失败都不得保留另一项变化。\n非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1352,6 +1377,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -1370,7 +1398,7 @@
         ],
         "summary": "确认线下交易完成",
         "operationId": "confirmTrade",
-        "description": "仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持\n`ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品\n`RESERVED -> SOLD`。双方完成确认时，确认时间、交易和商品的状态变化必须\n原子提交，任一变化失败都不得保留其他变化。\n",
+        "description": "仅交易买卖双方可确认，接口幂等。第一次确认只记录当前用户确认时间并保持\n`ACCEPTED`；双方均确认后，交易 `ACCEPTED -> COMPLETED`，商品\n`RESERVED -> SOLD`。双方完成确认时，确认时间、交易和商品的状态变化必须\n原子提交，任一变化失败都不得保留其他变化。\n非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1390,14 +1418,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1449,6 +1477,8 @@
         ],
         "minLength": 1,
         "maxLength": 64,
+        "pattern": "^\\S+$",
+        "description": "用户尚未填写微信时响应为 `null`。",
         "examples": [
           "wx_xiaoming"
         ]
@@ -1459,6 +1489,7 @@
           "null"
         ],
         "pattern": "^[0-9]{5,20}$",
+        "description": "用户尚未填写 QQ 时响应为 `null`。",
         "examples": [
           "123456789"
         ]
@@ -1478,7 +1509,13 @@
             "$ref": "#/components/schemas/PasswordInput"
           },
           "nickname": {
-            "$ref": "#/components/schemas/Nickname"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Nickname"
+              }
+            ],
+            "description": "省略时服务端使用“校园用户”；默认值不得从学号派生。",
+            "default": "校园用户"
           },
           "wechat": {
             "$ref": "#/components/schemas/Wechat"
@@ -1600,6 +1637,7 @@
       },
       "ErrorCode": {
         "type": "string",
+        "description": "稳定业务错误码及其 HTTP 绑定：请求格式或字段值无效使用\n`400 / VALIDATION_ERROR`；资料缺少发布商品所需联系方式使用\n`400 / CONTACT_REQUIRED`；上传数量超过三张使用\n`400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；\n已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或\n对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、\n商品或交易状态冲突使用 `409` 及对应业务码；请求过于频繁使用\n`429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。\n",
         "enum": [
           "VALIDATION_ERROR",
           "CONTACT_REQUIRED",
@@ -1612,7 +1650,9 @@
           "PRODUCT_NOT_AVAILABLE",
           "TRADE_STATE_CONFLICT",
           "PRODUCT_STATE_CONFLICT",
+          "CONVERSATION_MISMATCH",
           "SELF_ACTION_NOT_ALLOWED",
+          "RATE_LIMITED",
           "INTERNAL_ERROR"
         ]
       },
@@ -1691,19 +1731,38 @@
           }
         ]
       },
+      "WechatInput": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^\\S+$",
+        "description": "非空微信号；资料更新不接受 `null`，省略字段表示保持原值。",
+        "examples": [
+          "wx_xiaoming"
+        ]
+      },
+      "QQInput": {
+        "type": "string",
+        "pattern": "^[0-9]{5,20}$",
+        "description": "非空 QQ 号；资料更新不接受 `null`，省略字段表示保持原值。",
+        "examples": [
+          "123456789"
+        ]
+      },
       "UpdateProfileRequest": {
         "type": "object",
         "additionalProperties": false,
         "minProperties": 1,
+        "description": "仅修改请求中出现的字段。微信和 QQ 可以从未填写变为非空值，也可以修改为\n另一个非空值，但永远不能通过 `null` 或空字符串删除；省略字段表示保持原值。\n",
         "properties": {
           "nickname": {
             "$ref": "#/components/schemas/Nickname"
           },
           "wechat": {
-            "$ref": "#/components/schemas/Wechat"
+            "$ref": "#/components/schemas/WechatInput"
           },
           "qq": {
-            "$ref": "#/components/schemas/QQ"
+            "$ref": "#/components/schemas/QQInput"
           }
         }
       },
@@ -1799,7 +1858,8 @@
               "null"
             ],
             "format": "uri-reference",
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "等于 `sort_order = 1` 的图片 URL；商品没有图片时为 `null`。"
           },
           "status": {
             "$ref": "#/components/schemas/ProductStatus"
@@ -1916,7 +1976,8 @@
           "sort_order": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 3
+            "maximum": 3,
+            "description": "图片在商品内从 1 开始的连续顺序。响应中的图片按此字段升序排列；删除图片后\n服务端保持其余图片相对顺序并重新编号为连续的 `1..N`。\n"
           },
           "created_at": {
             "type": "string",
@@ -1990,6 +2051,7 @@
           "images": {
             "type": "array",
             "maxItems": 3,
+            "description": "按 `sort_order` 升序排列。",
             "items": {
               "$ref": "#/components/schemas/ProductImage"
             }
@@ -2185,7 +2247,8 @@
               "null"
             ],
             "format": "uri-reference",
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "等于商品 `sort_order = 1` 的图片 URL；商品没有图片时为 `null`。"
           },
           "status": {
             "$ref": "#/components/schemas/ProductStatus"
@@ -2496,7 +2559,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "可选的关联会话。非空时，服务端必须验证该会话属于路径中的同一商品，且其\nbuyer、seller 分别为当前用户和商品卖家；资源不存在或当前用户不可见返回\n`404 / RESOURCE_NOT_FOUND`，会话商品或参与者不匹配返回\n`409 / CONVERSATION_MISMATCH`。Trade 已存在时，显式值还必须与已存绑定相同；\n省略字段表示不要求绑定匹配，也不会修改既有绑定。\n"
           }
         }
       },
@@ -2524,7 +2588,8 @@
               "null"
             ],
             "format": "uri-reference",
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "等于商品 `sort_order = 1` 的图片 URL；商品没有图片时为 `null`。"
           },
           "status": {
             "$ref": "#/components/schemas/ProductStatus"
@@ -2543,6 +2608,7 @@
       "Trade": {
         "type": "object",
         "additionalProperties": false,
+        "description": "一个商品与一个买家的唯一购买意向。同一 `(product.id, buyer.id)` 在商品整个\n生命周期内只对应一个 Trade；状态变化或终止后也不会创建第二个 Trade。\n",
         "required": [
           "id",
           "product",
@@ -2723,23 +2789,92 @@
                   "code": "VALIDATION_ERROR",
                   "message": "请求参数不合法"
                 }
+              },
+              "contactRequired": {
+                "value": {
+                  "code": "CONTACT_REQUIRED",
+                  "message": "发布商品前请至少填写微信或 QQ"
+                }
+              },
+              "imageLimitExceeded": {
+                "value": {
+                  "code": "IMAGE_LIMIT_EXCEEDED",
+                  "message": "商品图片不能超过三张"
+                }
               }
             }
           }
         }
       },
       "Conflict": {
-        "description": "唯一约束、商品状态或交易状态发生冲突。",
+        "description": "唯一约束、自我操作、商品状态或交易状态发生冲突；具体操作描述决定可返回的业务码。\n",
         "content": {
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             },
             "examples": {
-              "stateConflict": {
+              "tradeStateConflict": {
                 "value": {
                   "code": "TRADE_STATE_CONFLICT",
                   "message": "当前交易状态不允许执行该操作"
+                }
+              },
+              "productStateConflict": {
+                "value": {
+                  "code": "PRODUCT_STATE_CONFLICT",
+                  "message": "当前商品状态不允许修改"
+                }
+              },
+              "conversationMismatch": {
+                "value": {
+                  "code": "CONVERSATION_MISMATCH",
+                  "message": "会话与本次购买意向的商品或参与者不匹配"
+                }
+              },
+              "productNotAvailable": {
+                "value": {
+                  "code": "PRODUCT_NOT_AVAILABLE",
+                  "message": "商品当前不可交易"
+                }
+              },
+              "selfActionNotAllowed": {
+                "value": {
+                  "code": "SELF_ACTION_NOT_ALLOWED",
+                  "message": "不能对自己发布的商品执行该操作"
+                }
+              },
+              "studentNumberExists": {
+                "value": {
+                  "code": "STUDENT_NO_EXISTS",
+                  "message": "该学号已注册"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "当前用户或客户端在限流窗口内请求过多；响应不得被缓存。",
+        "headers": {
+          "Retry-After": {
+            "description": "建议客户端等待的秒数。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "rateLimited": {
+                "value": {
+                  "code": "RATE_LIMITED",
+                  "message": "请求过于频繁，请稍后重试"
                 }
               }
             }
@@ -2849,7 +2984,7 @@
       "Page": {
         "name": "page",
         "in": "query",
-        "description": "从 1 开始的页码。",
+        "description": "从 1 开始的页码。页码分页不提供跨请求快照；并发新增、删除或排序字段变化可能\n导致跨页重复或遗漏，客户端刷新列表时应从第一页重新读取。此行为是 MVP 的已知取舍。\n",
         "schema": {
           "type": "integer",
           "minimum": 1,

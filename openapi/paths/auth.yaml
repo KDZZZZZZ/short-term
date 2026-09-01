@@ -22,6 +22,8 @@ register:
         $ref: ../components/responses.yaml#/BadRequest
       '409':
         $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 login:
@@ -48,6 +50,8 @@ login:
         $ref: ../components/responses.yaml#/BadRequest
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
 
