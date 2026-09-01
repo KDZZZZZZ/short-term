@@ -463,7 +463,10 @@ func foreignToken(t *testing.T) string {
 // about the public HTTP contract the Gateway must implement.
 type stubAccounts struct {
 	changePasswordErr error
+	withoutContact    bool
 	lastUpdate        *accountv1.UpdateProfileRequest
+	batchCalls        int
+	lastBatchSize     int
 }
 
 func (s *stubAccounts) userMe() *accountv1.UserMe {
@@ -496,18 +499,27 @@ func (s *stubAccounts) Login(_ context.Context, _ *accountv1.LoginRequest, _ ...
 }
 
 func (s *stubAccounts) GetUser(_ context.Context, req *accountv1.GetUserRequest, _ ...grpc.CallOption) (*accountv1.GetUserResponse, error) {
-	wechat := "wx_xiaoming"
-	return &accountv1.GetUserResponse{User: &accountv1.UserContact{
-		Id: req.GetUserId(), Nickname: "小明", Wechat: &wechat,
-	}}, nil
+	user := &accountv1.UserContact{Id: req.GetUserId(), Nickname: "小明"}
+	if !s.withoutContact {
+		wechat := "wx_xiaoming"
+		user.Wechat = &wechat
+	}
+	return &accountv1.GetUserResponse{User: user}, nil
 }
 
 func (s *stubAccounts) GetProfile(_ context.Context, _ *accountv1.GetProfileRequest, _ ...grpc.CallOption) (*accountv1.GetProfileResponse, error) {
 	return &accountv1.GetProfileResponse{User: s.userMe()}, nil
 }
 
-func (s *stubAccounts) BatchGetUsers(_ context.Context, _ *accountv1.BatchGetUsersRequest, _ ...grpc.CallOption) (*accountv1.BatchGetUsersResponse, error) {
-	return &accountv1.BatchGetUsersResponse{}, nil
+func (s *stubAccounts) BatchGetUsers(_ context.Context, req *accountv1.BatchGetUsersRequest, _ ...grpc.CallOption) (*accountv1.BatchGetUsersResponse, error) {
+	s.batchCalls++
+	s.lastBatchSize = len(req.GetUserIds())
+
+	users := make(map[string]*accountv1.UserPublic, len(req.GetUserIds()))
+	for _, id := range req.GetUserIds() {
+		users[id] = &accountv1.UserPublic{Id: id, Nickname: "小明"}
+	}
+	return &accountv1.BatchGetUsersResponse{Users: users}, nil
 }
 
 func (s *stubAccounts) UpdateProfile(_ context.Context, req *accountv1.UpdateProfileRequest, _ ...grpc.CallOption) (*accountv1.UpdateProfileResponse, error) {

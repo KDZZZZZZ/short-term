@@ -21,7 +21,8 @@ type Config struct {
 	HTTPAddr string
 	// BasePath is the API root declared by openapi/openapi.yaml.
 	BasePath string
-	// MaxBodyBytes bounds a JSON request body.
+	// MaxBodyBytes bounds a JSON request body. Multipart uploads are bounded
+	// separately by the product handler.
 	MaxBodyBytes int64
 	// ReadHeaderTimeout bounds the request header read, which is the defence
 	// against a slow-header denial of service.
@@ -30,6 +31,20 @@ type Config struct {
 	WriteTimeout time.Duration
 	// DownstreamTimeout is the default deadline for internal calls.
 	DownstreamTimeout time.Duration
+	// UploadTimeout is the deadline for calls that carry image bytes, which
+	// need a larger budget than a query.
+	UploadTimeout time.Duration
+	// MediaDir, when set, serves stored product images from this directory.
+	// It is for single-host deployments where the Gateway and the Marketplace
+	// object store share a volume; object storage or a CDN leaves it empty.
+	MediaDir string
+	// MediaPath is the URL prefix media files are served under.
+	MediaPath string
+	// FavoritesEnabled wires the real Favorite Service into product detail
+	// responses. It stays false until the Favorite Service is deployed
+	// (milestone M4 of docs/backend-development-plan.md); until then
+	// is_favorited is reported as false rather than failing the request.
+	FavoritesEnabled bool
 
 	// Targets are the internal service addresses.
 	Targets grpcclient.Targets
@@ -50,6 +65,10 @@ func Load() (Config, error) {
 		ReadHeaderTimeout: loader.Duration("GATEWAY_READ_HEADER_TIMEOUT", 10*time.Second),
 		WriteTimeout:      loader.Duration("GATEWAY_WRITE_TIMEOUT", 30*time.Second),
 		DownstreamTimeout: loader.Duration("GATEWAY_DOWNSTREAM_TIMEOUT", 5*time.Second),
+		UploadTimeout:     loader.Duration("GATEWAY_UPLOAD_TIMEOUT", 30*time.Second),
+		MediaDir:          loader.String("GATEWAY_MEDIA_DIR", ""),
+		MediaPath:         loader.String("GATEWAY_MEDIA_PATH", "/media"),
+		FavoritesEnabled:  loader.Bool("GATEWAY_FAVORITES_ENABLED", false),
 		Targets: grpcclient.Targets{
 			Account:     loader.String("ACCOUNT_GRPC_TARGET", "account:9001"),
 			Marketplace: loader.String("MARKETPLACE_GRPC_TARGET", "marketplace:9002"),

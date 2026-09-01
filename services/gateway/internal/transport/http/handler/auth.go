@@ -83,6 +83,7 @@ func (h *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 type Responder interface {
 	OK(w http.ResponseWriter, r *http.Request, data any)
 	Created(w http.ResponseWriter, r *http.Request, data any)
+	Success(w http.ResponseWriter, r *http.Request, status int, data any)
 	Empty(w http.ResponseWriter, r *http.Request)
 	Error(w http.ResponseWriter, r *http.Request, err error)
 	Fail(w http.ResponseWriter, r *http.Request, code errs.Code, message string)

@@ -15,6 +15,7 @@ import (
 	"github.com/KDZZZZZZ/short-term/platform/auth"
 	"github.com/KDZZZZZZ/short-term/platform/logging"
 	"github.com/KDZZZZZZ/short-term/platform/observability"
+	"github.com/KDZZZZZZ/short-term/services/gateway/internal/application/aggregation"
 	grpcclient "github.com/KDZZZZZZ/short-term/services/gateway/internal/client/grpc"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/config"
 	gatewayhttp "github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http"
@@ -72,6 +73,12 @@ func run() error {
 		}
 	}()
 
+	var favorites aggregation.FavoriteChecker
+	if cfg.FavoritesEnabled {
+		favorites = aggregation.NewGRPCFavorites(clients.Favorite)
+	}
+	aggregator := aggregation.New(clients.Account, clients.Marketplace, favorites)
+
 	responder := gatewayhttp.NewResponder(logger)
 	router := gatewayhttp.NewRouter(gatewayhttp.RouterOptions{
 		BasePath:     cfg.BasePath,
@@ -79,8 +86,11 @@ func run() error {
 		MaxBodyBytes: cfg.MaxBodyBytes,
 		Logger:       logger,
 		Ready:        func() error { return nil },
+		MediaDir:     cfg.MediaDir,
+		MediaPath:    cfg.MediaPath,
 		Auth:         handler.NewAuth(clients.Account, responder),
 		Users:        handler.NewUsers(clients.Account, responder),
+		Products:     handler.NewProducts(clients.Marketplace, clients.Account, aggregator, responder),
 	})
 
 	server := &http.Server{
