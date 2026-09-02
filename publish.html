@@ -28,13 +28,10 @@
             <div class="card-header bg-white">📦 发布新商品</div>
             <div class="card-body">
                 <form id="publishForm">
-                    <!-- 商品名称 -->
                     <div class="mb-3">
                         <label for="productName" class="form-label">商品名称 <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="productName" required maxlength="100">
                     </div>
-
-                    <!-- 商品类别 -->
                     <div class="mb-3">
                         <label class="form-label">商品类别 <span class="text-danger">*</span></label>
                         <select class="form-select" id="productCategory" required>
@@ -44,36 +41,26 @@
                             <option value="其他" selected>其他</option>
                         </select>
                     </div>
-
-                    <!-- 商品价格 -->
                     <div class="mb-3">
                         <label for="productPrice" class="form-label">价格（元） <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required placeholder="0.00">
                     </div>
-
-                    <!-- 商品描述 -->
                     <div class="mb-3">
                         <label for="productDescription" class="form-label">商品描述（可选）</label>
                         <textarea class="form-control" id="productDescription" rows="3" placeholder="请描述商品的新旧程度、使用情况等"></textarea>
                     </div>
-
-                    <!-- 商品图片（最多3张，至少1张） -->
                     <div class="mb-3">
                         <label class="form-label">商品图片 <span class="text-danger">*</span>（至少1张，最多3张）</label>
                         <input type="file" class="form-control" id="productImages" accept="image/*" multiple>
                         <small class="text-muted">按住 Ctrl 或 Shift 可多选</small>
                         <div class="preview-container" id="previewContainer"></div>
                     </div>
-
-                    <!-- 商家手机号 -->
                     <div class="mb-3">
                         <label for="sellerPhone" class="form-label">商家手机号 <span class="text-danger">*</span></label>
                         <input type="tel" class="form-control" id="sellerPhone" required pattern="[0-9]{11}" maxlength="11">
                         <small class="text-muted">默认使用您的注册手机号，可修改</small>
                     </div>
-
                     <div id="message" class="mb-3"></div>
-
                     <div class="d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
                         <button type="submit" class="btn btn-success">发布商品</button>
@@ -88,11 +75,47 @@
         (function() {
             'use strict';
 
-            const SESSION_KEY = 'mock_session';
-            const USERS_KEY = 'mock_users';
-            const PRODUCTS_KEY = 'mock_products';
+            // ====== 修改 API_BASE ======
+            const API_BASE = '/api/v1';
 
-            // ----- DOM -----
+            // ====== 工具 ======
+            function getToken() { return localStorage.getItem('token'); }
+            function getCurrentUser() {
+                const u = localStorage.getItem('user');
+                return u ? JSON.parse(u) : null;
+            }
+            function redirectToLogin() {
+                window.location.replace('./login.html');
+            }
+            async function authFetch(url, options = {}) {
+                const token = getToken();
+                if (!token) { redirectToLogin(); return; }
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    ...options.headers
+                };
+                if (options.body && options.body instanceof FormData) {
+                    delete headers['Content-Type'];
+                } else {
+                    headers['Content-Type'] = 'application/json';
+                }
+                const resp = await fetch(url, { ...options, headers });
+                if (resp.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    redirectToLogin();
+                    return;
+                }
+                return resp;
+            }
+
+            const user = getCurrentUser();
+            if (!user || !getToken()) {
+                redirectToLogin();
+                return;
+            }
+
+            // ====== DOM ======
             const productName = document.getElementById('productName');
             const productCategory = document.getElementById('productCategory');
             const productPrice = document.getElementById('productPrice');
@@ -104,31 +127,9 @@
             const cancelBtn = document.getElementById('cancelBtn');
             const publishForm = document.getElementById('publishForm');
 
-            // ----- 工具 -----
-            function showMessage(text, isError = true) {
-                messageDiv.innerHTML = `<div class="alert ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
-                    ${text}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>`;
-            }
-            function clearMessage() { messageDiv.innerHTML = ''; }
-
-            // ----- 获取当前用户 -----
-            function getCurrentUser() {
-                const sn = localStorage.getItem(SESSION_KEY);
-                if (!sn) return null;
-                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-                return users[sn] || null;
-            }
-
-            const user = getCurrentUser();
-            if (!user) {
-                window.location.replace('./login.html');
-                return;
-            }
             sellerPhone.value = user.phone || '';
 
-            // ----- 图片预览（多张） -----
+            // ====== 图片预览 ======
             let selectedFiles = [];
             productImages.addEventListener('change', function(e) {
                 const files = Array.from(e.target.files);
@@ -168,8 +169,16 @@
                 clearMessage();
             });
 
-            // ----- 提交发布 -----
-            publishForm.addEventListener('submit', function(e) {
+            function showMessage(text, isError = true) {
+                messageDiv.innerHTML = `<div class="alert ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
+                    ${text}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            }
+            function clearMessage() { messageDiv.innerHTML = ''; }
+
+            // ====== 提交 ======
+            publishForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 clearMessage();
 
@@ -179,73 +188,54 @@
                 const description = productDescription.value.trim() || '';
                 const phone = sellerPhone.value.trim();
 
-                if (!name) {
-                    showMessage('请输入商品名称');
-                    return;
-                }
-                if (isNaN(price) || price < 0) {
-                    showMessage('请输入有效价格');
-                    return;
-                }
-                if (!/^\d{11}$/.test(phone)) {
-                    showMessage('手机号必须为11位数字');
-                    return;
-                }
-                if (selectedFiles.length === 0) {
-                    showMessage('请至少上传一张商品图片');
-                    return;
-                }
-                if (selectedFiles.length > 3) {
-                    showMessage('最多上传3张图片');
-                    return;
-                }
+                if (!name) { showMessage('请输入商品名称'); return; }
+                if (isNaN(price) || price < 0) { showMessage('请输入有效价格'); return; }
+                if (!/^\d{11}$/.test(phone)) { showMessage('手机号必须为11位数字'); return; }
+                if (selectedFiles.length === 0) { showMessage('请至少上传一张商品图片'); return; }
 
-                const imagePromises = selectedFiles.map(file => {
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = ev => resolve(ev.target.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
+                // 1. 创建商品
+                const payload = {
+                    title: name,
+                    category: category,
+                    price: price,
+                    description: description,
+                    sellerPhone: phone
+                };
+                const resp = await authFetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
                 });
+                if (!resp) return;
+                const data = await resp.json();
+                if (!resp.ok) {
+                    showMessage(data.message || '创建商品失败');
+                    return;
+                }
+                const productId = data.data.id;
 
-                Promise.all(imagePromises)
-                    .then(imagesBase64 => {
-                        const newProduct = {
-                            id: Date.now(),
-                            title: name,
-                            category: category,
-                            price: price,
-                            description: description,
-                            images: imagesBase64,
-                            status: 'selling',
-                            sellerPhone: phone,
-                            sellerStudentNumber: user.studentNumber
-                        };
-
-                        let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
-                        // 迁移旧数据（确保新商品入库前统一分类）
-                        products = products.map(p => {
-                            if (p.category === '笔记') p.category = '生活用品';
-                            return p;
-                        });
-                        products.push(newProduct);
-                        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
-
-                        showMessage('✅ 商品发布成功！', false);
-                        setTimeout(() => {
-                            window.location.replace('./main.html');
-                        }, 1500);
-                    })
-                    .catch(err => {
-                        showMessage('图片读取失败，请重试');
-                        console.error(err);
+                // 2. 上传图片
+                let uploadSuccess = true;
+                for (let file of selectedFiles) {
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    const uploadResp = await authFetch(`${API_BASE}/products/${productId}/images`, {
+                        method: 'POST',
+                        body: formData
                     });
+                    if (!uploadResp || !uploadResp.ok) {
+                        uploadSuccess = false;
+                        break;
+                    }
+                }
+                if (!uploadSuccess) {
+                    showMessage('图片上传部分失败，但商品已创建，请编辑补充图片。', false);
+                } else {
+                    showMessage('✅ 商品发布成功！', false);
+                }
+                setTimeout(() => window.location.replace('./main.html'), 1500);
             });
 
-            cancelBtn.addEventListener('click', function() {
-                window.location.replace('./main.html');
-            });
+            cancelBtn.addEventListener('click', () => window.location.replace('./main.html'));
 
         })();
     </script>

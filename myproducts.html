@@ -54,59 +54,64 @@
         (function() {
             'use strict';
 
-            const SESSION_KEY = 'mock_session';
-            const USERS_KEY = 'mock_users';
-            const PRODUCTS_KEY = 'mock_products';
+            const API_BASE = '/api/v1';
 
+            function getToken() { return localStorage.getItem('token'); }
             function getCurrentUser() {
-                const sn = localStorage.getItem(SESSION_KEY);
-                if (!sn) return null;
-                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-                return users[sn] || null;
+                const u = localStorage.getItem('user');
+                return u ? JSON.parse(u) : null;
+            }
+            function redirectToLogin() {
+                window.location.replace('./login.html');
+            }
+            async function authFetch(url, options = {}) {
+                const token = getToken();
+                if (!token) { redirectToLogin(); return; }
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+                const resp = await fetch(url, { ...options, headers });
+                if (resp.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    redirectToLogin();
+                    return;
+                }
+                return resp;
             }
 
             const user = getCurrentUser();
-            if (!user) {
-                window.location.replace('./login.html');
+            if (!user || !getToken()) {
+                redirectToLogin();
                 return;
             }
             document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
-
-            // 获取商品并迁移分类
-            function getProducts() {
-                let data = localStorage.getItem(PRODUCTS_KEY);
-                let products = data ? JSON.parse(data) : [];
-                products = products.map(p => {
-                    if (p.category === '笔记') p.category = '生活用品';
-                    if (!p.images) p.images = [];
-                    if (!p.description) p.description = '';
-                    return p;
-                });
-                return products;
-            }
 
             const productListEl = document.getElementById('productList');
             const emptyMessageEl = document.getElementById('emptyMessage');
             const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
 
-            function renderMyProducts() {
-                const allProducts = getProducts();
-                // 只显示当前用户发布的商品
-                const myProducts = allProducts.filter(p => p.sellerStudentNumber === user.studentNumber);
+            async function renderMyProducts() {
+                const resp = await authFetch(`${API_BASE}/users/me/products`);
+                if (!resp) return;
+                const data = await resp.json();
+                const products = data.data || [];
 
                 productListEl.innerHTML = '';
-                if (myProducts.length === 0) {
+                if (products.length === 0) {
                     emptyMessageEl.classList.remove('hidden');
                     return;
                 }
                 emptyMessageEl.classList.add('hidden');
 
-                myProducts.forEach(p => {
+                products.forEach(p => {
                     const col = document.createElement('div');
                     col.className = 'col';
                     const badge = p.status === 'selling' ? 'selling' : 'sold';
                     const statusText = p.status === 'selling' ? '出售中' : '已售出';
-                    const imgSrc = p.images && p.images.length > 0 ? p.images[0] : fallbackSvg;
+                    const imgSrc = p.images && p.images.length > 0 ? (p.images[0].url || p.images[0]) : fallbackSvg;
                     col.innerHTML = `
                         <div class="card product-card">
                             <img src="${imgSrc}" class="card-img-top" alt="${p.title}" onerror="this.src='${fallbackSvg}'">
@@ -119,9 +124,7 @@
                                     <span class="price">¥${p.price}</span>
                                     <span class="category-badge">${p.category}</span>
                                 </div>
-                                <div class="mt-2 small text-muted">
-                                    <i class="fas fa-phone"></i> ${p.sellerPhone || '未留电话'}
-                                </div>
+                                <div class="mt-2 small text-muted"><i class="fas fa-phone"></i> ${p.sellerPhone || '未留电话'}</div>
                                 <button class="btn btn-outline-primary btn-sm w-100 edit-btn" data-id="${p.id}">✏️ 编辑</button>
                             </div>
                         </div>
@@ -129,36 +132,24 @@
                     productListEl.appendChild(col);
                 });
 
-                // 绑定编辑按钮事件
                 document.querySelectorAll('.edit-btn').forEach(btn => {
                     btn.addEventListener('click', function(e) {
-                        e.stopPropagation(); // 防止卡片点击干扰
+                        e.stopPropagation();
                         const id = this.dataset.id;
                         window.location.href = `./edit.html?id=${id}`;
                     });
                 });
             }
 
-            // 返回首页
-            document.getElementById('backBtn').addEventListener('click', function() {
-                window.location.replace('./main.html');
-            });
-
-            // 登出
-            document.getElementById('logoutNavBtn').addEventListener('click', function() {
-                localStorage.removeItem(SESSION_KEY);
+            document.getElementById('backBtn').addEventListener('click', () => window.location.replace('./main.html'));
+            document.getElementById('logoutNavBtn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 window.location.replace('./login.html');
             });
 
-            // 初始化
             renderMyProducts();
-
-            // 页面可见时刷新（从编辑页返回）
-            document.addEventListener('visibilitychange', function() {
-                if (!document.hidden) {
-                    renderMyProducts();
-                }
-            });
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) renderMyProducts(); });
 
         })();
     </script>

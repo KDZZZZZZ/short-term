@@ -47,7 +47,7 @@
 
         <div class="search-box">
             <div class="input-group">
-                <input type="text" class="form-control" id="searchInput" placeholder="搜索收藏的商品..." aria-label="搜索">
+                <input type="text" class="form-control" id="searchInput" placeholder="搜索收藏的商品...">
                 <button class="btn btn-primary" id="searchBtn"><i class="fas fa-search"></i></button>
             </div>
         </div>
@@ -61,7 +61,7 @@
         </div>
 
         <div id="productList" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3"></div>
-        <div id="emptyMessage" class="no-products hidden"><i class="fas fa-heart-broken fa-3x mb-2"></i><p>还没有收藏的商品，快去逛逛吧</p></div>
+        <div id="emptyMessage" class="no-products hidden"><i class="fas fa-heart-broken fa-3x mb-2"></i><p>还没有收藏的商品</p></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
@@ -69,78 +69,79 @@
         (function() {
             'use strict';
 
-            const SESSION_KEY = 'mock_session';
-            const USERS_KEY = 'mock_users';
-            const PRODUCTS_KEY = 'mock_products';
-            const FAVORITES_KEY_PREFIX = 'favorites_';
+            const API_BASE = '/api/v1';
 
+            function getToken() { return localStorage.getItem('token'); }
             function getCurrentUser() {
-                const sn = localStorage.getItem(SESSION_KEY);
-                if (!sn) return null;
-                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-                return users[sn] || null;
+                const u = localStorage.getItem('user');
+                return u ? JSON.parse(u) : null;
+            }
+            function redirectToLogin() {
+                window.location.replace('./login.html');
+            }
+            async function authFetch(url, options = {}) {
+                const token = getToken();
+                if (!token) { redirectToLogin(); return; }
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+                const resp = await fetch(url, { ...options, headers });
+                if (resp.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    redirectToLogin();
+                    return;
+                }
+                return resp;
             }
 
             const user = getCurrentUser();
-            if (!user) {
-                window.location.replace('./login.html');
+            if (!user || !getToken()) {
+                redirectToLogin();
                 return;
             }
             document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
 
-            function getFavorites() {
-                const key = FAVORITES_KEY_PREFIX + user.studentNumber;
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : [];
-            }
+            // ----- 状态 -----
+            let currentCategory = 'all';
+            let searchKeyword = '';
 
-            function getProducts() {
-                let data = localStorage.getItem(PRODUCTS_KEY);
-                let products = data ? JSON.parse(data) : [];
-                // 迁移旧分类
-                products = products.map(p => {
-                    if (p.category === '笔记') p.category = '生活用品';
-                    return p;
-                });
-                return products;
-            }
-
-            // 渲染收藏列表
             const productListEl = document.getElementById('productList');
             const emptyMessageEl = document.getElementById('emptyMessage');
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             const categoryTabs = document.getElementById('categoryTabs');
 
-            let currentCategory = 'all';
-            let searchKeyword = '';
-
             const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
 
-            function renderFavorites() {
-                const favIds = getFavorites();
-                const allProducts = getProducts();
-                let filtered = allProducts.filter(p => favIds.includes(p.id));
+            async function renderFavorites() {
+                const resp = await authFetch(`${API_BASE}/favorites`);
+                if (!resp) return;
+                const data = await resp.json();
+                let products = data.data || [];
 
+                // 分类过滤（客户端）
                 if (currentCategory !== 'all') {
-                    filtered = filtered.filter(p => p.category === currentCategory);
+                    products = products.filter(p => p.category === currentCategory);
                 }
                 if (searchKeyword.trim() !== '') {
                     const kw = searchKeyword.trim().toLowerCase();
-                    filtered = filtered.filter(p => p.title.toLowerCase().includes(kw));
+                    products = products.filter(p => p.title.toLowerCase().includes(kw));
                 }
 
                 productListEl.innerHTML = '';
-                if (filtered.length === 0) {
+                if (products.length === 0) {
                     emptyMessageEl.classList.remove('hidden');
                     return;
                 }
                 emptyMessageEl.classList.add('hidden');
 
-                filtered.forEach(p => {
+                products.forEach(p => {
                     const col = document.createElement('div');
                     col.className = 'col';
-                    const imgSrc = p.images && p.images.length > 0 ? p.images[0] : fallbackSvg;
+                    const imgSrc = p.images && p.images.length > 0 ? (p.images[0].url || p.images[0]) : fallbackSvg;
                     const statusText = p.status === 'selling' ? '出售中' : '已售出';
                     const statusClass = p.status === 'selling' ? 'badge bg-success' : 'badge bg-danger';
                     col.innerHTML = `
@@ -169,7 +170,7 @@
                 });
             }
 
-            // 事件绑定
+            // ----- 事件绑定 -----
             categoryTabs.addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
@@ -186,20 +187,15 @@
             searchBtn.addEventListener('click', doSearch);
             searchInput.addEventListener('keyup', e => { if (e.key === 'Enter') doSearch(); });
 
-            document.getElementById('backBtn').addEventListener('click', function() {
-                window.location.replace('./main.html');
-            });
-            document.getElementById('logoutNavBtn').addEventListener('click', function() {
-                localStorage.removeItem(SESSION_KEY);
+            document.getElementById('backBtn').addEventListener('click', () => window.location.replace('./main.html'));
+            document.getElementById('logoutNavBtn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 window.location.replace('./login.html');
             });
 
             renderFavorites();
-            document.addEventListener('visibilitychange', function() {
-                if (!document.hidden) {
-                    renderFavorites();
-                }
-            });
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) renderFavorites(); });
 
         })();
     </script>

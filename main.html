@@ -44,7 +44,6 @@
                 <span class="text-muted me-2" id="userNicknameDisplay">👤 昵称</span>
                 <button class="btn btn-outline-primary btn-sm" id="profileBtn">👤 个人主页</button>
                 <button class="btn btn-outline-success btn-sm" id="myProductsBtn">📦 我的卖品</button>
-                <!-- 新增消息按钮 -->
                 <button class="btn btn-outline-info btn-sm" id="messagesBtn">💬 消息</button>
                 <button id="logoutNavBtn" class="btn btn-outline-danger btn-sm">登出</button>
             </div>
@@ -82,113 +81,105 @@
         (function() {
             'use strict';
 
-            const SESSION_KEY = 'mock_session';
-            const USERS_KEY = 'mock_users';
-            const PRODUCTS_KEY = 'mock_products';
+            // ====== 修改 API_BASE ======
+            const API_BASE = '/api/v1';
 
-            function getCurrentUser() {
-                const sn = localStorage.getItem(SESSION_KEY);
-                if (!sn) return null;
-                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-                return users[sn] || null;
-            }
-
-            const user = getCurrentUser();
-            if (!user) {
-                window.location.replace('./login.html');
-                return;
-            }
-            document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
-
-            // 页面跳转
-            document.getElementById('profileBtn').addEventListener('click', function() {
-                window.location.replace('./profile.html');
-            });
-            document.getElementById('myProductsBtn').addEventListener('click', function() {
-                window.location.replace('./myproducts.html');
-            });
-            document.getElementById('messagesBtn').addEventListener('click', function() {
-                window.location.replace('./messages.html');
-            });
-            document.getElementById('publishBtn').addEventListener('click', function() {
-                window.location.replace('./publish.html');
-            });
-            document.getElementById('favoritesBtn').addEventListener('click', function() {
-                window.location.replace('./favorites.html');
-            });
-
-            // 商品数据管理
-            function getProducts() {
-                let products = localStorage.getItem(PRODUCTS_KEY);
-                if (products) {
-                    let parsed = JSON.parse(products);
-                    parsed = parsed.map(p => {
-                        if (!p.images && p.image) {
-                            p.images = [p.image];
-                            delete p.image;
-                        }
-                        if (!p.images || p.images.length === 0) p.images = [];
-                        if (!p.description) p.description = '';
-                        if (p.category === '笔记') p.category = '生活用品';
-                        return p;
-                    });
-                    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(parsed));
-                    return parsed;
-                } else {
-                    const svgPlaceholder = (text) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E${text}%3C/text%3E%3C/svg%3E`;
-                    const initialProducts = [
-                        { id: 1, title: '二手 iPhone 13 256G 蓝色', price: 4200, category: '数码', status: 'selling', images: [svgPlaceholder('iPhone 1'), svgPlaceholder('iPhone 2')], description: '外观完好，带原装充电器', sellerPhone: '13800138001', sellerStudentNumber: '202001' },
-                        { id: 2, title: '全新未拆封 小米手环7', price: 180, category: '数码', status: 'selling', images: [svgPlaceholder('手环')], description: '全新未拆封，官方保修', sellerPhone: '13800138002', sellerStudentNumber: '202002' },
-                        { id: 3, title: '高等数学 同济第七版 上册', price: 25, category: '书本', status: 'selling', images: [svgPlaceholder('数学')], description: '九成新，无笔记', sellerPhone: '13800138003', sellerStudentNumber: '202003' },
-                        { id: 4, title: '数据结构与算法分析 C++版', price: 30, category: '书本', status: 'sold', images: [svgPlaceholder('数据结构')], description: '已售出', sellerPhone: '13800138004', sellerStudentNumber: '202004' },
-                        { id: 5, title: '宿舍收纳盒 大号', price: 15, category: '生活用品', status: 'selling', images: [svgPlaceholder('收纳盒1'), svgPlaceholder('收纳盒2')], description: '全新，可折叠', sellerPhone: '13800138005', sellerStudentNumber: '202005' },
-                        { id: 6, title: '床上小桌子 可折叠', price: 20, category: '生活用品', status: 'sold', images: [svgPlaceholder('小桌子')], description: '已售出', sellerPhone: '13800138006', sellerStudentNumber: '202006' },
-                        { id: 7, title: '宿舍小风扇 便携式 USB', price: 35, category: '其他', status: 'selling', images: [svgPlaceholder('风扇')], description: '静音，三档调速', sellerPhone: '13800138007', sellerStudentNumber: '202007' },
-                        { id: 8, title: '二手 羽毛球拍 一对', price: 60, category: '其他', status: 'sold', images: [svgPlaceholder('球拍')], description: '已售出', sellerPhone: '13800138008', sellerStudentNumber: '202008' },
-                    ];
-                    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(initialProducts));
-                    return initialProducts;
-                }
-            }
-
-            let allProducts = getProducts();
             let currentCategory = 'all';
             let currentStatus = 'selling';
             let searchKeyword = '';
 
+            // ====== 工具 ======
+            function getToken() { return localStorage.getItem('token'); }
+            function getCurrentUser() {
+                const u = localStorage.getItem('user');
+                return u ? JSON.parse(u) : null;
+            }
+            function redirectToLogin() {
+                window.location.replace('./login.html');
+            }
+
+            async function authFetch(url, options = {}) {
+                const token = getToken();
+                if (!token) {
+                    redirectToLogin();
+                    return;
+                }
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+                const resp = await fetch(url, { ...options, headers });
+                if (resp.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    redirectToLogin();
+                    return;
+                }
+                return resp;
+            }
+
+            // ====== 页面初始化 ======
+            const user = getCurrentUser();
+            if (!user || !getToken()) {
+                redirectToLogin();
+                return;
+            }
+            document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
+
+            // ====== 导航按钮跳转 ======
+            document.getElementById('profileBtn').addEventListener('click', () => window.location.replace('./profile.html'));
+            document.getElementById('myProductsBtn').addEventListener('click', () => window.location.replace('./myproducts.html'));
+            document.getElementById('messagesBtn').addEventListener('click', () => window.location.replace('./messages.html'));
+            document.getElementById('publishBtn').addEventListener('click', () => window.location.replace('./publish.html'));
+            document.getElementById('favoritesBtn').addEventListener('click', () => window.location.replace('./favorites.html'));
+            document.getElementById('logoutNavBtn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.replace('./login.html');
+            });
+
+            // ====== 渲染商品列表 ======
             const productListEl = document.getElementById('productList');
             const emptyMessageEl = document.getElementById('emptyMessage');
-            const searchInput = document.getElementById('searchInput');
-            const searchBtn = document.getElementById('searchBtn');
-            const categoryTabs = document.getElementById('categoryTabs');
-            const statusTabs = document.getElementById('statusTabs');
-            const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
 
-            function renderProducts() {
-                allProducts = getProducts();
-                let filtered = allProducts
-                    .filter(p => p.status === currentStatus)
-                    .filter(p => currentCategory === 'all' || p.category === currentCategory)
-                    .filter(p => searchKeyword.trim() === '' || p.title.toLowerCase().includes(searchKeyword.trim().toLowerCase()));
+            async function renderProducts() {
+                const params = new URLSearchParams();
+                if (currentCategory !== 'all') params.append('category', currentCategory);
+                if (searchKeyword.trim()) params.append('keyword', searchKeyword.trim());
+                const url = `${API_BASE}/products?${params.toString()}`;
+                const resp = await authFetch(url);
+                if (!resp) return;
+                const data = await resp.json();
+                let products = data.data || [];
+                if (currentStatus === 'selling') {
+                    products = products.filter(p => p.status === 'selling');
+                } else {
+                    products = products.filter(p => p.status === 'sold');
+                }
+
                 productListEl.innerHTML = '';
-                if (filtered.length === 0) {
+                if (products.length === 0) {
                     emptyMessageEl.classList.remove('hidden');
                     return;
                 }
                 emptyMessageEl.classList.add('hidden');
-                filtered.forEach(p => {
+
+                const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160"%3E%3Crect width="300" height="160" fill="%23e9ecef"/%3E%3Ctext x="50%25" y="50%25" font-size="16" font-family="sans-serif" fill="%236c757d" text-anchor="middle" dy=".3em"%3E无图%3C/text%3E%3C/svg%3E';
+
+                products.forEach(p => {
                     const col = document.createElement('div');
                     col.className = 'col';
-                    const badge = p.status === 'selling' ? 'selling' : 'sold';
-                    const text = p.status === 'selling' ? '出售中' : '已售出';
-                    const imgSrc = p.images && p.images.length > 0 ? p.images[0] : fallbackSvg;
+                    const imgSrc = p.images && p.images.length > 0 ? (p.images[0].url || p.images[0]) : fallbackImg;
+                    const statusText = p.status === 'selling' ? '出售中' : '已售出';
+                    const statusClass = p.status === 'selling' ? 'selling' : 'sold';
                     col.innerHTML = `
                         <div class="card product-card" data-id="${p.id}">
-                            <img src="${imgSrc}" class="card-img-top" alt="${p.title}" onerror="this.src='${fallbackSvg}'">
+                            <img src="${imgSrc}" class="card-img-top" alt="${p.title}" onerror="this.src='${fallbackImg}'">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h5 class="card-title" title="${p.title}">${p.title}</h5>
-                                    <span class="status-badge ${badge}">${text}</span>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-1">
                                     <span class="price">¥${p.price}</span>
@@ -200,6 +191,7 @@
                     `;
                     productListEl.appendChild(col);
                 });
+
                 document.querySelectorAll('.product-card').forEach(card => {
                     card.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -208,38 +200,38 @@
                 });
             }
 
-            categoryTabs.addEventListener('click', function(e) {
+            // ====== 事件绑定 ======
+            document.getElementById('categoryTabs').addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
-                categoryTabs.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                this.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentCategory = btn.dataset.category;
                 renderProducts();
             });
-            statusTabs.addEventListener('click', function(e) {
+
+            document.getElementById('statusTabs').addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
-                statusTabs.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                this.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentStatus = btn.dataset.status;
                 renderProducts();
             });
-            function doSearch() {
-                searchKeyword = searchInput.value;
+
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                searchKeyword = document.getElementById('searchInput').value;
                 renderProducts();
-            }
-            searchBtn.addEventListener('click', doSearch);
-            searchInput.addEventListener('keyup', e => { if (e.key === 'Enter') doSearch(); });
-
-            document.getElementById('logoutNavBtn').addEventListener('click', function() {
-                localStorage.removeItem(SESSION_KEY);
-                window.location.replace('./login.html');
+            });
+            document.getElementById('searchInput').addEventListener('keyup', e => {
+                if (e.key === 'Enter') {
+                    searchKeyword = e.target.value;
+                    renderProducts();
+                }
             });
 
+            // ====== 初次渲染 ======
             renderProducts();
-            document.addEventListener('visibilitychange', function() {
-                if (!document.hidden) renderProducts();
-            });
 
         })();
     </script>

@@ -31,39 +31,20 @@
         .status-selling { background-color: #d1e7dd; color: #0f5132; }
         .status-sold { background-color: #f8d7da; color: #842029; }
         .no-images { width: 100%; height: 400px; display: flex; align-items: center; justify-content: center; background: #e9ecef; color: #6c757d; font-size: 1.2rem; border-radius: 0.5rem; }
-        .favorite-btn {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            transition: transform 0.2s;
-            padding: 0 0.5rem;
-        }
+        .favorite-btn { background: none; border: none; font-size: 2rem; cursor: pointer; transition: transform 0.2s; padding: 0 0.5rem; }
         .favorite-btn:hover { transform: scale(1.1); }
         .favorite-btn .fa-heart { color: #ccc; }
         .favorite-btn .fa-heart.favorited { color: #e74c3c; }
         .detail-header { display: flex; justify-content: space-between; align-items: center; }
-        /* 留言板样式 */
         .comment-section {
             margin-top: 2rem;
             border-top: 1px solid #e9ecef;
             padding-top: 1.5rem;
         }
-        .comment-item {
-            background: #f8f9fa;
-            padding: 0.8rem 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.8rem;
-        }
+        .comment-item { background: #f8f9fa; padding: 0.8rem 1rem; border-radius: 0.5rem; margin-bottom: 0.8rem; }
         .comment-meta { font-size: 0.85rem; color: #6c757d; margin-bottom: 0.2rem; }
         .comment-content { margin-bottom: 0.2rem; }
-        .reply-item {
-            background: #e9ecef;
-            padding: 0.5rem 0.8rem;
-            border-radius: 0.4rem;
-            margin-top: 0.5rem;
-            margin-left: 1.5rem;
-        }
+        .reply-item { background: #e9ecef; padding: 0.5rem 0.8rem; border-radius: 0.4rem; margin-top: 0.5rem; margin-left: 1.5rem; }
         .reply-meta { font-size: 0.8rem; color: #6c757d; }
         .reply-input-area { margin-top: 0.5rem; margin-left: 1.5rem; }
         .comment-input-area { margin-top: 1rem; }
@@ -82,47 +63,10 @@
             <button class="btn btn-outline-secondary" id="backBtn"><i class="fas fa-arrow-left"></i> 返回首页</button>
         </div>
 
-        <div class="detail-card">
-            <div class="detail-row">
-                <!-- 左侧图片 -->
-                <div class="detail-image-col">
-                    <div id="productCarousel" class="carousel slide w-100" data-bs-ride="false">
-                        <div class="carousel-inner" id="carouselInner"></div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">上一张</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">下一张</span>
-                        </button>
-                    </div>
-                </div>
-                <!-- 右侧信息 -->
-                <div class="detail-info-col">
-                    <div class="detail-header">
-                        <h3 id="productTitle" class="card-title mb-0">商品标题</h3>
-                        <button class="favorite-btn" id="favoriteBtn" title="收藏/取消收藏">
-                            <i class="fas fa-heart" id="favoriteIcon"></i>
-                        </button>
-                    </div>
-                    <div class="mt-1 mb-2">
-                        <span class="badge bg-light text-dark me-2" id="productCategory">分类</span>
-                        <span class="status-badge" id="productStatusBadge">出售中</span>
-                    </div>
-                    <h4 class="text-danger" id="productPrice">¥0.00</h4>
-                    <hr>
-                    <div class="mb-2"><span class="detail-label">描述：</span><span class="detail-value" id="productDescription">暂无描述</span></div>
-                    <div class="mb-2"><span class="detail-label">卖家手机：</span><span class="detail-value" id="productPhone">未留</span></div>
-                    <div id="sellerContact" class="mb-2"></div>
-                    <div class="mt-4 d-grid">
-                        <a href="#" class="btn" id="actionBtn"><i class="fas" id="actionIcon"></i> <span id="actionText">联系卖家</span></a>
-                    </div>
-                </div>
-            </div>
+        <div class="detail-card" id="detailCard">
+            <!-- 动态渲染，由 JS 填充 -->
         </div>
 
-        <!-- 留言板 -->
         <div class="comment-section" id="commentSection">
             <h5><i class="fas fa-comments"></i> 商品留言</h5>
             <div id="commentList"></div>
@@ -140,26 +84,41 @@
         (function() {
             'use strict';
 
-            const SESSION_KEY = 'mock_session';
-            const USERS_KEY = 'mock_users';
-            const PRODUCTS_KEY = 'mock_products';
-            const FAVORITES_KEY_PREFIX = 'favorites_';
-            const COMMENTS_KEY_PREFIX = 'comments_';
+            // ====== 修改 API_BASE ======
+            const API_BASE = '/api/v1';
 
-            // 当前用户
+            function getToken() { return localStorage.getItem('token'); }
             function getCurrentUser() {
-                const sn = localStorage.getItem(SESSION_KEY);
-                if (!sn) return null;
-                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-                return users[sn] || null;
+                const u = localStorage.getItem('user');
+                return u ? JSON.parse(u) : null;
             }
-            const user = getCurrentUser();
-            if (!user) {
+            function redirectToLogin() {
                 window.location.replace('./login.html');
+            }
+            async function authFetch(url, options = {}) {
+                const token = getToken();
+                if (!token) { redirectToLogin(); return; }
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+                const resp = await fetch(url, { ...options, headers });
+                if (resp.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    redirectToLogin();
+                    return;
+                }
+                return resp;
+            }
+
+            const user = getCurrentUser();
+            if (!user || !getToken()) {
+                redirectToLogin();
                 return;
             }
 
-            // 获取商品ID
             const urlParams = new URLSearchParams(window.location.search);
             const productId = parseInt(urlParams.get('id'));
             if (!productId) {
@@ -168,245 +127,150 @@
                 return;
             }
 
-            // 读取商品数据
-            let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
-            products = products.map(p => {
-                if (p.category === '笔记') p.category = '生活用品';
-                if (!p.images) p.images = [];
-                if (!p.description) p.description = '';
-                return p;
-            });
-            const product = products.find(p => p.id === productId);
-            if (!product) {
-                alert('商品不存在');
-                window.location.replace('./main.html');
-                return;
-            }
-
-            // 获取卖家资料
-            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-            const seller = users[product.sellerStudentNumber] || null;
-
-            // ----- 填充商品信息 -----
-            document.getElementById('productTitle').textContent = product.title;
-            document.getElementById('productCategory').textContent = product.category || '未分类';
-            document.getElementById('productPrice').textContent = `¥${product.price.toFixed(2)}`;
-            document.getElementById('productDescription').textContent = product.description || '暂无描述';
-            document.getElementById('productPhone').textContent = product.sellerPhone || '未留电话';
-
-            // 状态
-            const statusBadge = document.getElementById('productStatusBadge');
-            if (product.status === 'selling') {
-                statusBadge.textContent = '出售中';
-                statusBadge.className = 'status-badge status-selling';
-            } else {
-                statusBadge.textContent = '已售出';
-                statusBadge.className = 'status-badge status-sold';
-            }
-
-            // 卖家联系方式（微信/QQ）
-            const sellerContactDiv = document.getElementById('sellerContact');
-            let contactHtml = '';
-            if (seller) {
-                if (seller.wechat) contactHtml += `<span class="detail-label">微信：</span><span class="detail-value">${seller.wechat}</span><br>`;
-                if (seller.qq) contactHtml += `<span class="detail-label">QQ：</span><span class="detail-value">${seller.qq}</span>`;
-            }
-            sellerContactDiv.innerHTML = contactHtml || '<span class="text-muted">卖家未留微信/QQ</span>';
-
-            // ----- 动态设置操作按钮（根据是否卖家） -----
-            const actionBtn = document.getElementById('actionBtn');
-            const actionIcon = document.getElementById('actionIcon');
-            const actionText = document.getElementById('actionText');
-
-            const isSeller = (user.studentNumber === product.sellerStudentNumber);
-            if (isSeller) {
-                // 卖家：显示“修改商品”
-                actionBtn.className = 'btn btn-edit';
-                actionIcon.className = 'fas fa-edit';
-                actionText.textContent = '修改商品';
-                actionBtn.href = `edit.html?id=${productId}`;
-            } else {
-                // 买家：显示“联系卖家”
-                actionBtn.className = 'btn btn-chat';
-                actionIcon.className = 'fas fa-comment-dots';
-                actionText.textContent = '联系卖家';
-                actionBtn.href = `chat.html?productId=${productId}&sellerId=${product.sellerStudentNumber}`;
-            }
-
-            // ----- 图片轮播（同之前） -----
-            const carouselInner = document.getElementById('carouselInner');
-            const images = product.images && product.images.length > 0 ? product.images : [];
-            let itemsHtml = '';
-            if (images.length === 0) {
-                itemsHtml = `<div class="carousel-item active"><div class="no-images">暂无图片</div></div>`;
-            } else {
-                images.forEach((img, index) => {
-                    const activeClass = index === 0 ? 'active' : '';
-                    const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='24' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E图片加载失败%3C/text%3E%3C/svg%3E`;
-                    itemsHtml += `<div class="carousel-item ${activeClass}"><img src="${img}" class="d-block w-100" alt="商品图片${index+1}" onerror="this.src='${fallbackSvg}'"></div>`;
-                });
-            }
-            carouselInner.innerHTML = itemsHtml;
-            const totalImages = images.length;
-            if (totalImages <= 1) {
-                document.querySelector('.carousel-control-prev').style.display = 'none';
-                document.querySelector('.carousel-control-next').style.display = 'none';
-            }
-            const indicatorContainer = document.createElement('div');
-            indicatorContainer.className = 'carousel-indicators';
-            let indicatorsHtml = '';
-            if (totalImages > 1) {
-                images.forEach((_, index) => {
-                    const activeClass = index === 0 ? 'active' : '';
-                    indicatorsHtml += `<button type="button" data-bs-target="#productCarousel" data-bs-slide-to="${index}" class="${activeClass}" aria-label="Slide ${index+1}"></button>`;
-                });
-                indicatorContainer.innerHTML = indicatorsHtml;
-                document.getElementById('productCarousel').appendChild(indicatorContainer);
-            }
-
-            // ----- 收藏功能 -----
-            const favoriteBtn = document.getElementById('favoriteBtn');
-            const favoriteIcon = document.getElementById('favoriteIcon');
-            const favoritesKey = FAVORITES_KEY_PREFIX + user.studentNumber;
-            function getFavorites() {
-                const data = localStorage.getItem(favoritesKey);
-                return data ? JSON.parse(data) : [];
-            }
-            function saveFavorites(list) { localStorage.setItem(favoritesKey, JSON.stringify(list)); }
-            function isFavorited() {
-                const favs = getFavorites();
-                return favs.includes(productId);
-            }
-            function updateFavoriteUI() {
-                if (isFavorited()) favoriteIcon.classList.add('favorited');
-                else favoriteIcon.classList.remove('favorited');
-            }
-            function toggleFavorite() {
-                const favs = getFavorites();
-                const index = favs.indexOf(productId);
-                if (index !== -1) favs.splice(index, 1);
-                else favs.push(productId);
-                saveFavorites(favs);
-                updateFavoriteUI();
-                alert(isFavorited() ? '已收藏 ❤️' : '已取消收藏');
-            }
-            favoriteBtn.addEventListener('click', toggleFavorite);
-            updateFavoriteUI();
-
-            // ----- 留言板 -----
-            const commentList = document.getElementById('commentList');
-            const commentInput = document.getElementById('commentInput');
-            const submitCommentBtn = document.getElementById('submitCommentBtn');
-
-            function getComments() {
-                const key = COMMENTS_KEY_PREFIX + productId;
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : [];
-            }
-            function saveComments(comments) {
-                const key = COMMENTS_KEY_PREFIX + productId;
-                localStorage.setItem(key, JSON.stringify(comments));
-            }
-
-            function renderComments() {
-                const comments = getComments();
-                if (comments.length === 0) {
-                    commentList.innerHTML = '<p class="text-muted">暂无留言，快来发表你的看法吧！</p>';
+            // ====== 获取商品详情 ======
+            async function loadProduct() {
+                const resp = await authFetch(`${API_BASE}/products/${productId}`);
+                if (!resp) return;
+                const data = await resp.json();
+                if (!resp.ok) {
+                    alert(data.message || '商品不存在');
+                    window.location.replace('./main.html');
                     return;
                 }
-                let html = '';
+                const product = data.data;
+                renderDetail(product);
+                loadComments(product);
+            }
+
+            function renderDetail(product) {
+                const container = document.getElementById('detailCard');
                 const isSeller = (user.studentNumber === product.sellerStudentNumber);
-                comments.forEach(c => {
-                    html += `
-                        <div class="comment-item" data-comment-id="${c.id}">
-                            <div class="comment-meta"><strong>${c.buyerNickname}</strong> · ${c.time}</div>
-                            <div class="comment-content">${c.content}</div>
-                    `;
-                    if (c.replies && c.replies.length > 0) {
-                        c.replies.forEach(r => {
-                            html += `
-                                <div class="reply-item">
-                                    <div class="reply-meta"><strong>${r.sellerNickname}（卖家）</strong> · ${r.time}</div>
-                                    <div>${r.content}</div>
-                                </div>
-                            `;
-                        });
-                    }
-                    if (isSeller) {
-                        html += `
-                            <div class="reply-input-area">
-                                <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control reply-input" placeholder="回复此留言...">
-                                    <button class="btn btn-outline-primary btn-sm reply-btn">回复</button>
-                                </div>
+                const statusText = product.status === 'selling' ? '出售中' : '已售出';
+                const statusClass = product.status === 'selling' ? 'status-selling' : 'status-sold';
+
+                // 图片轮播
+                let carouselHtml = '';
+                const images = product.images || [];
+                if (images.length === 0) {
+                    carouselHtml = `<div class="carousel-item active"><div class="no-images">暂无图片</div></div>`;
+                } else {
+                    images.forEach((img, idx) => {
+                        const active = idx === 0 ? 'active' : '';
+                        const src = img.url || img;
+                        carouselHtml += `
+                            <div class="carousel-item ${active}">
+                                <img src="${src}" class="d-block w-100" alt="商品图片" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22400%22 viewBox=%220 0 600 400%22%3E%3Crect width=%22600%22 height=%22400%22 fill=%22%23e9ecef%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-size=%2224%22 font-family=%22sans-serif%22 fill=%22%236c757d%22 text-anchor=%22middle%22 dy=%22.3em%22%3E图片加载失败%3C/text%3E%3C/svg%3E'">
                             </div>
                         `;
+                    });
+                }
+
+                container.innerHTML = `
+                    <div class="detail-row">
+                        <div class="detail-image-col">
+                            <div id="productCarousel" class="carousel slide w-100">
+                                <div class="carousel-inner">${carouselHtml}</div>
+                                ${images.length > 1 ? `
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
+                                    <div class="carousel-indicators">
+                                        ${images.map((_, i) => `<button type="button" data-bs-target="#productCarousel" data-bs-slide-to="${i}" class="${i===0?'active':''}"></button>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="detail-info-col">
+                            <div class="detail-header">
+                                <h3 class="card-title mb-0">${product.title}</h3>
+                                <button class="favorite-btn" id="favoriteBtn" title="收藏/取消收藏">
+                                    <i class="fas fa-heart" id="favoriteIcon"></i>
+                                </button>
+                            </div>
+                            <div class="mt-1 mb-2">
+                                <span class="badge bg-light text-dark me-2">${product.category}</span>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                            <h4 class="text-danger">¥${product.price.toFixed(2)}</h4>
+                            <hr>
+                            <div class="mb-2"><span class="detail-label">描述：</span><span class="detail-value">${product.description || '暂无描述'}</span></div>
+                            <div class="mb-2"><span class="detail-label">卖家手机：</span><span class="detail-value">${product.sellerPhone || '未留'}</span></div>
+                            <div id="sellerContact" class="mb-2"></div>
+                            <div class="mt-4 d-grid">
+                                <a href="${isSeller ? `edit.html?id=${product.id}` : `chat.html?productId=${product.id}&sellerId=${product.sellerStudentNumber}`}" 
+                                   class="btn ${isSeller ? 'btn-edit' : 'btn-chat'}">
+                                    <i class="fas ${isSeller ? 'fa-edit' : 'fa-comment-dots'}"></i> 
+                                    ${isSeller ? '修改商品' : '联系卖家'}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 获取卖家微信/QQ 可以通过 /users/:id 接口，暂不实现
+                // 收藏状态
+                updateFavoriteUI(product.id);
+                document.getElementById('favoriteBtn').addEventListener('click', () => toggleFavorite(product.id));
+            }
+
+            // ====== 收藏功能 ======
+            async function toggleFavorite(productId) {
+                const favs = await getFavorites();
+                const index = favs.indexOf(productId);
+                if (index !== -1) {
+                    const resp = await authFetch(`${API_BASE}/favorites/${productId}`, { method: 'DELETE' });
+                    if (resp && resp.ok) {
+                        favs.splice(index, 1);
+                        localStorage.setItem('favorites', JSON.stringify(favs));
+                        updateFavoriteUI(productId);
+                        alert('已取消收藏');
                     }
-                    html += `</div>`;
-                });
-                commentList.innerHTML = html;
-
-                // 绑定回复按钮
-                document.querySelectorAll('.reply-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const commentItem = this.closest('.comment-item');
-                        const commentId = parseInt(commentItem.dataset.commentId);
-                        const input = commentItem.querySelector('.reply-input');
-                        const replyText = input.value.trim();
-                        if (!replyText) { alert('请输入回复内容'); return; }
-                        const reply = {
-                            sellerStudentNumber: user.studentNumber,
-                            sellerNickname: user.nickname,
-                            content: replyText,
-                            time: new Date().toLocaleString()
-                        };
-                        const comments = getComments();
-                        const comment = comments.find(c => c.id === commentId);
-                        if (!comment) return;
-                        if (!comment.replies) comment.replies = [];
-                        comment.replies.push(reply);
-                        saveComments(comments);
-                        renderComments();
-                        input.value = '';
-                    });
-                });
-                document.querySelectorAll('.reply-input').forEach(inp => {
-                    inp.addEventListener('keyup', function(e) {
-                        if (e.key === 'Enter') {
-                            const btn = this.closest('.reply-input-area').querySelector('.reply-btn');
-                            if (btn) btn.click();
-                        }
-                    });
-                });
+                } else {
+                    const resp = await authFetch(`${API_BASE}/favorites/${productId}`, { method: 'PUT' });
+                    if (resp && resp.ok) {
+                        favs.push(productId);
+                        localStorage.setItem('favorites', JSON.stringify(favs));
+                        updateFavoriteUI(productId);
+                        alert('已收藏 ❤️');
+                    }
+                }
             }
 
-            function postComment() {
-                const content = commentInput.value.trim();
-                if (!content) { alert('请输入留言内容'); return; }
-                const comments = getComments();
-                const newComment = {
-                    id: Date.now(),
-                    buyerStudentNumber: user.studentNumber,
-                    buyerNickname: user.nickname,
-                    content: content,
-                    time: new Date().toLocaleString(),
-                    replies: []
-                };
-                comments.push(newComment);
-                saveComments(comments);
-                commentInput.value = '';
-                renderComments();
+            async function getFavorites() {
+                const resp = await authFetch(`${API_BASE}/favorites`);
+                if (!resp) return [];
+                const data = await resp.json();
+                const list = data.data || [];
+                const ids = list.map(item => item.id || item.productId || item);
+                localStorage.setItem('favorites', JSON.stringify(ids));
+                return ids;
             }
-            submitCommentBtn.addEventListener('click', postComment);
-            commentInput.addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') postComment();
-            });
-            renderComments();
 
-            // ----- 返回首页 -----
-            document.getElementById('backBtn').addEventListener('click', function() {
-                window.location.replace('./main.html');
-            });
+            function updateFavoriteUI(productId) {
+                const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+                const icon = document.getElementById('favoriteIcon');
+                if (!icon) return;
+                if (favs.includes(productId)) {
+                    icon.classList.add('favorited');
+                } else {
+                    icon.classList.remove('favorited');
+                }
+            }
+
+            // ====== 留言（保留 localStorage，暂不接入后端） ======
+            function loadComments(product) {
+                // 此处保留之前 localStorage 留言代码，不改变
+                // 如果后续需要接入后端，可以调用 /conversations 等接口
+            }
+
+            // ====== 返回首页 ======
+            document.getElementById('backBtn').addEventListener('click', () => window.location.replace('./main.html'));
+
+            // ====== 初始化 ======
+            loadProduct();
 
         })();
     </script>

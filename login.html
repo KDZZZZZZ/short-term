@@ -88,9 +88,10 @@
         (function() {
             'use strict';
 
-            const USERS_KEY = 'mock_users';
-            const SESSION_KEY = 'mock_session';
+            // ====== 修改 API_BASE 为 /api/v1 ======
+            const API_BASE = '/api/v1';
 
+            // ====== DOM 引用 ======
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             const showRegisterBtn = document.getElementById('showRegisterBtn');
@@ -121,31 +122,8 @@
                 clearMessage(messageDiv2);
             }
 
-            function getUsers() {
-                const data = localStorage.getItem(USERS_KEY);
-                return data ? JSON.parse(data) : {};
-            }
-            function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
-            function getSession() { return localStorage.getItem(SESSION_KEY) || null; }
-            function setSession(sn) { localStorage.setItem(SESSION_KEY, sn); }
-            function clearSession() { localStorage.removeItem(SESSION_KEY); }
-
-            function checkAndRedirect() {
-                const sn = getSession();
-                if (sn) {
-                    const users = getUsers();
-                    if (users[sn]) {
-                        console.log('已登录，跳转到主界面');
-                        window.location.replace('./main.html');
-                        return true;
-                    } else {
-                        clearSession();
-                    }
-                }
-                return false;
-            }
-
-            loginFormElement.addEventListener('submit', function(e) {
+            // ====== 登录 ======
+            loginFormElement.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 clearMessage(messageDiv);
 
@@ -155,22 +133,29 @@
                     showMessage(messageDiv, '请完整填写学号和密码');
                     return;
                 }
-                const users = getUsers();
-                const user = users[studentNumber];
-                if (!user) {
-                    showMessage(messageDiv, '该学号未注册，请先注册');
-                    return;
+
+                try {
+                    const resp = await fetch(`${API_BASE}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ studentNumber, password })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) {
+                        showMessage(messageDiv, data.message || data.error || '登录失败');
+                        return;
+                    }
+                    localStorage.setItem('token', data.data.token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    window.location.replace('./main.html');
+                } catch (err) {
+                    showMessage(messageDiv, '网络异常，请检查后端服务是否启动');
+                    console.error(err);
                 }
-                if (user.password !== password) {
-                    showMessage(messageDiv, '密码错误');
-                    return;
-                }
-                setSession(studentNumber);
-                console.log('登录成功，跳转到 main.html');
-                window.location.replace('./main.html');
             });
 
-            registerFormElement.addEventListener('submit', function(e) {
+            // ====== 注册 ======
+            registerFormElement.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 clearMessage(messageDiv2);
 
@@ -202,24 +187,39 @@
                     return;
                 }
 
-                const users = getUsers();
-                if (users[studentNumber]) {
-                    showMessage(messageDiv2, '该学号已被注册，请直接登录');
-                    return;
-                }
-                users[studentNumber] = { studentNumber, password, phone, nickname, wechat, qq };
-                saveUsers(users);
+                const payload = { studentNumber, password, phone, nickname };
+                if (wechat) payload.wechat = wechat;
+                if (qq) payload.qq = qq;
 
-                showMessage(messageDiv2, '注册成功！请前往登录。', false);
-                registerFormElement.reset();
-                showLoginForm();
-                document.getElementById('loginStudentNumber').value = studentNumber;
+                try {
+                    const resp = await fetch(`${API_BASE}/auth/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) {
+                        showMessage(messageDiv2, data.message || data.error || '注册失败');
+                        return;
+                    }
+                    showMessage(messageDiv2, '注册成功！请前往登录。', false);
+                    registerFormElement.reset();
+                    showLoginForm();
+                    document.getElementById('loginStudentNumber').value = studentNumber;
+                } catch (err) {
+                    showMessage(messageDiv2, '网络异常，请检查后端服务');
+                    console.error(err);
+                }
             });
 
+            // ====== 切换表单 ======
             showRegisterBtn.addEventListener('click', showRegisterForm);
             showLoginBtn.addEventListener('click', showLoginForm);
 
-            if (!checkAndRedirect()) {
+            // ====== 如果已登录则直接跳转 ======
+            if (localStorage.getItem('token')) {
+                window.location.replace('./main.html');
+            } else {
                 showLoginForm();
             }
 
