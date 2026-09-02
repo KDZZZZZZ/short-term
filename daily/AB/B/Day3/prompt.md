@@ -8,6 +8,38 @@
 
 这些提示词对应 Proto、Buf、gRPC、Messaging、Favorite、Gateway 和 workspace 的并行开发。
 
+## ChatGPT 会话一 · 提问清单
+
+> 来源：ChatGPT 分享会话一的按时间顺序提问清单（全表 31 条，编号 C01–C31 与全表一致，此处只列归属本 Day 的条目）。
+
+- **C02 | 原话（摘要）：**「安装 Buf 1.72.0、Protobuf 1.36.12、gRPC 1.83.2」 *（同上方 Codex 记录。）*
+- **C13 | 原话（摘要）：**「并行开启子 agent 实现 M3、M4、M5」 *（同上方 Codex 记录，对应 Messaging、Favorite、Gateway 的并行开发。）*
+
+## ChatGPT 会话一 · 需求与约束
+
+> 来源：ChatGPT 分享会话一中除提问以外的需求、约束与执行要求汇总，按原文分组保留，此处只列归属本 Day 的条目。敏感凭据已脱敏。
+
+**仓库与开发环境**
+
+- 安装并固定 Buf `1.72.0`、Protobuf `1.36.12`、gRPC `1.83.2`。
+
+**微服务与数据**
+
+- Marketplace 和 Messaging 各自运行独立 Outbox worker。
+- 限流计数、HTTP 指标等可以是进程内内存状态。
+
+## ChatGPT 会话二 · 提问清单
+
+> 来源：ChatGPT 分享会话二的按时间顺序清单（问题 E01–E15、非问句需求 R01–R11，编号与全表一致，此处只列归属本 Day 的条目）。
+
+- **E03 | 原话（摘要，交叉）：**「如果现在就拆微服务，同时保持前端使用 REST，应该怎么做」 *（架构结论在 Day2 B；本 Day 落到 Gateway 把公开 REST/OpenAPI DTO 映射到内部 gRPC 的具体实现。）*
+
+## ChatGPT 会话二 · 需求与约束
+
+> 来源：ChatGPT 分享会话二的按时间顺序清单，内容为非问句的需求、约束与修正（N01–N29），末尾另记需求覆盖（O01–O04）。本清单是会话二 R01–R11 的展开版本，编号与全表一致，此处只列归属本 Day 的条目。
+
+- **N19 | 需求（交叉）：**后端内部采用微服务架构，前端继续使用 REST *（架构结论在 Day2 B；本 Day 落到 proto 契约、生成代码和 Gateway 的 REST→gRPC 映射实现。）*
+
 ## DOCX 提问记录
 
 - **Q052 | 2026-08-31 | 原话：**「设计完openapi之后要先实现独立模块还是写模块间的接口」
