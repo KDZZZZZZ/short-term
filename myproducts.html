@@ -42,9 +42,7 @@
         <div class="back-btn">
             <button class="btn btn-outline-secondary" id="backBtn"><i class="fas fa-arrow-left"></i> 返回首页</button>
         </div>
-
         <h3 class="mb-3"><i class="fas fa-boxes"></i> 我的卖品</h3>
-
         <div id="productList" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3"></div>
         <div id="emptyMessage" class="no-products hidden"><i class="fas fa-box-open fa-3x mb-2"></i><p>您还没有发布任何商品</p></div>
     </div>
@@ -91,7 +89,7 @@
 
             const productListEl = document.getElementById('productList');
             const emptyMessageEl = document.getElementById('emptyMessage');
-            const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
+            const fallbackSvg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160"%3E%3Crect width="300" height="160" fill="%23e9ecef"/%3E%3Ctext x="50%25" y="50%25" font-size="16" font-family="sans-serif" fill="%236c757d" text-anchor="middle" dy=".3em"%3E无图%3C/text%3E%3C/svg%3E';
 
             async function renderMyProducts() {
                 const resp = await authFetch(`${API_BASE}/users/me/products`);
@@ -135,8 +133,7 @@
                 document.querySelectorAll('.edit-btn').forEach(btn => {
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        const id = this.dataset.id;
-                        window.location.href = `./edit.html?id=${id}`;
+                        window.location.href = `./edit.html?id=${this.dataset.id}`;
                     });
                 });
             }
@@ -149,7 +146,6 @@
             });
 
             renderMyProducts();
-            document.addEventListener('visibilitychange', () => { if (!document.hidden) renderMyProducts(); });
 
         })();
     </script>

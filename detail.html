@@ -64,7 +64,7 @@
         </div>
 
         <div class="detail-card" id="detailCard">
-            <!-- 动态渲染，由 JS 填充 -->
+            <!-- 由 JS 渲染 -->
         </div>
 
         <div class="comment-section" id="commentSection">
@@ -84,7 +84,6 @@
         (function() {
             'use strict';
 
-            // ====== 修改 API_BASE ======
             const API_BASE = '/api/v1';
 
             function getToken() { return localStorage.getItem('token'); }
@@ -127,7 +126,6 @@
                 return;
             }
 
-            // ====== 获取商品详情 ======
             async function loadProduct() {
                 const resp = await authFetch(`${API_BASE}/products/${productId}`);
                 if (!resp) return;
@@ -148,7 +146,6 @@
                 const statusText = product.status === 'selling' ? '出售中' : '已售出';
                 const statusClass = product.status === 'selling' ? 'status-selling' : 'status-sold';
 
-                // 图片轮播
                 let carouselHtml = '';
                 const images = product.images || [];
                 if (images.length === 0) {
@@ -186,7 +183,7 @@
                         <div class="detail-info-col">
                             <div class="detail-header">
                                 <h3 class="card-title mb-0">${product.title}</h3>
-                                <button class="favorite-btn" id="favoriteBtn" title="收藏/取消收藏">
+                                <button class="favorite-btn" id="favoriteBtn">
                                     <i class="fas fa-heart" id="favoriteIcon"></i>
                                 </button>
                             </div>
@@ -210,66 +207,150 @@
                     </div>
                 `;
 
-                // 获取卖家微信/QQ 可以通过 /users/:id 接口，暂不实现
-                // 收藏状态
+                // 获取收藏状态
                 updateFavoriteUI(product.id);
                 document.getElementById('favoriteBtn').addEventListener('click', () => toggleFavorite(product.id));
             }
 
-            // ====== 收藏功能 ======
+            // ----- 收藏 -----
             async function toggleFavorite(productId) {
-                const favs = await getFavorites();
-                const index = favs.indexOf(productId);
-                if (index !== -1) {
+                // 先检查当前是否已收藏
+                const resp_check = await authFetch(`${API_BASE}/favorites`);
+                if (!resp_check) return;
+                const data_check = await resp_check.json();
+                const favs = data_check.data || [];
+                const isFav = favs.some(f => f.id === productId || f.productId === productId || f === productId);
+
+                if (isFav) {
                     const resp = await authFetch(`${API_BASE}/favorites/${productId}`, { method: 'DELETE' });
                     if (resp && resp.ok) {
-                        favs.splice(index, 1);
-                        localStorage.setItem('favorites', JSON.stringify(favs));
-                        updateFavoriteUI(productId);
                         alert('已取消收藏');
+                        updateFavoriteUI(productId);
                     }
                 } else {
                     const resp = await authFetch(`${API_BASE}/favorites/${productId}`, { method: 'PUT' });
                     if (resp && resp.ok) {
-                        favs.push(productId);
-                        localStorage.setItem('favorites', JSON.stringify(favs));
-                        updateFavoriteUI(productId);
                         alert('已收藏 ❤️');
+                        updateFavoriteUI(productId);
                     }
                 }
             }
 
-            async function getFavorites() {
+            async function updateFavoriteUI(productId) {
                 const resp = await authFetch(`${API_BASE}/favorites`);
-                if (!resp) return [];
+                if (!resp) return;
                 const data = await resp.json();
-                const list = data.data || [];
-                const ids = list.map(item => item.id || item.productId || item);
-                localStorage.setItem('favorites', JSON.stringify(ids));
-                return ids;
-            }
-
-            function updateFavoriteUI(productId) {
-                const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+                const favs = data.data || [];
+                const isFav = favs.some(f => f.id === productId || f.productId === productId || f === productId);
                 const icon = document.getElementById('favoriteIcon');
-                if (!icon) return;
-                if (favs.includes(productId)) {
-                    icon.classList.add('favorited');
-                } else {
-                    icon.classList.remove('favorited');
+                if (icon) {
+                    if (isFav) icon.classList.add('favorited');
+                    else icon.classList.remove('favorited');
                 }
             }
 
-            // ====== 留言（保留 localStorage，暂不接入后端） ======
+            // ----- 留言（保留本地存储） -----
             function loadComments(product) {
-                // 此处保留之前 localStorage 留言代码，不改变
-                // 如果后续需要接入后端，可以调用 /conversations 等接口
+                // 留言功能保留 localStorage，不接入后端
+                // 代码与之前一致，此处省略
+                const commentList = document.getElementById('commentList');
+                const commentInput = document.getElementById('commentInput');
+                const submitCommentBtn = document.getElementById('submitCommentBtn');
+                const COMMENTS_KEY = 'comments_' + product.id;
+
+                function getComments() {
+                    const data = localStorage.getItem(COMMENTS_KEY);
+                    return data ? JSON.parse(data) : [];
+                }
+                function saveComments(comments) {
+                    localStorage.setItem(COMMENTS_KEY, JSON.stringify(comments));
+                }
+
+                function renderComments() {
+                    const comments = getComments();
+                    if (comments.length === 0) {
+                        commentList.innerHTML = '<p class="text-muted">暂无留言</p>';
+                        return;
+                    }
+                    let html = '';
+                    const isSeller = (user.studentNumber === product.sellerStudentNumber);
+                    comments.forEach(c => {
+                        html += `
+                            <div class="comment-item" data-comment-id="${c.id}">
+                                <div class="comment-meta"><strong>${c.buyerNickname}</strong> · ${c.time}</div>
+                                <div class="comment-content">${c.content}</div>
+                        `;
+                        if (c.replies && c.replies.length > 0) {
+                            c.replies.forEach(r => {
+                                html += `
+                                    <div class="reply-item">
+                                        <div class="reply-meta"><strong>${r.sellerNickname}（卖家）</strong> · ${r.time}</div>
+                                        <div>${r.content}</div>
+                                    </div>
+                                `;
+                            });
+                        }
+                        if (isSeller) {
+                            html += `
+                                <div class="reply-input-area">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control reply-input" placeholder="回复...">
+                                        <button class="btn btn-outline-primary btn-sm reply-btn">回复</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        html += `</div>`;
+                    });
+                    commentList.innerHTML = html;
+
+                    document.querySelectorAll('.reply-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const item = this.closest('.comment-item');
+                            const id = parseInt(item.dataset.commentId);
+                            const input = item.querySelector('.reply-input');
+                            const text = input.value.trim();
+                            if (!text) return;
+                            const comments = getComments();
+                            const comment = comments.find(c => c.id === id);
+                            if (!comment) return;
+                            if (!comment.replies) comment.replies = [];
+                            comment.replies.push({
+                                sellerStudentNumber: user.studentNumber,
+                                sellerNickname: user.nickname,
+                                content: text,
+                                time: new Date().toLocaleString()
+                            });
+                            saveComments(comments);
+                            renderComments();
+                            input.value = '';
+                        });
+                    });
+                }
+
+                submitCommentBtn.addEventListener('click', function() {
+                    const content = commentInput.value.trim();
+                    if (!content) return;
+                    const comments = getComments();
+                    comments.push({
+                        id: Date.now(),
+                        buyerStudentNumber: user.studentNumber,
+                        buyerNickname: user.nickname,
+                        content: content,
+                        time: new Date().toLocaleString(),
+                        replies: []
+                    });
+                    saveComments(comments);
+                    commentInput.value = '';
+                    renderComments();
+                });
+
+                renderComments();
             }
 
-            // ====== 返回首页 ======
+            // ----- 返回 -----
             document.getElementById('backBtn').addEventListener('click', () => window.location.replace('./main.html'));
 
-            // ====== 初始化 ======
             loadProduct();
 
         })();

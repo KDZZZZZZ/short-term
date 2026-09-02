@@ -62,7 +62,6 @@
                         <div id="currentImages" class="preview-container"></div>
                         <input type="file" class="form-control mt-2" id="productImages" accept="image/*" multiple>
                         <small class="text-muted">重新选择图片会替换现有图片，若不选择则保留原图</small>
-                        <div id="imageIds" style="display:none;"></div>
                     </div>
                     <div id="message" class="mb-3"></div>
                     <div class="d-flex justify-content-between">
@@ -125,7 +124,6 @@
                 return;
             }
 
-            // ----- DOM -----
             const productName = document.getElementById('productName');
             const productCategory = document.getElementById('productCategory');
             const productPrice = document.getElementById('productPrice');
@@ -136,12 +134,10 @@
             const messageDiv = document.getElementById('message');
             const cancelBtn = document.getElementById('cancelBtn');
             const editForm = document.getElementById('editForm');
-            const imageIdsContainer = document.getElementById('imageIds');
 
-            let existingImages = []; // [{id, url}]
+            let existingImages = [];
             let newFiles = [];
 
-            // ----- 加载商品数据 -----
             async function loadProduct() {
                 const resp = await authFetch(`${API_BASE}/products/${productId}`);
                 if (!resp) return;
@@ -152,30 +148,23 @@
                     return;
                 }
                 const product = data.data;
-                // 权限检查
                 if (product.sellerStudentNumber !== user.studentNumber) {
                     alert('您无权编辑此商品');
                     window.location.replace('./myproducts.html');
                     return;
                 }
-                fillForm(product);
-            }
-
-            function fillForm(product) {
                 productName.value = product.title;
                 productCategory.value = product.category || '其他';
                 productPrice.value = product.price;
                 productDescription.value = product.description || '';
                 productStatus.value = product.status || 'selling';
-
-                // 显示当前图片
                 existingImages = product.images || [];
                 renderImages();
             }
 
             function renderImages() {
                 currentImagesContainer.innerHTML = '';
-                if (existingImages.length === 0) {
+                if (existingImages.length === 0 && newFiles.length === 0) {
                     currentImagesContainer.innerHTML = '<span class="text-muted">暂无图片</span>';
                     return;
                 }
@@ -189,20 +178,12 @@
                     `;
                     currentImagesContainer.appendChild(div);
                 });
-
-                // 删除图片事件
                 document.querySelectorAll('.img-remove-btn').forEach(btn => {
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
                         const id = this.dataset.id;
-                        const url = this.dataset.url;
                         if (id) {
-                            // 从后端删除
                             deleteImage(id);
-                        } else {
-                            // 如果是新上传的，从 existingImages 中移除
-                            existingImages = existingImages.filter(img => img.url !== url);
-                            renderImages();
                         }
                     });
                 });
@@ -224,13 +205,9 @@
                 }
             }
 
-            // 文件选择
             productImages.addEventListener('change', function(e) {
                 const files = Array.from(e.target.files);
-                if (files.length === 0) {
-                    newFiles = [];
-                    return;
-                }
+                if (files.length === 0) { newFiles = []; return; }
                 if (files.length > 3) {
                     showMessage('最多只能选择3张图片');
                     productImages.value = '';
@@ -246,43 +223,13 @@
                     }
                 }
                 newFiles = files;
-                // 预览新图片（临时显示在现有图片后面）
+                // 预览新图
                 files.forEach(file => {
                     const reader = new FileReader();
                     reader.onload = function(ev) {
                         const div = document.createElement('div');
-                        div.className = 'position-relative';
-                        div.innerHTML = `
-                            <img src="${ev.target.result}" class="preview-img" alt="新图片">
-                            <span class="img-remove-btn" data-url="${ev.target.result}">✕</span>
-                        `;
+                        div.innerHTML = `<img src="${ev.target.result}" class="preview-img" alt="新图片">`;
                         currentImagesContainer.appendChild(div);
-                        // 为新图片的删除按钮绑定事件
-                        div.querySelector('.img-remove-btn').addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            // 从 newFiles 中移除
-                            const url = this.dataset.url;
-                            newFiles = newFiles.filter(f => {
-                                const reader2 = new FileReader();
-                                reader2.onload = ev2 => {
-                                    return ev2.target.result !== url;
-                                };
-                                reader2.readAsDataURL(f);
-                                return true; // 暂时无法同步过滤，这里简单重新读取
-                            });
-                            // 重新渲染
-                            renderImages();
-                            // 重新添加新文件预览
-                            newFiles.forEach(file => {
-                                const r = new FileReader();
-                                r.onload = ev2 => {
-                                    const d = document.createElement('div');
-                                    d.innerHTML = `<img src="${ev2.target.result}" class="preview-img">`;
-                                    currentImagesContainer.appendChild(d);
-                                };
-                                r.readAsDataURL(file);
-                            });
-                        });
                     };
                     reader.readAsDataURL(file);
                 });
@@ -297,7 +244,6 @@
             }
             function clearMessage() { messageDiv.innerHTML = ''; }
 
-            // ----- 提交修改 -----
             editForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 clearMessage();
@@ -311,14 +257,7 @@
                 if (!name) { showMessage('请输入商品名称'); return; }
                 if (isNaN(price) || price < 0) { showMessage('请输入有效价格'); return; }
 
-                // 1. 更新基本信息
-                const payload = {
-                    title: name,
-                    category,
-                    price,
-                    description,
-                    status
-                };
+                const payload = { title: name, category, price, description, status };
                 const resp = await authFetch(`${API_BASE}/products/${productId}`, {
                     method: 'PATCH',
                     body: JSON.stringify(payload)
@@ -326,11 +265,10 @@
                 if (!resp) return;
                 const data = await resp.json();
                 if (!resp.ok) {
-                    showMessage(data.message || '更新基本信息失败');
+                    showMessage(data.message || '更新失败');
                     return;
                 }
 
-                // 2. 上传新图片（如果有）
                 if (newFiles.length > 0) {
                     for (let file of newFiles) {
                         const formData = new FormData();
@@ -340,24 +278,18 @@
                             body: formData
                         });
                         if (!uploadResp || !uploadResp.ok) {
-                            showMessage('部分图片上传失败，请检查', false);
+                            showMessage('部分图片上传失败', false);
                             break;
                         }
                     }
                 }
 
-                // 3. 删除已标记删除的图片（已经在前端删除时调用API，所以这里不再处理）
-
-                showMessage('✅ 商品信息已更新！', false);
-                setTimeout(() => {
-                    window.location.replace('./myproducts.html');
-                }, 1500);
+                showMessage('✅ 商品已更新！', false);
+                setTimeout(() => window.location.replace('./myproducts.html'), 1500);
             });
 
-            // ----- 取消 -----
             cancelBtn.addEventListener('click', () => window.location.replace('./myproducts.html'));
 
-            // ----- 初始化 -----
             loadProduct();
 
         })();

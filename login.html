@@ -88,10 +88,9 @@
         (function() {
             'use strict';
 
-            // ====== 修改 API_BASE 为 /api/v1 ======
             const API_BASE = '/api/v1';
 
-            // ====== DOM 引用 ======
+            // DOM 引用
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             const showRegisterBtn = document.getElementById('showRegisterBtn');
@@ -145,11 +144,12 @@
                         showMessage(messageDiv, data.message || data.error || '登录失败');
                         return;
                     }
+                    // AuthSuccess: { data: { token, user } }
                     localStorage.setItem('token', data.data.token);
                     localStorage.setItem('user', JSON.stringify(data.data.user));
                     window.location.replace('./main.html');
                 } catch (err) {
-                    showMessage(messageDiv, '网络异常，请检查后端服务是否启动');
+                    showMessage(messageDiv, '网络异常，请检查后端服务');
                     console.error(err);
                 }
             });
@@ -212,11 +212,9 @@
                 }
             });
 
-            // ====== 切换表单 ======
             showRegisterBtn.addEventListener('click', showRegisterForm);
             showLoginBtn.addEventListener('click', showLoginForm);
 
-            // ====== 如果已登录则直接跳转 ======
             if (localStorage.getItem('token')) {
                 window.location.replace('./main.html');
             } else {

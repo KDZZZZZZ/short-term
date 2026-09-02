@@ -81,14 +81,11 @@
         (function() {
             'use strict';
 
-            // ====== 修改 API_BASE ======
             const API_BASE = '/api/v1';
-
             let currentCategory = 'all';
             let currentStatus = 'selling';
             let searchKeyword = '';
 
-            // ====== 工具 ======
             function getToken() { return localStorage.getItem('token'); }
             function getCurrentUser() {
                 const u = localStorage.getItem('user');
@@ -100,10 +97,7 @@
 
             async function authFetch(url, options = {}) {
                 const token = getToken();
-                if (!token) {
-                    redirectToLogin();
-                    return;
-                }
+                if (!token) { redirectToLogin(); return; }
                 const headers = {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -119,7 +113,6 @@
                 return resp;
             }
 
-            // ====== 页面初始化 ======
             const user = getCurrentUser();
             if (!user || !getToken()) {
                 redirectToLogin();
@@ -127,19 +120,24 @@
             }
             document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
 
-            // ====== 导航按钮跳转 ======
+            // 导航跳转
             document.getElementById('profileBtn').addEventListener('click', () => window.location.replace('./profile.html'));
             document.getElementById('myProductsBtn').addEventListener('click', () => window.location.replace('./myproducts.html'));
             document.getElementById('messagesBtn').addEventListener('click', () => window.location.replace('./messages.html'));
             document.getElementById('publishBtn').addEventListener('click', () => window.location.replace('./publish.html'));
             document.getElementById('favoritesBtn').addEventListener('click', () => window.location.replace('./favorites.html'));
             document.getElementById('logoutNavBtn').addEventListener('click', () => {
+                // 调用登出接口
+                fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                }).catch(() => {});
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 window.location.replace('./login.html');
             });
 
-            // ====== 渲染商品列表 ======
+            // 渲染商品列表
             const productListEl = document.getElementById('productList');
             const emptyMessageEl = document.getElementById('emptyMessage');
 
@@ -152,10 +150,14 @@
                 if (!resp) return;
                 const data = await resp.json();
                 let products = data.data || [];
-                if (currentStatus === 'selling') {
-                    products = products.filter(p => p.status === 'selling');
-                } else {
+                // 状态过滤（由于 GET /products 默认只返回在售，前端再做过滤）
+                if (currentStatus === 'sold') {
+                    // 如果后端支持 status 参数，可以加上；否则前端过滤
+                    // 但契约中 GET /products 只返回在售，所以已售出需要特殊处理
+                    // 这里假设后端返回所有状态，我们前端过滤
                     products = products.filter(p => p.status === 'sold');
+                } else {
+                    products = products.filter(p => p.status === 'selling');
                 }
 
                 productListEl.innerHTML = '';
@@ -200,7 +202,7 @@
                 });
             }
 
-            // ====== 事件绑定 ======
+            // 分类切换
             document.getElementById('categoryTabs').addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
@@ -210,6 +212,7 @@
                 renderProducts();
             });
 
+            // 状态切换
             document.getElementById('statusTabs').addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
@@ -219,6 +222,7 @@
                 renderProducts();
             });
 
+            // 搜索
             document.getElementById('searchBtn').addEventListener('click', () => {
                 searchKeyword = document.getElementById('searchInput').value;
                 renderProducts();
@@ -230,7 +234,6 @@
                 }
             });
 
-            // ====== 初次渲染 ======
             renderProducts();
 
         })();

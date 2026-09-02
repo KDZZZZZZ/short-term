@@ -42,16 +42,13 @@
         <div class="back-btn">
             <button class="btn btn-outline-secondary" id="backBtn"><i class="fas fa-arrow-left"></i> 返回首页</button>
         </div>
-
         <h3 class="mb-3"><i class="fas fa-heart text-danger"></i> 我的收藏</h3>
-
         <div class="search-box">
             <div class="input-group">
                 <input type="text" class="form-control" id="searchInput" placeholder="搜索收藏的商品...">
                 <button class="btn btn-primary" id="searchBtn"><i class="fas fa-search"></i></button>
             </div>
         </div>
-
         <div class="category-tabs" id="categoryTabs">
             <button class="btn btn-outline-secondary active" data-category="all">全部</button>
             <button class="btn btn-outline-secondary" data-category="数码">数码</button>
@@ -59,7 +56,6 @@
             <button class="btn btn-outline-secondary" data-category="生活用品">生活用品</button>
             <button class="btn btn-outline-secondary" data-category="其他">其他</button>
         </div>
-
         <div id="productList" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3"></div>
         <div id="emptyMessage" class="no-products hidden"><i class="fas fa-heart-broken fa-3x mb-2"></i><p>还没有收藏的商品</p></div>
     </div>
@@ -104,7 +100,6 @@
             }
             document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
 
-            // ----- 状态 -----
             let currentCategory = 'all';
             let searchKeyword = '';
 
@@ -113,8 +108,7 @@
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             const categoryTabs = document.getElementById('categoryTabs');
-
-            const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
+            const fallbackSvg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160"%3E%3Crect width="300" height="160" fill="%23e9ecef"/%3E%3Ctext x="50%25" y="50%25" font-size="16" font-family="sans-serif" fill="%236c757d" text-anchor="middle" dy=".3em"%3E无图%3C/text%3E%3C/svg%3E';
 
             async function renderFavorites() {
                 const resp = await authFetch(`${API_BASE}/favorites`);
@@ -122,7 +116,6 @@
                 const data = await resp.json();
                 let products = data.data || [];
 
-                // 分类过滤（客户端）
                 if (currentCategory !== 'all') {
                     products = products.filter(p => p.category === currentCategory);
                 }
@@ -164,28 +157,30 @@
 
                 document.querySelectorAll('.product-card').forEach(card => {
                     card.addEventListener('click', function() {
-                        const id = this.dataset.id;
-                        window.location.href = `./detail.html?id=${id}`;
+                        window.location.href = `./detail.html?id=${this.dataset.id}`;
                     });
                 });
             }
 
-            // ----- 事件绑定 -----
             categoryTabs.addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
-                categoryTabs.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                this.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentCategory = btn.dataset.category;
                 renderFavorites();
             });
 
-            function doSearch() {
+            searchBtn.addEventListener('click', () => {
                 searchKeyword = searchInput.value;
                 renderFavorites();
-            }
-            searchBtn.addEventListener('click', doSearch);
-            searchInput.addEventListener('keyup', e => { if (e.key === 'Enter') doSearch(); });
+            });
+            searchInput.addEventListener('keyup', e => {
+                if (e.key === 'Enter') {
+                    searchKeyword = e.target.value;
+                    renderFavorites();
+                }
+            });
 
             document.getElementById('backBtn').addEventListener('click', () => window.location.replace('./main.html'));
             document.getElementById('logoutNavBtn').addEventListener('click', () => {
@@ -195,7 +190,6 @@
             });
 
             renderFavorites();
-            document.addEventListener('visibilitychange', () => { if (!document.hidden) renderFavorites(); });
 
         })();
     </script>

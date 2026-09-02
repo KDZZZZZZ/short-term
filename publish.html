@@ -75,10 +75,8 @@
         (function() {
             'use strict';
 
-            // ====== 修改 API_BASE ======
             const API_BASE = '/api/v1';
 
-            // ====== 工具 ======
             function getToken() { return localStorage.getItem('token'); }
             function getCurrentUser() {
                 const u = localStorage.getItem('user');
@@ -115,7 +113,6 @@
                 return;
             }
 
-            // ====== DOM ======
             const productName = document.getElementById('productName');
             const productCategory = document.getElementById('productCategory');
             const productPrice = document.getElementById('productPrice');
@@ -129,7 +126,6 @@
 
             sellerPhone.value = user.phone || '';
 
-            // ====== 图片预览 ======
             let selectedFiles = [];
             productImages.addEventListener('change', function(e) {
                 const files = Array.from(e.target.files);
@@ -177,7 +173,6 @@
             }
             function clearMessage() { messageDiv.innerHTML = ''; }
 
-            // ====== 提交 ======
             publishForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 clearMessage();
