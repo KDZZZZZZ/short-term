@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 聊天</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+        .chat-header { background: white; padding: 0.8rem 1rem; border-bottom: 1px solid #e9ecef; flex-shrink: 0; }
+        .chat-body { flex: 1; overflow-y: auto; padding: 1rem 1rem 0.5rem; display: flex; flex-direction: column; }
+        .message-item { max-width: 75%; padding: 0.5rem 1rem; border-radius: 1rem; margin-bottom: 0.6rem; word-wrap: break-word; }
+        .message-sent { align-self: flex-end; background-color: #0d6efd; color: white; border-bottom-right-radius: 0.25rem; }
+        .message-received { align-self: flex-start; background-color: white; color: #212529; border-bottom-left-radius: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .message-time { font-size: 0.7rem; opacity: 0.7; margin-top: 0.2rem; text-align: right; }
+        .message-sent .message-time { color: #ddd; }
+        .message-received .message-time { color: #6c757d; }
+        .chat-footer { background: white; padding: 0.6rem 1rem; border-top: 1px solid #e9ecef; flex-shrink: 0; }
+        .back-btn { margin-right: 0.5rem; }
+        .product-info { font-size: 0.9rem; color: #6c757d; }
+        .no-messages { text-align: center; color: #adb5bd; margin-top: 3rem; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-header d-flex align-items-center">
+        <a href="messages.html" class="btn btn-outline-secondary btn-sm back-btn"><i class="fas fa-arrow-left"></i></a>
+        <div>
+            <strong id="chatPartnerName">对方昵称</strong>
+            <span class="product-info ms-2" id="chatProductTitle">商品标题</span>
+        </div>
+        <div class="ms-auto">
+            <span class="badge bg-light text-dark" id="chatProductStatus">状态</span>
+        </div>
+    </div>
+
+    <div class="chat-body" id="messageContainer"></div>
+
+    <div class="chat-footer">
+        <div class="input-group">
+            <input type="text" class="form-control" id="messageInput" placeholder="输入消息...">
+            <button class="btn btn-primary" id="sendBtn">发送</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+            const MESSAGES_KEY = 'mock_messages';
+
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.replace('./login.html');
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = parseInt(urlParams.get('productId'));
+            const sellerId = urlParams.get('sellerId');
+            if (!productId || !sellerId) {
+                alert('参数错误');
+                window.location.replace('./main.html');
+                return;
+            }
+
+            const products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+            const product = products.find(p => p.id === productId);
+            if (!product) {
+                alert('商品不存在');
+                window.location.replace('./main.html');
+                return;
+            }
+            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+            const seller = users[sellerId];
+            if (!seller) {
+                alert('卖家不存在');
+                window.location.replace('./main.html');
+                return;
+            }
+
+            document.getElementById('chatPartnerName').textContent = seller.nickname;
+            document.getElementById('chatProductTitle').textContent = product.title;
+            document.getElementById('chatProductStatus').textContent = product.status === 'selling' ? '出售中' : '已售出';
+
+            function getMessages() {
+                const data = localStorage.getItem(MESSAGES_KEY);
+                return data ? JSON.parse(data) : [];
+            }
+            function saveMessages(messages) {
+                localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+            }
+            function getConversationMessages() {
+                const all = getMessages();
+                return all.filter(m => 
+                    m.productId === productId &&
+                    ((m.senderId === user.studentNumber && m.receiverId === sellerId) ||
+                     (m.senderId === sellerId && m.receiverId === user.studentNumber))
+                );
+            }
+            function sendMessage(content) {
+                if (!content.trim()) return;
+                const newMsg = {
+                    id: Date.now(),
+                    productId: productId,
+                    senderId: user.studentNumber,
+                    receiverId: sellerId,
+                    content: content.trim(),
+                    time: new Date().toLocaleString(),
+                    read: false
+                };
+                const all = getMessages();
+                all.push(newMsg);
+                saveMessages(all);
+                renderMessages();
+                document.getElementById('messageInput').value = '';
+            }
+            function markMessagesAsRead() {
+                const all = getMessages();
+                let updated = false;
+                all.forEach(m => {
+                    if (m.productId === productId && m.senderId === sellerId && m.receiverId === user.studentNumber && !m.read) {
+                        m.read = true;
+                        updated = true;
+                    }
+                });
+                if (updated) saveMessages(all);
+            }
+            function renderMessages() {
+                const container = document.getElementById('messageContainer');
+                const msgs = getConversationMessages();
+                if (msgs.length === 0) {
+                    container.innerHTML = `<div class="no-messages"><i class="fas fa-comment-dots fa-2x mb-2"></i><p>暂无消息，开始聊天吧！</p></div>`;
+                    return;
+                }
+                let html = '';
+                msgs.forEach(m => {
+                    const isSent = m.senderId === user.studentNumber;
+                    const senderName = isSent ? '我' : seller.nickname;
+                    html += `
+                        <div class="message-item ${isSent ? 'message-sent' : 'message-received'}">
+                            <div>${m.content}</div>
+                            <div class="message-time">${m.time} · ${senderName}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                markMessagesAsRead();
+                container.scrollTop = container.scrollHeight;
+            }
+
+            document.getElementById('sendBtn').addEventListener('click', function() {
+                sendMessage(document.getElementById('messageInput').value);
+            });
+            document.getElementById('messageInput').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') sendMessage(this.value);
+            });
+
+            renderMessages();
+            setTimeout(() => {
+                const container = document.getElementById('messageContainer');
+                container.scrollTop = container.scrollHeight;
+            }, 100);
+
+        })();
+    </script>
+</body>
+</html>

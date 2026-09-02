@@ -17,8 +17,10 @@
         .carousel-control-prev-icon, .carousel-control-next-icon { background-color: rgba(0,0,0,0.3); border-radius: 50%; padding: 20px; }
         .detail-label { font-weight: 600; color: #495057; width: 80px; display: inline-block; }
         .detail-value { color: #212529; }
-        .btn-chat { background-color: #0d6efd; color: white; border-radius: 50px; padding: 0.6rem 2rem; font-weight: 500; border: none; transition: background 0.2s; }
+        .btn-chat { background-color: #0d6efd; color: white; border-radius: 50px; padding: 0.6rem 2rem; font-weight: 500; border: none; transition: background 0.2s; text-decoration: none; display: inline-block; text-align: center; }
         .btn-chat:hover { background-color: #0b5ed7; color: white; }
+        .btn-edit { background-color: #ffc107; color: #212529; border-radius: 50px; padding: 0.6rem 2rem; font-weight: 500; border: none; transition: background 0.2s; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-edit:hover { background-color: #e0a800; color: #212529; }
         .back-btn { margin-bottom: 1rem; }
         @media (max-width: 768px) {
             .detail-image-col { flex: 1 1 100%; padding: 0.5rem; }
@@ -41,7 +43,6 @@
         .favorite-btn .fa-heart { color: #ccc; }
         .favorite-btn .fa-heart.favorited { color: #e74c3c; }
         .detail-header { display: flex; justify-content: space-between; align-items: center; }
-        
         /* 留言板样式 */
         .comment-section {
             margin-top: 2rem;
@@ -54,14 +55,8 @@
             border-radius: 0.5rem;
             margin-bottom: 0.8rem;
         }
-        .comment-meta {
-            font-size: 0.85rem;
-            color: #6c757d;
-            margin-bottom: 0.2rem;
-        }
-        .comment-content {
-            margin-bottom: 0.2rem;
-        }
+        .comment-meta { font-size: 0.85rem; color: #6c757d; margin-bottom: 0.2rem; }
+        .comment-content { margin-bottom: 0.2rem; }
         .reply-item {
             background: #e9ecef;
             padding: 0.5rem 0.8rem;
@@ -69,20 +64,9 @@
             margin-top: 0.5rem;
             margin-left: 1.5rem;
         }
-        .reply-meta {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-        .reply-input-area {
-            margin-top: 0.5rem;
-            margin-left: 1.5rem;
-        }
-        .comment-input-area {
-            margin-top: 1rem;
-        }
-        .btn-sm {
-            font-size: 0.8rem;
-        }
+        .reply-meta { font-size: 0.8rem; color: #6c757d; }
+        .reply-input-area { margin-top: 0.5rem; margin-left: 1.5rem; }
+        .comment-input-area { margin-top: 1rem; }
     </style>
 </head>
 <body>
@@ -100,12 +84,10 @@
 
         <div class="detail-card">
             <div class="detail-row">
-                <!-- 左侧：图片轮播 -->
+                <!-- 左侧图片 -->
                 <div class="detail-image-col">
                     <div id="productCarousel" class="carousel slide w-100" data-bs-ride="false">
-                        <div class="carousel-inner" id="carouselInner">
-                            <!-- 动态生成 -->
-                        </div>
+                        <div class="carousel-inner" id="carouselInner"></div>
                         <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
                             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                             <span class="visually-hidden">上一张</span>
@@ -116,8 +98,7 @@
                         </button>
                     </div>
                 </div>
-
-                <!-- 右侧：详细信息 -->
+                <!-- 右侧信息 -->
                 <div class="detail-info-col">
                     <div class="detail-header">
                         <h3 id="productTitle" class="card-title mb-0">商品标题</h3>
@@ -131,30 +112,20 @@
                     </div>
                     <h4 class="text-danger" id="productPrice">¥0.00</h4>
                     <hr>
-                    <div class="mb-2">
-                        <span class="detail-label">描述：</span>
-                        <span class="detail-value" id="productDescription">暂无描述</span>
-                    </div>
-                    <div class="mb-2">
-                        <span class="detail-label">卖家手机：</span>
-                        <span class="detail-value" id="productPhone">未留</span>
-                    </div>
-                    <!-- 卖家微信/QQ（如果有） -->
+                    <div class="mb-2"><span class="detail-label">描述：</span><span class="detail-value" id="productDescription">暂无描述</span></div>
+                    <div class="mb-2"><span class="detail-label">卖家手机：</span><span class="detail-value" id="productPhone">未留</span></div>
                     <div id="sellerContact" class="mb-2"></div>
                     <div class="mt-4 d-grid">
-                        <button class="btn btn-chat" id="chatBtn"><i class="fas fa-comment-dots"></i> 联系卖家（聊天）</button>
+                        <a href="#" class="btn" id="actionBtn"><i class="fas" id="actionIcon"></i> <span id="actionText">联系卖家</span></a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ====== 留言板 ====== -->
+        <!-- 留言板 -->
         <div class="comment-section" id="commentSection">
             <h5><i class="fas fa-comments"></i> 商品留言</h5>
-            <div id="commentList">
-                <!-- 动态渲染留言和回复 -->
-            </div>
-            <!-- 发表留言输入框 -->
+            <div id="commentList"></div>
             <div class="comment-input-area">
                 <div class="input-group">
                     <input type="text" class="form-control" id="commentInput" placeholder="发表你的留言...">
@@ -175,21 +146,20 @@
             const FAVORITES_KEY_PREFIX = 'favorites_';
             const COMMENTS_KEY_PREFIX = 'comments_';
 
-            // ----- 工具：获取当前用户 -----
+            // 当前用户
             function getCurrentUser() {
                 const sn = localStorage.getItem(SESSION_KEY);
                 if (!sn) return null;
                 const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
                 return users[sn] || null;
             }
-
             const user = getCurrentUser();
             if (!user) {
                 window.location.replace('./login.html');
                 return;
             }
 
-            // ----- 获取商品ID -----
+            // 获取商品ID
             const urlParams = new URLSearchParams(window.location.search);
             const productId = parseInt(urlParams.get('id'));
             if (!productId) {
@@ -198,7 +168,7 @@
                 return;
             }
 
-            // ----- 读取商品数据（并迁移分类） -----
+            // 读取商品数据
             let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
             products = products.map(p => {
                 if (p.category === '笔记') p.category = '生活用品';
@@ -213,11 +183,11 @@
                 return;
             }
 
-            // ----- 获取卖家完整资料（用于显示微信/QQ） -----
+            // 获取卖家资料
             const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
             const seller = users[product.sellerStudentNumber] || null;
 
-            // ====== 填充商品信息 ======
+            // ----- 填充商品信息 -----
             document.getElementById('productTitle').textContent = product.title;
             document.getElementById('productCategory').textContent = product.category || '未分类';
             document.getElementById('productPrice').textContent = `¥${product.price.toFixed(2)}`;
@@ -234,21 +204,33 @@
                 statusBadge.className = 'status-badge status-sold';
             }
 
-            // 显示卖家微信/QQ（如果存在）
+            // 卖家联系方式（微信/QQ）
             const sellerContactDiv = document.getElementById('sellerContact');
             let contactHtml = '';
             if (seller) {
-                if (seller.wechat) {
-                    contactHtml += `<span class="detail-label">微信：</span><span class="detail-value">${seller.wechat}</span><br>`;
-                }
-                if (seller.qq) {
-                    contactHtml += `<span class="detail-label">QQ：</span><span class="detail-value">${seller.qq}</span>`;
-                }
+                if (seller.wechat) contactHtml += `<span class="detail-label">微信：</span><span class="detail-value">${seller.wechat}</span><br>`;
+                if (seller.qq) contactHtml += `<span class="detail-label">QQ：</span><span class="detail-value">${seller.qq}</span>`;
             }
-            if (contactHtml) {
-                sellerContactDiv.innerHTML = contactHtml;
+            sellerContactDiv.innerHTML = contactHtml || '<span class="text-muted">卖家未留微信/QQ</span>';
+
+            // ----- 动态设置操作按钮（根据是否卖家） -----
+            const actionBtn = document.getElementById('actionBtn');
+            const actionIcon = document.getElementById('actionIcon');
+            const actionText = document.getElementById('actionText');
+
+            const isSeller = (user.studentNumber === product.sellerStudentNumber);
+            if (isSeller) {
+                // 卖家：显示“修改商品”
+                actionBtn.className = 'btn btn-edit';
+                actionIcon.className = 'fas fa-edit';
+                actionText.textContent = '修改商品';
+                actionBtn.href = `edit.html?id=${productId}`;
             } else {
-                sellerContactDiv.innerHTML = `<span class="text-muted">卖家未留微信/QQ</span>`;
+                // 买家：显示“联系卖家”
+                actionBtn.className = 'btn btn-chat';
+                actionIcon.className = 'fas fa-comment-dots';
+                actionText.textContent = '联系卖家';
+                actionBtn.href = `chat.html?productId=${productId}&sellerId=${product.sellerStudentNumber}`;
             }
 
             // ----- 图片轮播（同之前） -----
@@ -261,66 +243,49 @@
                 images.forEach((img, index) => {
                     const activeClass = index === 0 ? 'active' : '';
                     const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='24' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E图片加载失败%3C/text%3E%3C/svg%3E`;
-                    itemsHtml += `
-                        <div class="carousel-item ${activeClass}">
-                            <img src="${img}" class="d-block w-100" alt="商品图片${index+1}" onerror="this.src='${fallbackSvg}'">
-                        </div>
-                    `;
+                    itemsHtml += `<div class="carousel-item ${activeClass}"><img src="${img}" class="d-block w-100" alt="商品图片${index+1}" onerror="this.src='${fallbackSvg}'"></div>`;
                 });
             }
             carouselInner.innerHTML = itemsHtml;
-
             const totalImages = images.length;
             if (totalImages <= 1) {
                 document.querySelector('.carousel-control-prev').style.display = 'none';
                 document.querySelector('.carousel-control-next').style.display = 'none';
             }
-
             const indicatorContainer = document.createElement('div');
             indicatorContainer.className = 'carousel-indicators';
             let indicatorsHtml = '';
             if (totalImages > 1) {
                 images.forEach((_, index) => {
                     const activeClass = index === 0 ? 'active' : '';
-                    indicatorsHtml += `
-                        <button type="button" data-bs-target="#productCarousel" data-bs-slide-to="${index}" class="${activeClass}" aria-label="Slide ${index+1}"></button>
-                    `;
+                    indicatorsHtml += `<button type="button" data-bs-target="#productCarousel" data-bs-slide-to="${index}" class="${activeClass}" aria-label="Slide ${index+1}"></button>`;
                 });
                 indicatorContainer.innerHTML = indicatorsHtml;
                 document.getElementById('productCarousel').appendChild(indicatorContainer);
             }
 
-            // ====== 收藏功能（不变） ======
+            // ----- 收藏功能 -----
             const favoriteBtn = document.getElementById('favoriteBtn');
             const favoriteIcon = document.getElementById('favoriteIcon');
             const favoritesKey = FAVORITES_KEY_PREFIX + user.studentNumber;
-
             function getFavorites() {
                 const data = localStorage.getItem(favoritesKey);
                 return data ? JSON.parse(data) : [];
             }
-            function saveFavorites(list) {
-                localStorage.setItem(favoritesKey, JSON.stringify(list));
-            }
+            function saveFavorites(list) { localStorage.setItem(favoritesKey, JSON.stringify(list)); }
             function isFavorited() {
                 const favs = getFavorites();
                 return favs.includes(productId);
             }
             function updateFavoriteUI() {
-                if (isFavorited()) {
-                    favoriteIcon.classList.add('favorited');
-                } else {
-                    favoriteIcon.classList.remove('favorited');
-                }
+                if (isFavorited()) favoriteIcon.classList.add('favorited');
+                else favoriteIcon.classList.remove('favorited');
             }
             function toggleFavorite() {
                 const favs = getFavorites();
                 const index = favs.indexOf(productId);
-                if (index !== -1) {
-                    favs.splice(index, 1);
-                } else {
-                    favs.push(productId);
-                }
+                if (index !== -1) favs.splice(index, 1);
+                else favs.push(productId);
                 saveFavorites(favs);
                 updateFavoriteUI();
                 alert(isFavorited() ? '已收藏 ❤️' : '已取消收藏');
@@ -328,55 +293,45 @@
             favoriteBtn.addEventListener('click', toggleFavorite);
             updateFavoriteUI();
 
-            // ====== 留言板功能 ======
+            // ----- 留言板 -----
             const commentList = document.getElementById('commentList');
             const commentInput = document.getElementById('commentInput');
             const submitCommentBtn = document.getElementById('submitCommentBtn');
 
-            // 获取该商品的留言数据
             function getComments() {
                 const key = COMMENTS_KEY_PREFIX + productId;
                 const data = localStorage.getItem(key);
                 return data ? JSON.parse(data) : [];
             }
-
             function saveComments(comments) {
                 const key = COMMENTS_KEY_PREFIX + productId;
                 localStorage.setItem(key, JSON.stringify(comments));
             }
 
-            // 渲染留言和回复
             function renderComments() {
                 const comments = getComments();
                 if (comments.length === 0) {
                     commentList.innerHTML = '<p class="text-muted">暂无留言，快来发表你的看法吧！</p>';
                     return;
                 }
-
                 let html = '';
+                const isSeller = (user.studentNumber === product.sellerStudentNumber);
                 comments.forEach(c => {
-                    const isSeller = (user.studentNumber === product.sellerStudentNumber);
                     html += `
                         <div class="comment-item" data-comment-id="${c.id}">
-                            <div class="comment-meta">
-                                <strong>${c.buyerNickname}</strong> · ${c.time}
-                            </div>
+                            <div class="comment-meta"><strong>${c.buyerNickname}</strong> · ${c.time}</div>
                             <div class="comment-content">${c.content}</div>
                     `;
-                    // 如果有回复，显示回复
                     if (c.replies && c.replies.length > 0) {
                         c.replies.forEach(r => {
                             html += `
                                 <div class="reply-item">
-                                    <div class="reply-meta">
-                                        <strong>${r.sellerNickname}（卖家）</strong> · ${r.time}
-                                    </div>
+                                    <div class="reply-meta"><strong>${r.sellerNickname}（卖家）</strong> · ${r.time}</div>
                                     <div>${r.content}</div>
                                 </div>
                             `;
                         });
                     }
-                    // 如果是卖家，显示回复输入框
                     if (isSeller) {
                         html += `
                             <div class="reply-input-area">
@@ -391,39 +346,30 @@
                 });
                 commentList.innerHTML = html;
 
-                // 绑定回复按钮事件
+                // 绑定回复按钮
                 document.querySelectorAll('.reply-btn').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const commentItem = this.closest('.comment-item');
                         const commentId = parseInt(commentItem.dataset.commentId);
                         const input = commentItem.querySelector('.reply-input');
                         const replyText = input.value.trim();
-                        if (!replyText) {
-                            alert('请输入回复内容');
-                            return;
-                        }
-                        // 构造回复对象
+                        if (!replyText) { alert('请输入回复内容'); return; }
                         const reply = {
                             sellerStudentNumber: user.studentNumber,
                             sellerNickname: user.nickname,
                             content: replyText,
                             time: new Date().toLocaleString()
                         };
-                        // 更新留言数据
                         const comments = getComments();
                         const comment = comments.find(c => c.id === commentId);
                         if (!comment) return;
                         if (!comment.replies) comment.replies = [];
                         comment.replies.push(reply);
                         saveComments(comments);
-                        // 重新渲染
                         renderComments();
-                        // 清空输入框
                         input.value = '';
                     });
                 });
-
-                // 绑定回复输入框按回车也可以触发
                 document.querySelectorAll('.reply-input').forEach(inp => {
                     inp.addEventListener('keyup', function(e) {
                         if (e.key === 'Enter') {
@@ -434,13 +380,9 @@
                 });
             }
 
-            // 发表新留言
             function postComment() {
                 const content = commentInput.value.trim();
-                if (!content) {
-                    alert('请输入留言内容');
-                    return;
-                }
+                if (!content) { alert('请输入留言内容'); return; }
                 const comments = getComments();
                 const newComment = {
                     id: Date.now(),
@@ -455,25 +397,15 @@
                 commentInput.value = '';
                 renderComments();
             }
-
             submitCommentBtn.addEventListener('click', postComment);
             commentInput.addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') {
-                    postComment();
-                }
+                if (e.key === 'Enter') postComment();
             });
-
-            // 初始化渲染留言
             renderComments();
 
-            // ====== 返回首页 ======
+            // ----- 返回首页 -----
             document.getElementById('backBtn').addEventListener('click', function() {
                 window.location.replace('./main.html');
-            });
-
-            // ====== 聊天按钮（暂保留，作为“联系卖家”占位，可后续改为私信） ======
-            document.getElementById('chatBtn').addEventListener('click', function() {
-                alert('💬 聊天功能开发中，敬请期待！');
             });
 
         })();

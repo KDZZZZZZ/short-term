@@ -44,6 +44,8 @@
                 <span class="text-muted me-2" id="userNicknameDisplay">👤 昵称</span>
                 <button class="btn btn-outline-primary btn-sm" id="profileBtn">👤 个人主页</button>
                 <button class="btn btn-outline-success btn-sm" id="myProductsBtn">📦 我的卖品</button>
+                <!-- 新增消息按钮 -->
+                <button class="btn btn-outline-info btn-sm" id="messagesBtn">💬 消息</button>
                 <button id="logoutNavBtn" class="btn btn-outline-danger btn-sm">登出</button>
             </div>
         </div>
@@ -52,16 +54,14 @@
     <div class="container container-main">
         <div class="search-box">
             <div class="input-group">
-                <input type="text" class="form-control" id="searchInput" placeholder="搜索商品标题..." aria-label="搜索">
+                <input type="text" class="form-control" id="searchInput" placeholder="搜索商品标题...">
                 <button class="btn btn-primary" id="searchBtn"><i class="fas fa-search"></i></button>
             </div>
         </div>
-
         <div class="d-flex justify-content-end gap-3 mb-3">
             <button class="icon-btn" id="favoritesBtn" title="我的收藏"><i class="fas fa-heart"></i></button>
             <button class="icon-btn" id="publishBtn" title="发布商品"><i class="fas fa-plus-circle"></i></button>
         </div>
-
         <div class="category-tabs" id="categoryTabs">
             <button class="btn btn-outline-secondary active" data-category="all">全部</button>
             <button class="btn btn-outline-secondary" data-category="数码">数码</button>
@@ -69,12 +69,10 @@
             <button class="btn btn-outline-secondary" data-category="生活用品">生活用品</button>
             <button class="btn btn-outline-secondary" data-category="其他">其他</button>
         </div>
-
         <div class="status-tabs" id="statusTabs">
             <button class="btn btn-outline-success active" data-status="selling">出售中</button>
             <button class="btn btn-outline-secondary" data-status="sold">已售出</button>
         </div>
-
         <div id="productList" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3"></div>
         <div id="emptyMessage" class="no-products hidden"><i class="fas fa-box-open fa-3x mb-2"></i><p>没有找到符合条件的商品</p></div>
     </div>
@@ -88,7 +86,6 @@
             const USERS_KEY = 'mock_users';
             const PRODUCTS_KEY = 'mock_products';
 
-            // ----- 当前用户 -----
             function getCurrentUser() {
                 const sn = localStorage.getItem(SESSION_KEY);
                 if (!sn) return null;
@@ -98,18 +95,20 @@
 
             const user = getCurrentUser();
             if (!user) {
-                console.log('未登录，跳回 login.html');
                 window.location.replace('./login.html');
                 return;
             }
             document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
 
-            // ----- 页面跳转 -----
+            // 页面跳转
             document.getElementById('profileBtn').addEventListener('click', function() {
                 window.location.replace('./profile.html');
             });
             document.getElementById('myProductsBtn').addEventListener('click', function() {
                 window.location.replace('./myproducts.html');
+            });
+            document.getElementById('messagesBtn').addEventListener('click', function() {
+                window.location.replace('./messages.html');
             });
             document.getElementById('publishBtn').addEventListener('click', function() {
                 window.location.replace('./publish.html');
@@ -118,7 +117,7 @@
                 window.location.replace('./favorites.html');
             });
 
-            // ----- 商品数据管理（含迁移） -----
+            // 商品数据管理
             function getProducts() {
                 let products = localStorage.getItem(PRODUCTS_KEY);
                 if (products) {
@@ -128,9 +127,7 @@
                             p.images = [p.image];
                             delete p.image;
                         }
-                        if (!p.images || p.images.length === 0) {
-                            p.images = [];
-                        }
+                        if (!p.images || p.images.length === 0) p.images = [];
                         if (!p.description) p.description = '';
                         if (p.category === '笔记') p.category = '生活用品';
                         return p;
@@ -138,7 +135,6 @@
                     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(parsed));
                     return parsed;
                 } else {
-                    // 初始化数据（使用新分类“生活用品”）
                     const svgPlaceholder = (text) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E${text}%3C/text%3E%3C/svg%3E`;
                     const initialProducts = [
                         { id: 1, title: '二手 iPhone 13 256G 蓝色', price: 4200, category: '数码', status: 'selling', images: [svgPlaceholder('iPhone 1'), svgPlaceholder('iPhone 2')], description: '外观完好，带原装充电器', sellerPhone: '13800138001', sellerStudentNumber: '202001' },
@@ -156,8 +152,6 @@
             }
 
             let allProducts = getProducts();
-
-            // ----- 状态 -----
             let currentCategory = 'all';
             let currentStatus = 'selling';
             let searchKeyword = '';
@@ -168,24 +162,20 @@
             const searchBtn = document.getElementById('searchBtn');
             const categoryTabs = document.getElementById('categoryTabs');
             const statusTabs = document.getElementById('statusTabs');
-
             const fallbackSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='%23e9ecef'/%3E%3Ctext x='50%25' y='50%25' font-size='16' font-family='sans-serif' fill='%236c757d' text-anchor='middle' dy='.3em'%3E无图%3C/text%3E%3C/svg%3E`;
 
             function renderProducts() {
                 allProducts = getProducts();
-
                 let filtered = allProducts
                     .filter(p => p.status === currentStatus)
                     .filter(p => currentCategory === 'all' || p.category === currentCategory)
                     .filter(p => searchKeyword.trim() === '' || p.title.toLowerCase().includes(searchKeyword.trim().toLowerCase()));
-
                 productListEl.innerHTML = '';
                 if (filtered.length === 0) {
                     emptyMessageEl.classList.remove('hidden');
                     return;
                 }
                 emptyMessageEl.classList.add('hidden');
-
                 filtered.forEach(p => {
                     const col = document.createElement('div');
                     col.className = 'col';
@@ -204,15 +194,12 @@
                                     <span class="price">¥${p.price}</span>
                                     <span class="category-badge">${p.category}</span>
                                 </div>
-                                <div class="mt-2 small text-muted">
-                                    <i class="fas fa-phone"></i> ${p.sellerPhone || '未留电话'}
-                                </div>
+                                <div class="mt-2 small text-muted"><i class="fas fa-phone"></i> ${p.sellerPhone || '未留电话'}</div>
                             </div>
                         </div>
                     `;
                     productListEl.appendChild(col);
                 });
-
                 document.querySelectorAll('.product-card').forEach(card => {
                     card.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -221,7 +208,6 @@
                 });
             }
 
-            // ----- 事件绑定 -----
             categoryTabs.addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
@@ -230,7 +216,6 @@
                 currentCategory = btn.dataset.category;
                 renderProducts();
             });
-
             statusTabs.addEventListener('click', function(e) {
                 const btn = e.target.closest('button');
                 if (!btn || btn.classList.contains('active')) return;
@@ -239,7 +224,6 @@
                 currentStatus = btn.dataset.status;
                 renderProducts();
             });
-
             function doSearch() {
                 searchKeyword = searchInput.value;
                 renderProducts();
@@ -252,14 +236,9 @@
                 window.location.replace('./login.html');
             });
 
-            // ----- 初始化渲染 -----
             renderProducts();
-
-            // 页面可见时刷新
             document.addEventListener('visibilitychange', function() {
-                if (!document.hidden) {
-                    renderProducts();
-                }
+                if (!document.hidden) renderProducts();
             });
 
         })();
