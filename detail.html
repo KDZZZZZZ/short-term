@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 商品详情</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4f8 0%, #e6edf4 100%);
+            min-height: 100vh;
+            padding-bottom: 2rem;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+        }
+
+        :root {
+            --brand-blue: #4A90D9;
+            --brand-blue-dark: #357ABD;
+            --brand-red: #e74c3c;
+            --shadow-lg: 0 20px 60px rgba(74, 144, 217, 0.10), 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            padding: 0.6rem 0;
+            box-shadow: 0 2px 12px rgba(74, 144, 217, 0.25);
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 1.5rem;
+        }
+
+        .navbar-custom .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        .navbar-custom .navbar-brand i {
+            color: white;
+        }
+
+        .navbar-custom .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .navbar-custom .nav-user .text-muted {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-size: 0.9rem;
+        }
+        .navbar-custom .nav-user .btn {
+            color: white;
+            border-color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            padding: 0.2rem 0.7rem;
+        }
+        .navbar-custom .nav-user .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .back-row {
+            margin-bottom: 1rem;
+        }
+
+        .back-btn {
+            border-radius: 40px;
+            padding: 0.4rem 1.2rem;
+            font-size: 0.9rem;
+            border: 1.5px solid #dce3ed;
+            color: #6c7a94;
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .back-btn:hover {
+            background: #f5f8fe;
+            border-color: #b8cae0;
+            color: #2d3748;
+        }
+
+        .detail-card {
+            border: none;
+            border-radius: 24px;
+            background: white;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            animation: cardFadeUp 0.5s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes cardFadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .detail-card .detail-body {
+            padding: 1.5rem 2rem 2rem 2rem;
+        }
+
+        .carousel-container {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 16px;
+        }
+
+        .carousel-inner img {
+            height: 380px;
+            width: 100%;
+            object-fit: contain;
+            background: #fcfcfc;
+            border-radius: 12px;
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            padding: 20px;
+            background-size: 50%;
+        }
+
+        .no-images {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e9ecef;
+            color: #8a9bb5;
+            font-size: 1.2rem;
+            border-radius: 12px;
+        }
+
+        .carousel-indicators button {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: none;
+            margin: 0 4px;
+            background: #dce3ed;
+        }
+        .carousel-indicators .active {
+            background: var(--brand-blue);
+        }
+
+        .detail-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 0.3rem;
+        }
+
+        .detail-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--brand-red);
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin: 0.8rem 0 1.2rem 0;
+        }
+
+        .detail-meta .badge-custom {
+            font-size: 0.8rem;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            background: #eef2f6;
+            color: #4a5568;
+        }
+
+        .detail-meta .badge-custom.status-selling {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .detail-meta .badge-custom.status-sold {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .detail-info-item {
+            display: flex;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f2f4;
+        }
+
+        .detail-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-info-item .label {
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .detail-info-item .value {
+            color: #1a1a2e;
+        }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 0 0.5rem;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .favorite-btn .fa-heart {
+            color: #dce3ed;
+        }
+
+        .favorite-btn .fa-heart.favorited {
+            color: #e74c3c;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn-chat {
+            border-radius: 40px;
+            padding: 0.7rem 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            color: white;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 16px rgba(74, 144, 217, 0.25);
+            flex: 1;
+        }
+
+        .action-buttons .btn-chat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(74, 144, 217, 0.30);
+            color: white;
+        }
+
+        .action-buttons .btn-edit {
+            border-radius: 40px;
+            padding: 0.7rem 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+            flex: 1;
+        }
+
+        .action-buttons .btn-edit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(245, 158, 11, 0.30);
+            color: white;
+        }
+
+        .comment-section {
+            margin-top: 2rem;
+            border-top: 1px solid #eef2f6;
+            padding-top: 1.5rem;
+        }
+
+        .comment-section h5 {
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 1rem;
+        }
+
+        .comment-item {
+            background: #f8fafc;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.8rem;
+        }
+
+        .comment-meta {
+            font-size: 0.85rem;
+            color: #8a9bb5;
+            margin-bottom: 0.2rem;
+        }
+
+        .comment-content {
+            color: #1a1a2e;
+        }
+
+        .reply-item {
+            background: #eef2f6;
+            padding: 0.5rem 0.8rem;
+            border-radius: 10px;
+            margin-top: 0.5rem;
+            margin-left: 1.5rem;
+        }
+
+        .reply-meta {
+            font-size: 0.8rem;
+            color: #8a9bb5;
+        }
+
+        .reply-input-area {
+            margin-top: 0.5rem;
+            margin-left: 1.5rem;
+        }
+
+        .comment-input-area {
+            margin-top: 0.8rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .comment-input-area input {
+            flex: 1;
+            border-radius: 40px;
+            padding: 0.6rem 1.2rem;
+            border: 1.5px solid #e2e8f0;
+            transition: border-color 0.2s;
+        }
+
+        .comment-input-area input:focus {
+            border-color: var(--brand-blue);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.08);
+        }
+
+        .comment-input-area button {
+            border-radius: 40px;
+            padding: 0.6rem 1.5rem;
+            background: var(--brand-blue);
+            color: white;
+            border: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .comment-input-area button:hover {
+            background: var(--brand-blue-dark);
+        }
+
+        @media (max-width: 768px) {
+            .carousel-inner img {
+                height: 240px;
+            }
+            .no-images {
+                height: 240px;
+            }
+            .detail-card .detail-body {
+                padding: 1rem 1.2rem 1.5rem 1.2rem;
+            }
+            .detail-title {
+                font-size: 1.2rem;
+            }
+            .detail-price {
+                font-size: 1.5rem;
+            }
+            .action-buttons .btn-chat,
+            .action-buttons .btn-edit {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .navbar-custom .nav-user .btn {
+                font-size: 0.7rem;
+                padding: 0.15rem 0.5rem;
+            }
+            .detail-info-item .label {
+                min-width: 60px;
+                font-size: 0.85rem;
+            }
+            .detail-info-item .value {
+                font-size: 0.85rem;
+            }
+        }
+
+        .mt-1 { margin-top: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mt-4 { margin-top: 1.5rem; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .d-flex { display: flex; }
+        .align-items-center { align-items: center; }
+        .justify-content-between { justify-content: space-between; }
+        .flex-wrap { flex-wrap: wrap; }
+        .gap-1 { gap: 0.5rem; }
+        .gap-2 { gap: 1rem; }
+        .w-100 { width: 100%; }
+        .text-muted { color: #8a9bb5 !important; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="main.html">
+                <i class="fas fa-store-alt"></i> 校园易淘
+            </a>
+            <div class="nav-user">
+                <span class="text-muted" id="userNicknameDisplay">👤 昵称</span>
+                <button id="logoutNavBtn" class="btn btn-outline-danger btn-sm">登出</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="back-row">
+            <button class="back-btn" id="backBtn"><i class="fas fa-arrow-left"></i> 返回首页</button>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-body" id="detailContent">
+                <!-- 由 JS 动态渲染 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js">
+    </script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+            const FAVORITES_KEY_PREFIX = 'favorites_';
+
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('userNicknameDisplay').textContent = '👤 ' + user.nickname;
+
+            function getProducts() {
+                const data = localStorage.getItem(PRODUCTS_KEY);
+                return data ? JSON.parse(data) : [];
+            }
+
+            function getFavorites() {
+                const key = FAVORITES_KEY_PREFIX + user.studentNumber;
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            }
+
+            function saveFavorites(favorites) {
+                const key = FAVORITES_KEY_PREFIX + user.studentNumber;
+                localStorage.setItem(key, JSON.stringify(favorites));
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = parseInt(urlParams.get('id'));
+
+            if (!productId) {
+                document.getElementById('detailContent').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-circle" style="font-size:3rem;color:#dce3ed;"></i>
+                        <p class="mt-3 text-muted">商品ID无效，请返回首页重新选择</p>
+                        <button class="back-btn mt-2" onclick="window.location.href='main.html'">返回首页</button>
+                    </div>
+                `;
+            } else {
+                renderDetail(productId);
+            }
+
+            function renderDetail(id) {
+                const products = getProducts();
+                const product = products.find(function(p) { return p.id === id; });
+
+                if (!product) {
+                    document.getElementById('detailContent').innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open" style="font-size:3rem;color:#dce3ed;"></i>
+                            <p class="mt-3 text-muted">商品不存在或已被删除</p>
+                            <button class="back-btn mt-2" onclick="window.location.href='main.html'">返回首页</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const isSeller = user.studentNumber === product.sellerStudentNumber;
+                const statusText = product.status === 'selling' ? '出售中' : '已售出';
+                const statusClass = product.status === 'selling' ? 'status-selling' : 'status-sold';
+
+                // ===== 图片轮播 =====
+                let carouselHtml = '';
+                const images = product.images || [];
+
+                if (images.length === 0) {
+                    carouselHtml = `
+                        <div class="carousel-item active">
+                            <div class="no-images"><i class="fas fa-image" style="font-size:3rem;opacity:0.3;"></i><br>暂无图片</div>
+                        </div>
+                    `;
+                } else {
+                    images.forEach(function(img, idx) {
+                        const active = idx === 0 ? 'active' : '';
+                        const src = typeof img === 'string' ? img : (img.url || img);
+                        carouselHtml += `
+                            <div class="carousel-item ${active}">
+                                <img src="${src}" class="d-block w-100" alt="商品图片" onerror="this.parentElement.innerHTML='<div class=\\'no-images\\'><i class=\\'fas fa-image\\' style=\\'font-size:3rem;opacity:0.3;\\'></i><br>图片加载失败</div>'">
+                            </div>
+                        `;
+                    });
+                }
+
+                // ===== 收藏状态 =====
+                const favorites = getFavorites();
+                const isFavorited = favorites.some(function(favId) { return favId == product.id; });
+
+                document.getElementById('detailContent').innerHTML = `
+                    <div class="row">
+                        <div class="col-lg-6 mb-3 mb-lg-0">
+                            <div class="carousel-container">
+                                <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner">${carouselHtml}</div>
+                                    ${images.length > 1 ? `
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon"></span>
+                                        </button>
+                                        <div class="carousel-indicators position-relative mt-2" style="gap:6px;">
+                                            ${images.map(function(_, i) { return `<button type="button" data-bs-target="#productCarousel" data-bs-slide-to="${i}" class="${i===0?'active':''}" style="width:10px;height:10px;border-radius:50%;border:none;background:${i===0?'#4A90D9':'#dce3ed'};margin:0 4px;"></button>`; }).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h1 class="detail-title">${product.title}</h1>
+                                <button class="favorite-btn" id="favoriteBtn">
+                                    <i class="fas fa-heart ${isFavorited ? 'favorited' : ''}" id="favoriteIcon"></i>
+                                </button>
+                            </div>
+
+                            <div class="detail-meta">
+                                <span class="badge-custom">${product.category}</span>
+                                <span class="badge-custom ${statusClass}">${statusText}</span>
+                            </div>
+
+                            <div class="detail-price">¥${product.price.toFixed(2)}</div>
+
+                            <div class="mt-3">
+                                <div class="detail-info-item">
+                                    <span class="label">描述</span>
+                                    <span class="value">${product.description || '暂无描述'}</span>
+                                </div>
+                                <div class="detail-info-item">
+                                    <span class="label">卖家手机</span>
+                                    <span class="value">${product.sellerPhone || '未留'}</span>
+                                </div>
+                            </div>
+
+                            <div class="action-buttons">
+                                ${isSeller ? `
+                                    <button class="btn-edit" id="editBtn"><i class="fas fa-edit"></i> 修改商品</button>
+                                ` : `
+                                    <button class="btn-chat" id="chatBtn"><i class="fas fa-comment-dots"></i> 联系卖家</button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comment-section" id="commentSection">
+                        <h5><i class="fas fa-comments"></i> 商品留言</h5>
+                        <div id="commentList"></div>
+                        <div class="comment-input-area">
+                            <input type="text" id="commentInput" placeholder="发表你的留言...">
+                            <button id="submitCommentBtn">发表</button>
+                        </div>
+                    </div>
+                `;
+
+                // ===== 收藏按钮 =====
+                document.getElementById('favoriteBtn').addEventListener('click', function() {
+                    const icon = document.getElementById('favoriteIcon');
+                    const isCurrentlyFavorited = icon.classList.contains('favorited');
+                    let currentFavorites = getFavorites();
+
+                    if (isCurrentlyFavorited) {
+                        // 取消收藏
+                        currentFavorites = currentFavorites.filter(function(favId) {
+                            return favId != product.id;
+                        });
+                        icon.classList.remove('favorited');
+                        alert('已取消收藏 ❌');
+                    } else {
+                        // 添加收藏
+                        if (!currentFavorites.some(function(favId) { return favId == product.id; })) {
+                            currentFavorites.push(product.id);
+                        }
+                        icon.classList.add('favorited');
+                        alert('已收藏 ❤️');
+                    }
+
+                    saveFavorites(currentFavorites);
+                });
+
+                // ===== 返回按钮 =====
+                document.getElementById('backBtn').addEventListener('click', function() {
+                    window.location.href = 'main.html';
+                });
+
+                // ===== 登出 =====
+                document.getElementById('logoutNavBtn').addEventListener('click', function() {
+                    localStorage.removeItem(SESSION_KEY);
+                    window.location.href = 'login.html';
+                });
+
+                // ===== 编辑/联系卖家 =====
+                if (isSeller) {
+                    document.getElementById('editBtn').addEventListener('click', function() {
+                        window.location.href = 'edit.html?id=' + product.id;
+                    });
+                } else {
+                    document.getElementById('chatBtn').addEventListener('click', function() {
+                        window.location.href = 'chat.html?productId=' + product.id + '&sellerId=' + product
+                            .sellerStudentNumber;
+                    });
+                }
+
+                // ===== 留言板 =====
+                loadComments(product.id);
+            }
+
+            // ===== 留言板 =====
+            function loadComments(productId) {
+                const commentList = document.getElementById('commentList');
+                const commentInput = document.getElementById('commentInput');
+                const submitBtn = document.getElementById('submitCommentBtn');
+
+                const COMMENTS_KEY = 'comments_' + productId;
+
+                function getComments() {
+                    const data = localStorage.getItem(COMMENTS_KEY);
+                    return data ? JSON.parse(data) : [];
+                }
+
+                function saveComments(comments) {
+                    localStorage.setItem(COMMENTS_KEY, JSON.stringify(comments));
+                }
+
+                function renderComments() {
+                    const comments = getComments();
+                    if (comments.length === 0) {
+                        commentList.innerHTML = '<p class="text-muted">暂无留言</p>';
+                        return;
+                    }
+                    let html = '';
+                    comments.forEach(function(c) {
+                        html += `
+                            <div class="comment-item">
+                                <div class="comment-meta"><strong>${c.buyerNickname}</strong> · ${c.time}</div>
+                                <div class="comment-content">${c.content}</div>
+                        `;
+                        if (c.replies && c.replies.length > 0) {
+                            c.replies.forEach(function(r) {
+                                html += `
+                                    <div class="reply-item">
+                                        <div class="reply-meta"><strong>${r.sellerNickname}（卖家）</strong> · ${r.time}</div>
+                                        <div>${r.content}</div>
+                                    </div>
+                                `;
+                            });
+                        }
+                        html += `</div>`;
+                    });
+                    commentList.innerHTML = html;
+                }
+
+                submitBtn.addEventListener('click', function() {
+                    const content = commentInput.value.trim();
+                    if (!content) return;
+                    const comments = getComments();
+                    comments.push({
+                        id: Date.now(),
+                        buyerNickname: user.nickname,
+                        content: content,
+                        time: new Date().toLocaleString(),
+                        replies: []
+                    });
+                    saveComments(comments);
+                    commentInput.value = '';
+                    renderComments();
+                });
+
+                renderComments();
+            }
+
+        })();
+    </script>
+</body>
+</html>

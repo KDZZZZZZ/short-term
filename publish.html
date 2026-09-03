@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 发布商品</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4f8 0%, #e6edf4 100%);
+            min-height: 100vh;
+            padding: 1.5rem 0 3rem;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+        }
+
+        :root {
+            --brand-blue: #4A90D9;
+            --brand-blue-dark: #357ABD;
+            --brand-green: #38a169;
+            --brand-green-dark: #2f855a;
+            --shadow-lg: 0 20px 60px rgba(74, 144, 217, 0.10), 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            padding: 0.6rem 0;
+            box-shadow: 0 2px 12px rgba(74, 144, 217, 0.25);
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 1.5rem;
+        }
+
+        .navbar-custom .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        .navbar-custom .navbar-brand i {
+            color: white;
+        }
+        .navbar-custom .text-muted {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+        }
+
+        .card-advanced {
+            max-width: 580px;
+            margin: 0 auto;
+            border: none;
+            border-radius: 24px;
+            background: #ffffff;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: cardFadeUp 0.6s ease forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .card-advanced:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 28px 72px rgba(74, 144, 217, 0.12), 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        @keyframes cardFadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-advanced .card-header-custom {
+            background: transparent;
+            padding: 1.5rem 2rem 0.5rem 2rem;
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #1a1a2e;
+        }
+        .card-advanced .card-header-custom i {
+            color: var(--brand-blue);
+            margin-right: 0.5rem;
+        }
+        .card-advanced .card-body-custom {
+            padding: 1.5rem 2rem 2rem 2rem;
+        }
+
+        .form-group-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+            margin-bottom: 1.2rem;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+            transition: background 0.2s;
+        }
+
+        .form-group-section:hover {
+            background: #f5f8fe;
+        }
+        .form-group-section .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8a9bb5;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            display: block;
+        }
+
+        .form-control-advanced {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+            font-size: 0.95rem;
+            background: white;
+            width: 100%;
+        }
+        .form-control-advanced:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.10), 0 0 0 8px rgba(74, 144, 217, 0.04);
+            transform: scale(1.01);
+            outline: none;
+        }
+        .form-control-advanced::placeholder {
+            color: #b0c0d4;
+            font-weight: 400;
+        }
+
+        .form-label-advanced {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+        .form-label-advanced .text-danger {
+            color: var(--brand-blue) !important;
+            font-weight: 700;
+        }
+
+        .form-select-advanced {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            font-size: 0.95rem;
+            background: white;
+            width: 100%;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A90D9' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+        .form-select-advanced:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.10);
+            outline: none;
+        }
+
+        textarea.form-control-advanced {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .upload-zone {
+            border: 2px dashed #dce3ed;
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: border-color 0.3s ease, background 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            background: #fafcff;
+            position: relative;
+        }
+        .upload-zone:hover {
+            border-color: var(--brand-blue);
+            background: #f0f6ff;
+            transform: scale(1.005);
+        }
+        .upload-zone.dragover {
+            border-color: var(--brand-blue);
+            background: #e8f0fe;
+            transform: scale(1.01);
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.06);
+        }
+        .upload-zone .upload-icon {
+            font-size: 2.8rem;
+            color: #b8cae0;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+        }
+        .upload-zone:hover .upload-icon {
+            color: var(--brand-blue);
+        }
+        .upload-zone .upload-text {
+            color: #6c7a94;
+            font-weight: 500;
+        }
+        .upload-zone .upload-hint {
+            color: #a0b2c8;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 14px;
+            justify-content: center;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            animation: previewPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        @keyframes previewPop {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .preview-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-item .preview-remove:hover {
+            background: rgba(220, 50, 50, 0.9);
+            transform: scale(1.1);
+        }
+
+        .btn-advanced-secondary {
+            border-radius: 40px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 1rem;
+            background: transparent;
+            color: #6c7a94;
+            border: 1.5px solid #dce3ed;
+            transition: transform 0.15s ease, background 0.2s, border-color 0.2s;
+        }
+        .btn-advanced-secondary:hover {
+            background: #f5f8fe;
+            border-color: #b8cae0;
+            color: #2d3748;
+        }
+        .btn-advanced-secondary:active {
+            transform: scale(0.96);
+        }
+
+        .btn-advanced-success {
+            border-radius: 40px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 1rem;
+            background: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-green-dark) 100%);
+            color: white;
+            border: none;
+            transition: transform 0.15s ease, box-shadow 0.25s ease;
+            box-shadow: 0 4px 16px rgba(56, 161, 105, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-advanced-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(56, 161, 105, 0.30);
+            color: white;
+        }
+        .btn-advanced-success:active {
+            transform: scale(0.96);
+        }
+
+        .alert-slide {
+            animation: slideDown 0.4s ease forwards;
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        @keyframes slideDown {
+            0% {
+                opacity: 0;
+                transform: translateY(-16px) scale(0.96);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .card-advanced .card-header-custom {
+                padding: 1.2rem 1.2rem 0.3rem 1.2rem;
+                font-size: 1.1rem;
+            }
+            .card-advanced .card-body-custom {
+                padding: 1rem 1.2rem 1.5rem 1.2rem;
+            }
+            .form-group-section {
+                padding: 1rem;
+            }
+            .upload-zone {
+                padding: 1.5rem 1rem;
+            }
+            .preview-item {
+                width: 80px;
+                height: 80px;
+            }
+            .btn-advanced-secondary,
+            .btn-advanced-success {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .card-advanced .card-body-custom {
+                padding: 0.8rem 0.8rem 1.2rem 0.8rem;
+            }
+            .form-group-section {
+                padding: 0.8rem;
+            }
+        }
+
+        .d-flex {
+            display: flex;
+        }
+        .justify-content-between {
+            justify-content: space-between;
+        }
+        .align-items-center {
+            align-items: center;
+        }
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+        .mt-3 {
+            margin-top: 0.75rem;
+        }
+        .text-muted {
+            color: #8a9bb5 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="main.html">
+                <i class="fas fa-store-alt"></i> 校园易淘
+            </a>
+            <span class="text-muted"><i class="fas fa-plus-circle"></i> 发布商品</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card-advanced">
+            <div class="card-header-custom">
+                <i class="fas fa-box-open"></i> 发布新商品
+            </div>
+            <div class="card-body-custom">
+                <form id="publishForm" novalidate>
+
+                    <div class="form-group-section">
+                        <span class="section-label"><i class="fas fa-tag"></i> 商品信息</span>
+
+                        <div class="mb-3">
+                            <label for="productName" class="form-label-advanced">商品名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-advanced" id="productName" placeholder="输入商品名称" required maxlength="100">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productCategory" class="form-label-advanced">商品类别 <span class="text-danger">*</span></label>
+                            <select class="form-select-advanced" id="productCategory" required>
+                                <option value="数码">📱 数码</option>
+                                <option value="书本">📚 书本</option>
+                                <option value="生活用品">🧴 生活用品</option>
+                                <option value="其他" selected>📦 其他</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productPrice" class="form-label-advanced">价格 <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background:white;border:1.5px solid #e2e8f0;border-right:none;border-radius:12px 0 0 12px;color:#6c7a94;font-weight:600;">¥</span>
+                                <input type="number" class="form-control-advanced" id="productPrice" step="0.01" min="0" required placeholder="0.00" style="border-radius:0 12px 12px 0;">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="productDescription" class="form-label-advanced">商品描述</label>
+                            <textarea class="form-control-advanced" id="productDescription" rows="3" placeholder="描述新旧程度、使用情况等（选填）"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group-section">
+                        <span class="section-label"><i class="fas fa-image"></i> 商品图片</span>
+
+                        <div class="upload-zone" id="uploadZone">
+                            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <div class="upload-text">点击或拖拽上传图片</div>
+                            <div class="upload-hint">支持 JPG / PNG / WebP · 最多 3 张</div>
+                            <input type="file" id="productImages" accept="image/*" multiple>
+                        </div>
+
+                        <div class="preview-container" id="previewContainer"></div>
+                        <small class="text-muted" style="display:block;margin-top:0.5rem;font-size:0.75rem;"><i class="fas fa-info-circle"></i> 至少上传 1 张图片</small>
+                    </div>
+
+                    <div class="form-group-section">
+                        <span class="section-label"><i class="fas fa-phone"></i> 联系方式</span>
+
+                        <div>
+                            <label for="sellerPhone" class="form-label-advanced">手机号 <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control-advanced" id="sellerPhone" placeholder="11 位手机号" required pattern="[0-9]{11}" maxlength="11">
+                            <small class="text-muted" style="font-size:0.75rem;"><i class="fas fa-sync-alt"></i> 默认使用你的注册手机号</small>
+                        </div>
+                    </div>
+
+                    <div id="message" class="mb-3"></div>
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <button type="button" class="btn-advanced-secondary" id="cancelBtn">
+                            <i class="fas fa-times"></i> 取消
+                        </button>
+                        <button type="submit" class="btn-advanced-success" id="submitBtn">
+                            <i class="fas fa-rocket"></i> 发布商品
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js">
+    </script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+
+            // ============================================================
+            // 关闭测试模式，使用真实登录数据
+            // ============================================================
+            const TEST_MODE = false;
+
+            const productName = document.getElementById('productName');
+            const productCategory = document.getElementById('productCategory');
+            const productPrice = document.getElementById('productPrice');
+            const productDescription = document.getElementById('productDescription');
+            const productImages = document.getElementById('productImages');
+            const previewContainer = document.getElementById('previewContainer');
+            const sellerPhone = document.getElementById('sellerPhone');
+            const messageDiv = document.getElementById('message');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const publishForm = document.getElementById('publishForm');
+            const uploadZone = document.getElementById('uploadZone');
+
+            function showMessage(text, isError = true) {
+                messageDiv.innerHTML = `<div class="alert alert-slide ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
+                    <i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${text}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            }
+
+            function clearMessage() { messageDiv.innerHTML = ''; }
+
+            function getCurrentUser() {
+                if (TEST_MODE) {
+                    return {
+                        nickname: '测试用户',
+                        studentNumber: '2024001',
+                        phone: '13800138000'
+                    };
+                }
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            sellerPhone.value = user.phone || '';
+
+            let selectedFiles = [];
+
+            function renderPreviews() {
+                previewContainer.innerHTML = '';
+                selectedFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const div = document.createElement('div');
+                        div.className = 'preview-item';
+                        div.innerHTML = `
+                            <img src="${ev.target.result}" alt="预览图">
+                            <button class="preview-remove" data-index="${index}" type="button"><i class="fas fa-times"></i></button>
+                        `;
+                        previewContainer.appendChild(div);
+
+                        div.querySelector('.preview-remove').addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const idx = parseInt(this.dataset.index);
+                            selectedFiles.splice(idx, 1);
+                            renderPreviews();
+                            productImages.value = '';
+                            clearMessage();
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            productImages.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+
+                if (selectedFiles.length + files.length > 3) {
+                    showMessage('最多只能选择 3 张图片');
+                    this.value = '';
+                    return;
+                }
+
+                for (let f of files) {
+                    if (!f.type.startsWith('image/')) {
+                        showMessage('请选择图片文件');
+                        this.value = '';
+                        return;
+                    }
+                }
+
+                selectedFiles = [...selectedFiles, ...files];
+                renderPreviews();
+                clearMessage();
+                this.value = '';
+            });
+
+            uploadZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length === 0) return;
+
+                if (selectedFiles.length + files.length > 3) {
+                    showMessage('最多只能选择 3 张图片');
+                    return;
+                }
+                for (let f of files) {
+                    if (!f.type.startsWith('image/')) {
+                        showMessage('请拖拽图片文件');
+                        return;
+                    }
+                }
+                selectedFiles = [...selectedFiles, ...files];
+                renderPreviews();
+                clearMessage();
+            });
+
+            publishForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearMessage();
+
+                const name = productName.value.trim();
+                const category = productCategory.value;
+                const price = parseFloat(productPrice.value);
+                const description = productDescription.value.trim() || '';
+                const phone = sellerPhone.value.trim();
+
+                if (!name) { showMessage('请输入商品名称'); return; }
+                if (isNaN(price) || price < 0) { showMessage('请输入有效价格'); return; }
+                if (!/^\d{11}$/.test(phone)) { showMessage('手机号必须为 11 位数字'); return; }
+                if (selectedFiles.length === 0) { showMessage('请至少上传一张商品图片'); return; }
+
+                const imagePromises = selectedFiles.map(file => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = ev => resolve(ev.target.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                });
+
+                Promise.all(imagePromises)
+                    .then(imagesBase64 => {
+                        const newProduct = {
+                            id: Date.now(),
+                            title: name,
+                            category: category,
+                            price: price,
+                            description: description,
+                            images: imagesBase64,
+                            status: 'selling',
+                            sellerPhone: phone,
+                            sellerStudentNumber: user.studentNumber
+                        };
+                        let products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+                        products.push(newProduct);
+                        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+                        showMessage('✅ 商品发布成功！正在跳转...', false);
+                        setTimeout(() => {
+                            window.location.href = 'main.html';
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        showMessage('图片读取失败，请重试');
+                        console.error(err);
+                    });
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                window.location.href = 'main.html';
+            });
+
+        })();
+    </script>
+</body>
+</html>

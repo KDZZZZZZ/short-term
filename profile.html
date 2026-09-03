@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 个人主页</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4f8 0%, #e6edf4 100%);
+            min-height: 100vh;
+            padding: 1.5rem 0 3rem;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+        }
+
+        :root {
+            --brand-blue: #4A90D9;
+            --brand-blue-dark: #357ABD;
+            --shadow-lg: 0 20px 60px rgba(74, 144, 217, 0.10), 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            padding: 0.6rem 0;
+            box-shadow: 0 2px 12px rgba(74, 144, 217, 0.25);
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 1.5rem;
+        }
+
+        .navbar-custom .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        .navbar-custom .navbar-brand i {
+            color: white;
+        }
+        .navbar-custom .text-muted {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+        }
+
+        .card-advanced {
+            max-width: 580px;
+            margin: 0 auto;
+            border: none;
+            border-radius: 24px;
+            background: #ffffff;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: cardFadeUp 0.6s ease forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .card-advanced:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 28px 72px rgba(74, 144, 217, 0.12), 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+
+        @keyframes cardFadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-advanced .card-header-custom {
+            background: transparent;
+            padding: 1.5rem 2rem 0.5rem 2rem;
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #1a1a2e;
+        }
+
+        .card-advanced .card-header-custom i {
+            color: var(--brand-blue);
+            margin-right: 0.5rem;
+        }
+
+        .card-advanced .card-body-custom {
+            padding: 1.5rem 2rem 2rem 2rem;
+        }
+
+        .form-group-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+            margin-bottom: 1.2rem;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+            transition: background 0.2s;
+        }
+
+        .form-group-section:hover {
+            background: #f5f8fe;
+        }
+
+        .form-group-section .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8a9bb5;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            display: block;
+        }
+
+        .form-control-advanced {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+            font-size: 0.95rem;
+            background: white;
+            width: 100%;
+        }
+
+        .form-control-advanced:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.10), 0 0 0 8px rgba(74, 144, 217, 0.04);
+            transform: scale(1.01);
+            outline: none;
+        }
+
+        .form-control-advanced::placeholder {
+            color: #b0c0d4;
+            font-weight: 400;
+        }
+
+        .form-control-advanced:disabled,
+        .form-control-advanced[readonly] {
+            background-color: #eef2f6;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .form-label-advanced {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .form-label-advanced .text-danger {
+            color: var(--brand-blue) !important;
+            font-weight: 700;
+        }
+
+        .alert-slide {
+            animation: slideDown 0.4s ease forwards;
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        @keyframes slideDown {
+            0% {
+                opacity: 0;
+                transform: translateY(-16px) scale(0.96);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .btn-advanced-secondary {
+            border-radius: 40px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 1rem;
+            background: transparent;
+            color: #6c7a94;
+            border: 1.5px solid #dce3ed;
+            transition: transform 0.15s ease, background 0.2s, border-color 0.2s;
+        }
+
+        .btn-advanced-secondary:hover {
+            background: #f5f8fe;
+            border-color: #b8cae0;
+            color: #2d3748;
+        }
+
+        .btn-advanced-secondary:active {
+            transform: scale(0.96);
+        }
+
+        .btn-advanced-primary {
+            border-radius: 40px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 1rem;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            color: white;
+            border: none;
+            transition: transform 0.15s ease, box-shadow 0.25s ease;
+            box-shadow: 0 4px 16px rgba(74, 144, 217, 0.25);
+        }
+
+        .btn-advanced-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(74, 144, 217, 0.30);
+            color: white;
+        }
+
+        .btn-advanced-primary:active {
+            transform: scale(0.96);
+        }
+
+        @media (max-width: 576px) {
+            .card-advanced .card-header-custom {
+                padding: 1.2rem 1.2rem 0.3rem 1.2rem;
+                font-size: 1.1rem;
+            }
+            .card-advanced .card-body-custom {
+                padding: 1rem 1.2rem 1.5rem 1.2rem;
+            }
+            .form-group-section {
+                padding: 1rem;
+            }
+            .btn-advanced-secondary,
+            .btn-advanced-primary {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .card-advanced .card-body-custom {
+                padding: 0.8rem 0.8rem 1.2rem 0.8rem;
+            }
+            .form-group-section {
+                padding: 0.8rem;
+            }
+        }
+
+        .d-flex {
+            display: flex;
+        }
+        .justify-content-between {
+            justify-content: space-between;
+        }
+        .align-items-center {
+            align-items: center;
+        }
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+        .mt-3 {
+            margin-top: 0.75rem;
+        }
+        .text-muted {
+            color: #8a9bb5 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="main.html">
+                <i class="fas fa-store-alt"></i> 校园易淘
+            </a>
+            <span class="text-muted"><i class="fas fa-user"></i> 个人资料</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card-advanced">
+            <div class="card-header-custom">
+                <i class="fas fa-user-edit"></i> 编辑个人信息
+            </div>
+            <div class="card-body-custom">
+                <form id="profileForm" novalidate>
+
+                    <!-- ===== 基本信息分组 ===== -->
+                    <div class="form-group-section">
+                        <span class="section-label"><i class="fas fa-id-card"></i> 基本信息</span>
+
+                        <div class="mb-3">
+                            <label class="form-label-advanced">学号</label>
+                            <input type="text" class="form-control-advanced" id="profileStudentNumber" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="profileNickname" class="form-label-advanced">昵称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-advanced" id="profileNickname" placeholder="输入你的昵称" required maxlength="50">
+                        </div>
+                    </div>
+
+                    <!-- ===== 联系方式分组 ===== -->
+                    <div class="form-group-section">
+                        <span class="section-label"><i class="fas fa-phone"></i> 联系方式</span>
+
+                        <div class="mb-3">
+                            <label for="profilePhone" class="form-label-advanced">手机号 <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control-advanced" id="profilePhone" placeholder="11 位手机号" required pattern="[0-9]{11}" maxlength="11">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="profileWechat" class="form-label-advanced">微信号</label>
+                            <input type="text" class="form-control-advanced" id="profileWechat" placeholder="选填" maxlength="64">
+                        </div>
+
+                        <div>
+                            <label for="profileQQ" class="form-label-advanced">QQ号</label>
+                            <input type="text" class="form-control-advanced" id="profileQQ" placeholder="选填，5-20 位数字" pattern="[0-9]{5,20}" maxlength="20">
+                        </div>
+                    </div>
+
+                    <!-- ===== 消息提示 ===== -->
+                    <div id="message" class="mb-3"></div>
+
+                    <!-- ===== 按钮组 ===== -->
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <button type="button" class="btn-advanced-secondary" id="backBtn">
+                            <i class="fas fa-arrow-left"></i> 返回首页
+                        </button>
+                        <button type="submit" class="btn-advanced-primary">
+                            <i class="fas fa-save"></i> 保存修改
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+
+            const studentNumberInput = document.getElementById('profileStudentNumber');
+            const nicknameInput = document.getElementById('profileNickname');
+            const phoneInput = document.getElementById('profilePhone');
+            const wechatInput = document.getElementById('profileWechat');
+            const qqInput = document.getElementById('profileQQ');
+            const messageDiv = document.getElementById('message');
+            const backBtn = document.getElementById('backBtn');
+            const profileForm = document.getElementById('profileForm');
+
+            function showMessage(text, isError = true) {
+                messageDiv.innerHTML = `
+                    <div class="alert alert-slide ${isError ? 'alert-danger' : 'alert-success'} alert-dismissible fade show" role="alert">
+                        <i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${text}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+
+            function clearMessage() { messageDiv.innerHTML = ''; }
+
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            studentNumberInput.value = user.studentNumber;
+            nicknameInput.value = user.nickname || '';
+            phoneInput.value = user.phone || '';
+            wechatInput.value = user.wechat || '';
+            qqInput.value = user.qq || '';
+
+            profileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearMessage();
+
+                const nickname = nicknameInput.value.trim();
+                const phone = phoneInput.value.trim();
+                const wechat = wechatInput.value.trim() || null;
+                const qq = qqInput.value.trim() || null;
+
+                if (!nickname) {
+                    showMessage('昵称不能为空');
+                    return;
+                }
+                if (!/^\d{11}$/.test(phone)) {
+                    showMessage('手机号必须为 11 位数字');
+                    return;
+                }
+                if (qq && !/^\d{5,20}$/.test(qq)) {
+                    showMessage('QQ号必须为 5-20 位数字');
+                    return;
+                }
+
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                const currentUser = users[user.studentNumber];
+                if (!currentUser) {
+                    showMessage('用户数据异常，请重新登录');
+                    return;
+                }
+
+                currentUser.nickname = nickname;
+                currentUser.phone = phone;
+                currentUser.wechat = wechat;
+                currentUser.qq = qq;
+
+                users[user.studentNumber] = currentUser;
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+                showMessage('✅ 个人信息已保存！', false);
+                setTimeout(function() {
+                    window.location.href = 'main.html';
+                }, 1500);
+            });
+
+            backBtn.addEventListener('click', function() {
+                window.location.href = 'main.html';
+            });
+
+        })();
+    </script>
+</body>
+</html>

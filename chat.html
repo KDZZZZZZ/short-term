@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园易淘 · 聊天</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+        }
+
+        body {
+            background: #eef3fb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        :root {
+            --brand-blue: #4A90D9;
+            --brand-blue-dark: #357ABD;
+            --brand-green: #38a169;
+        }
+
+        /* ===== 顶部导航 ===== */
+        .chat-header {
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            padding: 0.8rem 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 12px rgba(74, 144, 217, 0.25);
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .chat-header .back-btn {
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+
+        .chat-header .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        .chat-header .chat-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-header .chat-user-info .partner-name {
+            color: white;
+            font-weight: 600;
+            font-size: 1.05rem;
+            display: block;
+            line-height: 1.3;
+        }
+
+        .chat-header .chat-user-info .product-title {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-header .product-status {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        /* ===== 消息区域 ===== */
+        .chat-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1rem 0.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            background: #eef3fb;
+        }
+
+        /* 消息气泡 */
+        .message-item {
+            max-width: 78%;
+            padding: 0.6rem 1rem;
+            border-radius: 18px;
+            word-wrap: break-word;
+            animation: msgPop 0.3s ease forwards;
+            opacity: 0;
+            transform: scale(0.95);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        @keyframes msgPop {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* 自己发的（右侧） */
+        .message-sent {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-sent .message-time {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 对方发的（左侧） */
+        .message-received {
+            align-self: flex-start;
+            background: white;
+            color: #1a1a2e;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .message-received .message-time {
+            color: #8a9bb5;
+        }
+
+        .message-item .message-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .message-item .message-time {
+            font-size: 0.65rem;
+            margin-top: 0.25rem;
+            text-align: right;
+            opacity: 0.8;
+        }
+
+        /* 空状态 */
+        .no-messages {
+            text-align: center;
+            color: #b0c0d4;
+            margin: auto;
+            padding: 2rem 0;
+        }
+
+        .no-messages i {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.4;
+        }
+
+        .no-messages p {
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        /* ===== 底部输入框 ===== */
+        .chat-footer {
+            background: white;
+            padding: 0.6rem 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+            flex-shrink: 0;
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .chat-footer .input-group {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .chat-footer .input-group .form-control {
+            border-radius: 40px 0 0 40px;
+            border: 1.5px solid #e2e8f0;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #f8fafc;
+        }
+
+        .chat-footer .input-group .form-control:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.08);
+            outline: none;
+            background: white;
+        }
+
+        .chat-footer .input-group .form-control::placeholder {
+            color: #b0c0d4;
+        }
+
+        .chat-footer .input-group .btn-primary {
+            border-radius: 0 40px 40px 0;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.15s;
+        }
+
+        .chat-footer .input-group .btn-primary:hover {
+            background: var(--brand-blue-dark);
+            transform: scale(1.02);
+        }
+
+        .chat-footer .input-group .btn-primary:active {
+            transform: scale(0.96);
+        }
+
+        /* ===== 滚动条美化 ===== */
+        .chat-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-body::-webkit-scrollbar-thumb {
+            background: #dce3ed;
+            border-radius: 20px;
+        }
+
+        .chat-body::-webkit-scrollbar-thumb:hover {
+            background: #b8cae0;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 576px) {
+            .chat-header {
+                padding: 0.6rem 0.8rem;
+                border-radius: 0 0 16px 16px;
+            }
+            .chat-header .back-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 0.85rem;
+            }
+            .chat-header .chat-user-info .partner-name {
+                font-size: 0.95rem;
+            }
+            .chat-header .chat-user-info .product-title {
+                font-size: 0.7rem;
+            }
+            .chat-header .product-status {
+                font-size: 0.6rem;
+                padding: 0.15rem 0.6rem;
+            }
+            .chat-body {
+                padding: 0.8rem 0.6rem 0.3rem 0.6rem;
+            }
+            .message-item {
+                max-width: 88%;
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
+            .chat-footer {
+                padding: 0.4rem 0.8rem;
+            }
+            .chat-footer .input-group .form-control {
+                font-size: 0.85rem;
+                padding: 0.5rem 1rem;
+            }
+            .chat-footer .input-group .btn-primary {
+                font-size: 0.85rem;
+                padding: 0.5rem 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .chat-header .chat-user-info .product-title {
+                max-width: 80px;
+            }
+            .message-item {
+                max-width: 92%;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 顶部导航 ===== -->
+    <div class="chat-header">
+        <a href="messages.html" class="back-btn" id="backBtn">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="chat-user-info">
+            <span class="partner-name" id="chatPartnerName">对方昵称</span>
+            <span class="product-title" id="chatProductTitle">商品标题</span>
+        </div>
+        <span class="product-status" id="chatProductStatus">状态</span>
+    </div>
+
+    <!-- ===== 消息区域 ===== -->
+    <div class="chat-body" id="messageContainer">
+        <div class="no-messages">
+            <i class="fas fa-comment-dots"></i>
+            <p>暂无消息，开始聊天吧！</p>
+        </div>
+    </div>
+
+    <!-- ===== 底部输入框 ===== -->
+    <div class="chat-footer">
+        <div class="input-group">
+            <input type="text" class="form-control" id="messageInput" placeholder="输入消息...">
+            <button class="btn btn-primary" id="sendBtn">发送</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            const SESSION_KEY = 'mock_session';
+            const USERS_KEY = 'mock_users';
+            const PRODUCTS_KEY = 'mock_products';
+            const MESSAGES_KEY = 'mock_messages';
+
+            function getCurrentUser() {
+                const sn = localStorage.getItem(SESSION_KEY);
+                if (!sn) return null;
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+                return users[sn] || null;
+            }
+
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = parseInt(urlParams.get('productId'));
+            const sellerId = urlParams.get('sellerId');
+
+            if (!productId || !sellerId) {
+                alert('参数错误');
+                window.location.href = 'main.html';
+                return;
+            }
+
+            const products = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || '[]');
+            const product = products.find(function(p) { return p.id === productId; });
+            if (!product) {
+                alert('商品不存在');
+                window.location.href = 'main.html';
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+            const seller = users[sellerId];
+            if (!seller) {
+                alert('卖家不存在');
+                window.location.href = 'main.html';
+                return;
+            }
+
+            document.getElementById('chatPartnerName').textContent = seller.nickname;
+            document.getElementById('chatProductTitle').textContent = product.title;
+            document.getElementById('chatProductStatus').textContent = product.status === 'selling' ? '出售中' : '已售出';
+
+            function getMessages() {
+                const data = localStorage.getItem(MESSAGES_KEY);
+                return data ? JSON.parse(data) : [];
+            }
+
+            function saveMessages(messages) {
+                localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+            }
+
+            function getConversationMessages() {
+                const all = getMessages();
+                return all.filter(function(m) {
+                    return m.productId === productId &&
+                        ((m.senderId === user.studentNumber && m.receiverId === sellerId) ||
+                         (m.senderId === sellerId && m.receiverId === user.studentNumber));
+                });
+            }
+
+            function sendMessage(content) {
+                if (!content.trim()) return;
+                const newMsg = {
+                    id: Date.now(),
+                    productId: productId,
+                    senderId: user.studentNumber,
+                    receiverId: sellerId,
+                    content: content.trim(),
+                    time: new Date().toLocaleString(),
+                    read: false
+                };
+                const all = getMessages();
+                all.push(newMsg);
+                saveMessages(all);
+                renderMessages();
+                document.getElementById('messageInput').value = '';
+            }
+
+            function markMessagesAsRead() {
+                const all = getMessages();
+                let updated = false;
+                all.forEach(function(m) {
+                    if (m.productId === productId && m.senderId === sellerId && m.receiverId === user.studentNumber && !m
+                        .read) {
+                        m.read = true;
+                        updated = true;
+                    }
+                });
+                if (updated) saveMessages(all);
+            }
+
+            function renderMessages() {
+                const container = document.getElementById('messageContainer');
+                const msgs = getConversationMessages();
+
+                if (msgs.length === 0) {
+                    container.innerHTML =
+                        `<div class="no-messages"><i class="fas fa-comment-dots"></i><p>暂无消息，开始聊天吧！</p></div>`;
+                    return;
+                }
+
+                let html = '';
+                msgs.forEach(function(m) {
+                    const isSent = m.senderId === user.studentNumber;
+                    const senderName = isSent ? '我' : seller.nickname;
+                    html += `
+                        <div class="message-item ${isSent ? 'message-sent' : 'message-received'}">
+                            <div class="message-content">${m.content}</div>
+                            <div class="message-time">${m.time} · ${senderName}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                markMessagesAsRead();
+                container.scrollTop = container.scrollHeight;
+            }
+
+            // ===== 事件绑定 =====
+            document.getElementById('sendBtn').addEventListener('click', function() {
+                sendMessage(document.getElementById('messageInput').value);
+            });
+
+            document.getElementById('messageInput').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage(this.value);
+                }
+            });
+
+            document.getElementById('backBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'messages.html';
+            });
+
+            renderMessages();
+
+            // 页面加载后滚动到底部
+            setTimeout(function() {
+                const container = document.getElementById('messageContainer');
+                container.scrollTop = container.scrollHeight;
+            }, 100);
+
+        })();
+    </script>
+</body>
+</html>
