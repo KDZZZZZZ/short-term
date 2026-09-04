@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Avatar, Badge, Card, Spinner } from '@heroui/react'
-import { MessageCircleOff, Store } from 'lucide-react'
+import { Store } from 'lucide-react'
+import { SpeechBubbleAlertIcon } from '@/components/icons/koboyo'
 import { listConversations } from '@/lib/api/conversations'
 import { formatRelativeTime } from '@/lib/format'
 import { nicknameInitial } from '@/lib/format'
@@ -33,7 +34,7 @@ export function ConversationsPage() {
           actionLabel="去逛逛市场"
           actionTo="/"
           description="在商品详情页点击“和卖家聊聊”即可开始对话"
-          icon={<MessageCircleOff className="size-10" />}
+          icon={<SpeechBubbleAlertIcon className="h-14 w-auto" />}
           title="还没有会话"
         />
       ) : (
@@ -50,7 +51,7 @@ export function ConversationsPage() {
               key={conversation.id}
               to={`/chats/${conversation.id}`}
             >
-              <Card className="flex flex-row items-center gap-3 p-3 transition-shadow hover:shadow-md">
+              <Card className="card-interactive flex flex-row items-center gap-3 p-3 hover:bg-surface-secondary">
                 <Badge.Anchor>
                   <Avatar className="size-11">
                     <Avatar.Fallback>

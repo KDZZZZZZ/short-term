@@ -21,6 +21,7 @@ import { createTrade } from '@/lib/api/trades'
 import { isApiError } from '@/lib/http'
 import { categoryLabel, formatDateTime, formatPrice, nicknameInitial } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
+import { AnimatedDigits } from '@/components/animated-digits'
 import { ProductStatusChip } from '@/components/status-chip'
 
 export function ProductDetailPage() {
@@ -146,8 +147,10 @@ export function ProductDetailPage() {
             <div className="flex w-20 shrink-0 flex-col gap-2">
               {urls.map((url, index) => (
                 <button
-                  className={`h-20 w-20 overflow-hidden rounded-lg border bg-surface-secondary transition-colors ${
-                    index === activeImage ? 'border-accent' : 'border-border-secondary hover:border-accent/50'
+                  className={`h-20 w-20 overflow-hidden rounded-lg border bg-surface-secondary transition-all duration-200 hover:scale-[1.04] active:scale-95 ${
+                    index === activeImage
+                      ? 'border-highlight ring-1 ring-highlight/40'
+                      : 'border-border-secondary hover:border-accent/50'
                   }`}
                   key={url}
                   onClick={() => setActiveImage(index)}
@@ -185,7 +188,9 @@ export function ProductDetailPage() {
           <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground">
             {product.title}
           </h1>
-          <p className="tabular-nums mt-3 text-3xl font-bold text-accent">{formatPrice(product.price)}</p>
+          <p className="tabular-nums mt-3 text-3xl font-bold text-highlight">
+            <AnimatedDigits value={formatPrice(product.price)} />
+          </p>
           <p className="mt-2 text-xs text-muted">
             {categoryLabel(product.category)} · 发布于 {formatDateTime(product.created_at)}
           </p>

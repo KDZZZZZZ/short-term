@@ -18,7 +18,7 @@ export function ProductCard({ product, animate = true }: ProductCardProps) {
   const open = () => navigate(`/products/${product.id}`)
 
   const body = (
-    <Card className="group flex h-full w-full flex-col gap-0 overflow-hidden p-0 transition-shadow hover:shadow-md">
+    <Card className="card-interactive group flex h-full w-full flex-col gap-0 overflow-hidden p-0">
       <button
         aria-label={`查看 ${product.title}`}
         className="relative aspect-[3/4] w-full cursor-pointer overflow-hidden bg-surface-secondary text-left outline-none focus-visible:ring-2 focus-visible:ring-accent"

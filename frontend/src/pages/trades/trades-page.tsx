@@ -19,11 +19,11 @@ import {
 import {
   Check,
   CheckCheck,
-  Handshake,
   MessageCircle,
   Store,
   X,
 } from 'lucide-react'
+import { HandshakeDealIcon } from '@/components/icons/koboyo'
 import {
   acceptTrade,
   cancelTrade,
@@ -33,11 +33,12 @@ import {
 } from '@/lib/api/trades'
 import { getOrCreateProductConversation } from '@/lib/api/conversations'
 import { isApiError } from '@/lib/http'
-import { formatDateTime, formatPrice, nicknameInitial, TRADE_STATUS_OPTIONS } from '@/lib/format'
+import { formatPrice, nicknameInitial, TRADE_STATUS_OPTIONS } from '@/lib/format'
 import type { Trade, TradeRole, TradeStatus } from '@/lib/types'
 import { EmptyState } from '@/components/empty-state'
 import { TradeStatusChip } from '@/components/status-chip'
 import { useAuthStore } from '@/stores/auth-store'
+import { TradeTimeline } from '@/components/trade-timeline'
 
 const PAGE_SIZE = 10
 
@@ -244,7 +245,7 @@ function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
   const asLabel = as === 'buyer' ? '卖家' : '买家'
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    <Card className="card-interactive flex flex-col gap-3 p-4">
       <div className="flex flex-wrap items-center gap-3">
         <Link
           className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface"
@@ -270,7 +271,7 @@ function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
           >
             {trade.product.title}
           </Link>
-          <span className="tabular-nums text-base font-bold text-accent">
+          <span className="tabular-nums text-base font-bold text-highlight">
             {formatPrice(trade.price_snapshot)}
             <span className="ms-1 text-xs font-normal text-muted">成交快照价</span>
           </span>
@@ -285,11 +286,9 @@ function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
           </Avatar>
           {asLabel}：{counterpart.nickname}
         </span>
-        <span>创建于 {formatDateTime(trade.created_at)}</span>
-        {trade.accepted_at ? <span>接受于 {formatDateTime(trade.accepted_at)}</span> : null}
-        {trade.completed_at ? <span>完成于 {formatDateTime(trade.completed_at)}</span> : null}
-        {trade.cancelled_at ? <span>取消于 {formatDateTime(trade.cancelled_at)}</span> : null}
       </div>
+
+      <TradeTimeline trade={trade} />
 
       {trade.status === 'ACCEPTED' ? (
         <div className="flex flex-wrap gap-2 text-xs">
@@ -303,7 +302,9 @@ function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
       ) : null}
 
       {trade.cancel_reason ? (
-        <p className="rounded-xl bg-surface p-2.5 text-xs text-muted">取消原因：{trade.cancel_reason}</p>
+        <p className="rounded-xl border border-border-secondary bg-surface-tertiary p-2.5 text-xs text-muted">
+          取消原因：{trade.cancel_reason}
+        </p>
       ) : null}
 
       {trade.status === 'PENDING' || trade.status === 'ACCEPTED' ? (
@@ -397,7 +398,7 @@ export function TradesPage() {
           actionLabel="去逛逛市场"
           actionTo="/"
           description="在商品详情页点击“我想买”即可发起购买意向"
-          icon={<Handshake className="size-10" />}
+          icon={<HandshakeDealIcon className="h-14 w-auto" />}
           title={as === 'buyer' ? '还没有购买记录' : '还没有卖出记录'}
         />
       ) : (

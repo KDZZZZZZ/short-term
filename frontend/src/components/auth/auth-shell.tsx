@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { MarketStallIcon } from '@/components/icons/koboyo'
 
 /**
  * 登录/注册共用分栏布局（参考 Human Design 设计稿）：
@@ -23,7 +23,7 @@ export function AuthShell({
         {/* 左：表单面板 */}
         <div className="flex flex-col p-8 sm:p-10">
           <Link className="flex items-center gap-2 self-start" to="/">
-            <Store className="size-5 text-accent" />
+            <MarketStallIcon className="h-6 w-auto text-accent" />
             <span className="text-lg font-bold text-foreground">校园二手集市</span>
           </Link>
 
@@ -43,7 +43,7 @@ export function AuthShell({
           <div className="absolute bottom-24 left-16 size-16 rounded-full bg-accent/20" />
           <div className="relative z-10 flex flex-col items-center gap-6">
             <div className="flex size-40 items-center justify-center rounded-3xl bg-accent shadow-lg">
-              <Store className="size-20 text-accent-foreground" />
+              <MarketStallIcon className="h-24 w-auto text-accent-foreground" />
             </div>
             <div className="text-center">
               <p className="text-xl font-bold text-accent-soft-foreground">让闲置好物，遇见新主人</p>

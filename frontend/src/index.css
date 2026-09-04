@@ -2,9 +2,27 @@
 @import "@heroui/styles";
 
 /*
+ * 把应用自定义 token 暴露为 Tailwind 工具类：
+ * bg-header / text-header-foreground / bg-header-hover / border-header-border /
+ * bg-header-active / text-header-active-foreground / bg-header-active-hover /
+ * text-highlight（价格、时间线等需要从卡片面上跳出来的高亮色）
+ */
+@theme inline {
+  --color-header: var(--header-background);
+  --color-header-foreground: var(--header-foreground);
+  --color-header-hover: var(--header-hover);
+  --color-header-active: var(--header-active);
+  --color-header-active-foreground: var(--header-active-foreground);
+  --color-header-active-hover: var(--header-active-hover);
+  --color-header-border: var(--header-border);
+  --color-highlight: var(--highlight);
+}
+
+/*
  * 亮色主题（Human Design 配色）：
  * #1D4533 森林绿 / #F7EAE0 米白底 / #F9D2BA 蜜桃 / #5E3122 深棕
- * 深棕正文 + 米白底保证可读；输入框聚焦高亮为浅底绿描边，与深色文字明暗错开。
+ * 深棕正文 + 米白底保证可读；卡片用更浅的暖白面 + 棕调 ring 描边浮出底色；
+ * 顶栏为森林绿横条，导航悬停透光、选中为蜜桃 pill（与底色强对比）。
  */
 :root:not(.dark) {
   color-scheme: light;
@@ -12,64 +30,91 @@
   /* 基础：米白底 + 深棕正文 */
   --background: #f7eae0;
   --foreground: #5e3122;
-  --muted: #97766a;
+  --muted: #8a6b5e;
 
-  /* 卡片与浮层：底色用色板最浅色，靠描边分层 */
-  --surface: #f7eae0;
+  /* 卡片与浮层：比底色更浅的暖白面，靠 ring 描边 + 暖阴影分层 */
+  --surface: #fffdf8;
   --surface-foreground: #5e3122;
-  --overlay: #f7eae0;
+  --surface-secondary: #f8ede2;
+  --surface-secondary-foreground: #5e3122;
+  --surface-tertiary: #f1e3d5;
+  --surface-tertiary-foreground: #5e3122;
+  --surface-hover: #fbf3ea;
+  --overlay: #fffdf8;
   --overlay-foreground: #5e3122;
 
-  /* 品牌主色：森林绿（主按钮、链接、焦点） */
+  /* 品牌主色：森林绿（主按钮、链接）；软底用蜜桃 */
   --accent: #1d4533;
   --accent-foreground: #f7eae0;
   --accent-hover: #2a5a44;
   --accent-soft: #f9d2ba;
   --accent-soft-foreground: #5e3122;
-  --accent-soft-hover: #f5c3a2;
+  --accent-soft-hover: #f4c1a3;
 
-  /* 中性默认色 */
-  --default: #f3e2d4;
+  /* 中性默认色（派生暖沙） */
+  --default: #f1e2d2;
   --default-foreground: #5e3122;
-  --default-hover: #f9d2ba;
-  --default-soft: #f7eae0;
+  --default-hover: #e9d6c1;
+  --default-soft: #faf3ec;
   --default-soft-foreground: #5e3122;
-  --default-soft-hover: #f3e2d4;
+  --default-soft-hover: #f1e2d2;
 
-  /* 表单字段：浅底深字；field-focus/hover 是聚焦与悬停时的字段背景色（保持浅色） */
-  --field-background: #f7eae0;
+  /* 表单字段：浅底深字；聚焦为森林绿描边 */
+  --field-background: #fffdf8;
   --field-foreground: #5e3122;
   --field-placeholder: #b28d7c;
-  --field-border: #eab99a;
-  --field-border-hover: #dd9f78;
+  --field-border: #e8c9ae;
+  --field-border-hover: #d8a184;
   --field-border-focus: #1d4533;
-  --field-focus: #f7eae0;
-  --field-hover: #f9d2ba;
+  --field-focus: #fffdf8;
+  --field-hover: #f8ede2;
 
-  /* 边框与分隔：蜜桃色系 */
-  --border: rgb(94 49 34 / 18%);
-  --border-secondary: rgb(249 210 186 / 85%);
-  --border-tertiary: rgb(249 210 186 / 55%);
-  --separator: #f9d2ba;
-  --separator-secondary: #f3e2d4;
+  /* 边框与分隔：棕调 */
+  --border: rgb(94 49 34 / 14%);
+  --border-secondary: rgb(94 49 34 / 20%);
+  --border-tertiary: rgb(94 49 34 / 11%);
+  --separator: #efe1d2;
+  --separator-secondary: #f4e8db;
   --separator-tertiary: #f7eae0;
 
   --focus: #1d4533;
   --link: #1d4533;
 
-  /* 软状态色与主题协调 */
+  /* 主高亮：亮色下与主色一致（森林绿） */
+  --highlight: #1d4533;
+
+  /* 软状态色 */
   --success: #2f6d4f;
+  --success-foreground: #f0faf4;
   --success-soft: #ddeadd;
   --success-soft-foreground: #1d4533;
   --warning: #a8632b;
+  --warning-foreground: #fdf5e8;
   --warning-soft: #f9e3c8;
   --warning-soft-foreground: #5e3122;
   --danger: #b0483b;
+  --danger-hover: #9c3f33;
+  --danger-foreground: #fdf3f1;
   --danger-soft: #f6ddd5;
-  --danger-soft-foreground: #5e3122;
+  --danger-soft-foreground: #7a2a20;
 
-  /* 顶栏：用色板中间色与底色区分 */
-  --header-background: #f9d2ba;
+  /* 顶栏：森林绿横条；悬停透光、选中为蜜桃 pill */
+  --header-background: #1d4533;
+  --header-foreground: #f7eae0;
+  --header-hover: rgb(247 234 224 / 14%);
+  --header-active: #f9d2ba;
+  --header-active-foreground: #5e3122;
+  --header-active-hover: #f4c1a3;
+  --header-border: rgb(13 31 23 / 45%);
+
+  /* 阴影：1px 描边 ring + 暖调环境光，卡片在米白底上可辨 */
+  --surface-shadow:
+    0 0 0 1px rgb(94 49 34 / 10%), 0 2px 4px rgb(94 49 34 / 5%), 0 6px 16px rgb(94 49 34 / 8%);
+  --surface-shadow-hover:
+    0 0 0 1px rgb(94 49 34 / 16%), 0 4px 8px rgb(94 49 34 / 7%), 0 14px 28px rgb(94 49 34 / 14%);
+  --overlay-shadow:
+    0 0 0 1px rgb(94 49 34 / 12%), 0 4px 10px rgb(94 49 34 / 6%), 0 16px 40px rgb(94 49 34 / 16%);
+  --field-shadow: 0 1px 2px rgb(94 49 34 / 6%);
 
   /* 圆角收小，贴近参考图的利落风格 */
   --radius: 0.5rem;
@@ -87,81 +132,158 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
+/* 卡片可交互态：悬停上浮、阴影加深（ring 描边同步增强） */
+@utility card-interactive {
+  transition-property: transform, box-shadow, background-color;
+  transition-duration: 0.2s;
+  transition-timing-function: cubic-bezier(0.21, 0.68, 0.35, 1);
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--surface-shadow-hover);
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(0.995);
+  }
+}
+
 /*
  * 暗色主题（Human Design 配色）：
- * #280905 近黑褐底 / #740A03 深红卡片面 / #C3110C 主红 / #E6501B 橙红高亮
- * 部分前景/软色为可读性派生色（暖白、半透明橙红边框等）。
+ * #030905 近黑绿底 / #97E0AA 浅绿主色（主按钮浅底深字）/ #1C7F36 次级绿（顶栏、软底）
+ * / #36E063 荧光绿高亮 / #EDF7F0 文字。
+ * 卡片为抬升的暗绿面 + 绿 ring 勾边；顶栏次级绿横条，选中导航为荧光绿 pill。
  */
 :root.dark {
   color-scheme: dark;
 
-  /* 基础：暗红黑底 + 亮灰正文（#EEEEEE 直接作为正文/高亮色） */
-  --background: #1d1616;
-  --foreground: #eeeeee;
-  --muted: #a89c9c;
+  /* 基础：近黑绿底 + 浅薄荷正文 */
+  --background: #030905;
+  --foreground: #edf7f0;
+  --muted: #8fa89a;
 
-  /* 卡片与浮层：底色用色板最深色，靠描边分层 */
-  --surface: #1d1616;
-  --surface-foreground: #eeeeee;
-  --overlay: #1d1616;
-  --overlay-foreground: #eeeeee;
+  /* 卡片与浮层：抬升的暗绿面，比底色明显上浮 */
+  --surface: #0b1710;
+  --surface-foreground: #edf7f0;
+  --surface-secondary: #14281c;
+  --surface-secondary-foreground: #edf7f0;
+  --surface-tertiary: #06100a;
+  --surface-tertiary-foreground: #edf7f0;
+  --surface-hover: #10231a;
+  --overlay: #0e1f15;
+  --overlay-foreground: #edf7f0;
 
-  /* 品牌主色：主红，悬停微亮（派生），软底用深红 */
-  --accent: #d84040;
-  --accent-foreground: #eeeeee;
-  --accent-hover: #e26060;
-  --accent-soft: #8e1616;
-  --accent-soft-foreground: #eeeeee;
-  --accent-soft-hover: #a01c1c;
+  /* 品牌主色：浅绿主按钮（浅底深字）；软底用暗绿 */
+  --accent: #97e0aa;
+  --accent-foreground: #04130a;
+  --accent-hover: #aae8bb;
+  --accent-soft: #143723;
+  --accent-soft-foreground: #c9f2d4;
+  --accent-soft-hover: #1a4429;
 
-  /* 中性默认色 */
-  --default: #8e1616;
-  --default-foreground: #eeeeee;
-  --default-hover: #a01c1c;
-  --default-soft: #2a1d1d;
-  --default-soft-foreground: #eeeeee;
-  --default-soft-hover: #8e1616;
+  /* 中性默认色（暗绿派生） */
+  --default: #12251a;
+  --default-foreground: #edf7f0;
+  --default-hover: #1a3223;
+  --default-soft: #0d1a12;
+  --default-soft-foreground: #edf7f0;
+  --default-soft-hover: #14281c;
 
-  /* 表单字段：深底浅字；聚焦高亮为亮灰描边 */
-  --field-background: #1d1616;
-  --field-foreground: #eeeeee;
-  --field-placeholder: #9a8f8f;
-  --field-border: rgb(216 64 64 / 40%);
-  --field-border-hover: #d84040;
-  --field-border-focus: #eeeeee;
-  --field-focus: #1d1616;
-  --field-hover: #8e1616;
+  /* 表单字段：比卡片更深的内嵌底；聚焦为荧光绿描边 */
+  --field-background: #06100a;
+  --field-foreground: #edf7f0;
+  --field-placeholder: #7e967f;
+  --field-border: rgb(151 224 170 / 28%);
+  --field-border-hover: #97e0aa;
+  --field-border-focus: #36e063;
+  --field-focus: #06100a;
+  --field-hover: #0b1710;
 
-  /* 边框与分隔：红调微光 */
-  --border: rgb(216 64 64 / 28%);
-  --border-secondary: rgb(216 64 64 / 16%);
-  --border-tertiary: rgb(216 64 64 / 8%);
-  --separator: #2e2222;
-  --separator-secondary: #251b1b;
-  --separator-tertiary: #1d1616;
+  /* 边框与分隔：绿调微光 */
+  --border: rgb(237 247 240 / 12%);
+  --border-secondary: rgb(54 224 99 / 26%);
+  --border-tertiary: rgb(54 224 99 / 12%);
+  --separator: #14281c;
+  --separator-secondary: #0e1f15;
+  --separator-tertiary: #091309;
 
-  --focus: #eeeeee;
-  --link: #eeeeee;
+  --focus: #36e063;
+  --link: #97e0aa;
+
+  /* 主高亮：荧光绿（Human Design #36E063） */
+  --highlight: #36e063;
 
   /* 软状态色（可读性派生） */
-  --success: #6fae5c;
-  --success-foreground: #14200f;
-  --success-soft: #24331f;
-  --success-soft-foreground: #cfe6c2;
+  --success: #5cc98a;
+  --success-foreground: #04130a;
+  --success-soft: #10291a;
+  --success-soft-foreground: #a7e8c3;
   --warning: #d9a441;
-  --warning-foreground: #2e2410;
-  --warning-soft: #3a2f1c;
-  --warning-soft-foreground: #eed9a8;
-  --danger: #e06a6a;
-  --danger-foreground: #2a0d0d;
-  --danger-soft: #3d1f1f;
+  --warning-foreground: #241a06;
+  --warning-soft: #33290f;
+  --warning-soft-foreground: #ecd9a0;
+  --danger: #ef6f6f;
+  --danger-hover: #f68a8a;
+  --danger-foreground: #250b0b;
+  --danger-soft: #381d1d;
   --danger-soft-foreground: #ffc9c9;
 
-  /* 顶栏：用色板中间色与底色区分 */
-  --header-background: #8e1616;
+  /* 顶栏：次级绿横条；悬停透光、选中为荧光绿 pill */
+  --header-background: #1c7f36;
+  --header-foreground: #edf7f0;
+  --header-hover: rgb(255 255 255 / 10%);
+  --header-active: #36e063;
+  --header-active-foreground: #04130a;
+  --header-active-hover: #5ae87f;
+  --header-border: rgb(0 0 0 / 35%);
 
-  /* 阴影在暗色下收紧 */
-  --surface-shadow: 0 2px 6px 0 rgb(0 0 0 / 40%);
-  --overlay-shadow: 0 8px 28px 0 rgb(0 0 0 / 55%);
-  --field-shadow: 0 2px 6px 0 rgb(0 0 0 / 30%);
+  /* 阴影：绿 ring 勾边 + 收紧的暗阴影 */
+  --surface-shadow:
+    0 0 0 1px rgb(54 224 99 / 16%), 0 2px 6px rgb(0 0 0 / 55%), 0 6px 18px rgb(0 0 0 / 40%);
+  --surface-shadow-hover:
+    0 0 0 1px rgb(54 224 99 / 28%), 0 4px 10px rgb(0 0 0 / 55%), 0 14px 30px rgb(0 0 0 / 50%);
+  --overlay-shadow: 0 0 0 1px rgb(54 224 99 / 20%), 0 16px 44px rgb(0 0 0 / 65%);
+  --field-shadow: 0 2px 6px rgb(0 0 0 / 35%);
+}
+
+/* ===== Transitions.dev — Number pop-in（数字逐位弹入） ===== */
+.t-digit-group {
+  display: inline-flex;
+}
+
+.t-digit {
+  display: inline-block;
+  will-change: transform, filter, opacity;
+}
+
+.t-digit-group.is-animating .t-digit {
+  animation: t-digit-pop-in var(--digit-dur, 500ms) var(--digit-ease, cubic-bezier(0.34, 1.45, 0.64, 1)) both;
+}
+
+@keyframes t-digit-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--digit-distance, 8px)) scale(0.92);
+    filter: blur(var(--digit-blur, 2px));
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* 全局减弱动效：系统开启“减少动态效果”时压平所有过渡与关键帧 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
