@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { useAutoResizeTextarea } from '@/hooks/use-auto-resize-textarea'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { Link, useParams } from 'react-router-dom'
@@ -34,7 +35,7 @@ export function ChatPage() {
   const queryClient = useQueryClient()
   const me = useAuthStore((state) => state.user)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const { textareaRef: inputRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 44, maxHeight: 160 })
 
   // 会话元信息来自会话列表（契约未提供按 id 查询单个会话的接口）
   const { data: conversation } = useQuery({
@@ -91,7 +92,10 @@ export function ChatPage() {
     mutationFn: (content: string) =>
       sendConversationMessage(conversationId, { content }),
     onSuccess: () => {
-      if (inputRef.current) inputRef.current.value = ''
+      if (inputRef.current) {
+        inputRef.current.value = ''
+        adjustHeight(true)
+      }
       void queryClient.invalidateQueries({ queryKey: ['conversations', conversationId, 'messages'] })
       void queryClient.invalidateQueries({ queryKey: ['conversations'] })
     },
@@ -198,7 +202,7 @@ export function ChatPage() {
                       className={`max-w-[min(75%,32rem)] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-6 ${
                         mine
                           ? 'rounded-br-md bg-accent text-accent-foreground'
-                          : 'rounded-bl-md bg-surface text-foreground'
+                          : 'rounded-bl-md border border-border-secondary bg-surface-secondary text-foreground'
                       }`}
                     >
                       {message.content}
@@ -228,7 +232,8 @@ export function ChatPage() {
             className="flex-1"
             placeholder="输入消息，回车发送（Shift+回车换行）"
             ref={inputRef}
-            rows={2}
+            rows={1}
+            onInput={() => adjustHeight()}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault()

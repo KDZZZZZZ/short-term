@@ -54,12 +54,6 @@ async function settle(page) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 }
 
-function fail(message) {
-  console.error(`✗ ${message}`)
-  process.exitCode = 1
-  throw new Error(message)
-}
-
 async function register(context, { student_no, nickname }) {
   const page = await context.newPage()
   await page.goto(`${BASE}/register`)

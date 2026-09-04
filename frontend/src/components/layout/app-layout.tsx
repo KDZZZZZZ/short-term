@@ -10,6 +10,7 @@ import {
   User,
   LogOut,
 } from 'lucide-react'
+import { MarketStallIcon } from '@/components/icons/koboyo'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { logoutUser } from '@/lib/api/auth'
 import { nicknameInitial } from '@/lib/format'
@@ -29,20 +30,31 @@ function NavLink({ to, current, icon, label, badge }: NavLinkProps) {
   const active = current === to || (to !== '/' && current.startsWith(to))
   return (
     <Link
-      className="relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent-soft data-[active=true]:bg-accent-soft data-[active=true]:text-accent-soft-foreground"
+      className="group relative flex items-center rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors duration-200 hover:bg-header-hover focus-visible:ring-2 focus-visible:ring-header-active data-[active=true]:text-header-active-foreground data-[active=false]:text-header-foreground/85 hover:data-[active=false]:text-header-foreground"
       data-active={active ? 'true' : 'false'}
       to={to}
     >
-      {icon}
-      <span className="hidden sm:inline">{label}</span>
-      {badge && badge > 0 ? (
-        <Badge.Anchor>
-          <span />
-          <Badge color="danger" size="sm">
-            {badge > 99 ? '99+' : badge}
-          </Badge>
-        </Badge.Anchor>
+      {/* 选中态：pill 跨导航项平滑滑动（layoutId 共享同一元素） */}
+      {active ? (
+        <motion.span
+          aria-hidden
+          className="absolute inset-0 rounded-lg bg-header-active"
+          layoutId="nav-active-pill"
+          transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+        />
       ) : null}
+      <span className="relative z-10 flex items-center gap-1.5">
+        <span className="transition-transform duration-200 group-hover:scale-110">{icon}</span>
+        <span className="hidden sm:inline">{label}</span>
+        {badge && badge > 0 ? (
+          <Badge.Anchor>
+            <span />
+            <Badge color="danger" size="sm">
+              {badge > 99 ? '99+' : badge}
+            </Badge>
+          </Badge.Anchor>
+        ) : null}
+      </span>
     </Link>
   )
 }
@@ -68,14 +80,14 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-full flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border-secondary bg-[var(--header-background)] backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-header-border bg-header backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4">
-          <Link className="flex items-center gap-2 text-base font-bold text-foreground" to="/">
-            <Store className="size-5 text-accent" />
+          <Link className="flex items-center gap-2 text-base font-bold text-header-foreground" to="/">
+            <MarketStallIcon className="h-6 w-auto text-header-active" />
             <span className="hidden sm:inline">校园二手集市</span>
           </Link>
 
-          <Separator className="mx-2 hidden h-6 sm:block" orientation="vertical" />
+          <Separator className="mx-2 hidden h-6 bg-header-foreground/25 sm:block" orientation="vertical" />
 
           <nav className="flex flex-1 items-center gap-1">
             <NavLink current={location.pathname} icon={<Store className="size-4" />} label="市场" to="/" />
@@ -103,20 +115,39 @@ export function AppLayout() {
           <Button
             isIconOnly
             aria-label={mode === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
+            className="bg-transparent text-header-foreground hover:bg-header-hover"
             size="sm"
             variant="tertiary"
             onPress={toggle}
           >
-            {mode === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            <motion.span
+              animate={{ rotate: 0, opacity: 1 }}
+              className="flex"
+              initial={{ rotate: -120, opacity: 0 }}
+              key={mode}
+              transition={{ duration: 0.3, ease: [0.21, 0.68, 0.35, 1] }}
+            >
+              {mode === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </motion.span>
           </Button>
 
-          <Button onPress={() => navigate('/products/new')} size="sm">
+          <Button
+            className="bg-header-active text-header-active-foreground shadow-none hover:bg-header-active-hover"
+            onPress={() => navigate('/products/new')}
+            size="sm"
+          >
             <Plus className="size-4" />
             <span className="hidden sm:inline">发布</span>
           </Button>
 
           <Dropdown>
-            <Button aria-label="账号菜单" isIconOnly size="sm" variant="tertiary">
+            <Button
+              aria-label="账号菜单"
+              className="bg-transparent text-header-foreground hover:bg-header-hover"
+              isIconOnly
+              size="sm"
+              variant="tertiary"
+            >
               <Avatar className="size-7">
                 <Avatar.Fallback>{nicknameInitial(user?.nickname ?? '我')}</Avatar.Fallback>
               </Avatar>

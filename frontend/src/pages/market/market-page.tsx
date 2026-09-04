@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { ListBox, Pagination, SearchField, Select } from '@heroui/react'
-import { PackageSearch } from 'lucide-react'
+import { EmptyBoxIcon } from '@/components/icons/koboyo'
 import { listProducts } from '@/lib/api/products'
 import type { CategoryFilter } from '@/lib/types'
 import { CATEGORY_OPTIONS } from '@/lib/format'
@@ -96,7 +96,7 @@ export function MarketPage() {
           actionLabel="清除条件"
           actionTo="/"
           description="试试更换关键词或分类，或稍后再来看看"
-          icon={<PackageSearch className="size-10" />}
+          icon={<EmptyBoxIcon className="h-14 w-auto" />}
           title={keyword || category ? '没有找到匹配的在售商品' : '市场暂时还没有在售商品'}
         />
       ) : (
