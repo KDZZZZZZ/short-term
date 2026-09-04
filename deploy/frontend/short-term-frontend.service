@@ -1,0 +1,21 @@
+[Unit]
+Description=short-term frontend static host and API proxy
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/podman rm -f short-term-frontend
+ExecStart=/usr/bin/podman run --rm --name short-term-frontend \
+  --publish 18084:80 \
+  --volume /opt/short-term/frontend/current/nginx.conf:/etc/nginx/conf.d/default.conf:ro \
+  --volume /opt/short-term/frontend/current/html:/usr/share/nginx/html:ro \
+  m.daocloud.io/docker.io/library/nginx@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+ExecStop=-/usr/bin/podman stop --time 10 short-term-frontend
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=5min
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=default.target
