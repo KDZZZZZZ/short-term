@@ -124,6 +124,9 @@ jobs:
             echo "::error::公网 18084 不可达。请在阿里云安全组放行入方向 TCP/18084,然后重新运行本 workflow。"
             exit 1
           fi
-          curl --noproxy '*' --fail --silent --show-error --max-time 5 \
-            "$base_url/api/v1/products" | grep -q '"code"'
+          # 未认证请求公开商品列表:预期 401 JSON(证明 /api/v1 反代到网关)。
+          # 不用 --fail:401 是预期结果,只校验响应体是网关的 JSON 信封。
+          api_body=$(curl --noproxy '*' --silent --show-error --max-time 5 \
+            "$base_url/api/v1/products")
+          echo "$api_body" | grep -q '"code"'
           echo "public endpoint OK: $base_url"
