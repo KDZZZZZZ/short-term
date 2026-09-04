@@ -1,0 +1,129 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'deploy/frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-short-term-frontend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c71c76c87dde4 # v4.2.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" >"$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >"$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Package and upload frontend release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh_base=(
+            -i "$HOME/.ssh/deploy_key"
+            -p "$DEPLOY_PORT"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          rsync_base="ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+
+          tar -C frontend/dist -czf "$RUNNER_TEMP/frontend-html.tar.gz" .
+          cp deploy/frontend/nginx.conf "$RUNNER_TEMP/nginx.conf"
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum frontend-html.tar.gz >frontend-html.tar.gz.sha256
+          )
+
+          ssh "${ssh_base[@]}" "$remote" \
+            "install -d -m 0750 '/opt/short-term/frontend/releases/$GITHUB_SHA' /opt/short-term/incoming /opt/short-term/bin"
+          rsync -az --partial \
+            -e "$rsync_base" \
+            "$RUNNER_TEMP/frontend-html.tar.gz" \
+            "$RUNNER_TEMP/frontend-html.tar.gz.sha256" \
+            "$RUNNER_TEMP/nginx.conf" \
+            "$remote:/opt/short-term/incoming/"
+          rsync -az \
+            -e "$rsync_base" \
+            deploy/frontend/short-term-frontend.sh \
+            deploy/frontend/short-term-frontend.service \
+            "$remote:/opt/short-term/incoming/"
+
+      - name: Install release and verify locally
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "$DEPLOY_USER@$DEPLOY_HOST" "RELEASE_SHA='$GITHUB_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          release_dir=/opt/short-term/frontend/releases/$RELEASE_SHA
+          incoming=/opt/short-term/incoming
+          expected_sum=$(cut -d' ' -f1 "$incoming/frontend-html.tar.gz.sha256")
+          test "$(sha256sum "$incoming/frontend-html.tar.gz" | cut -d' ' -f1)" = "$expected_sum"
+          install -d -m 0750 "$HOME/.config/systemd/user" "$release_dir/html"
+          install -m 0755 "$incoming/short-term-frontend.sh" /opt/short-term/bin/short-term-frontend
+          install -m 0644 "$incoming/short-term-frontend.service" \
+            "$HOME/.config/systemd/user/short-term-frontend.service"
+          install -m 0644 "$incoming/nginx.conf" "$release_dir/nginx.conf"
+          tar -xzf "$incoming/frontend-html.tar.gz" -C "$release_dir/html"
+          /opt/short-term/bin/short-term-frontend deploy "$release_dir"
+          /usr/bin/systemctl --user is-active --quiet short-term-frontend.service
+          REMOTE
+
+      - name: Verify public endpoint
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          set -euo pipefail
+          base_url="http://$DEPLOY_HOST:18084"
+          if ! curl --noproxy '*' --fail --silent --show-error \
+            --retry 8 --retry-delay 3 --retry-connrefused --max-time 5 \
+            "$base_url/" | grep -q '<div id="root">'; then
+            echo "::error::公网 18084 不可达。请在阿里云安全组放行入方向 TCP/18084,然后重新运行本 workflow。"
+            exit 1
+          fi
+          curl --noproxy '*' --fail --silent --show-error --max-time 5 \
+            "$base_url/api/v1/products" | grep -q '"code"'
+          echo "public endpoint OK: $base_url"

@@ -10,6 +10,7 @@ Kubernetes 或服务网格。
 | 单元 | 容器入口 | 网络/端口 | 持久化 |
 | --- | --- | --- | --- |
 | Gateway | `server` | 公网 API `0.0.0.0:18083 -> 8080`；指标 `127.0.0.1:19090 -> 9090` | 只读媒体卷 |
+| Web 前端 | `nginx`（rootless，见 `deploy/frontend/README.md`） | 公网 `0.0.0.0:18084 -> 80`；反代 `/api/v1`、`/media` 到 Gateway | 无状态（`releases/` 目录） |
 | Account | `server` | 私有网络 `account:9001` | `account_db` |
 | Marketplace | `server`、独立 `worker` | 私有网络 `marketplace:9002` | `marketplace_db`、媒体目录 |
 | Messaging | `server`、独立 `worker` | 私有网络 `messaging:9003` | `messaging_db` |
@@ -37,7 +38,7 @@ sudoers。当前 Swagger UI 仍是既有的 root system service，CI 只保留�
 `systemctl restart short-term-openapi.service` 权限。自动发布还会在上传前验证主机具有
 Python 3.6 或更高版本；Python 只用于本机验收与日志 JSON 解析，不进入 Go 服务容器。
 
-阿里云安全组必须显式放行入方向 `TCP/18083`，并继续禁止公网访问 `19090`、PostgreSQL
+阿里云安全组必须显式放行入方向 `TCP/18083` 与 `TCP/18084`（Web 前端），并继续禁止公网访问 `19090`、PostgreSQL
 和内部 gRPC 端口。当前 `18083` 是学习验收使用的明文 HTTP 入口，只允许随机生成的
 合成账号和测试数据；接入真实用户或长期凭据前，必须配置域名和可信 TLS 反向代理，
 随后关闭公网直连 `18083`。
