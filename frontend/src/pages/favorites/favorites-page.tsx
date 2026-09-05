@@ -19,6 +19,8 @@ export function FavoritesPage() {
     queryKey: ['favorites', { page }],
     queryFn: () => listFavorites({ page, page_size: PAGE_SIZE }),
     placeholderData: keepPreviousData,
+    // 收藏随时可能被其它设备/标签页变更,切回页面必拉新
+    staleTime: 0,
   })
 
   const removeMutation = useMutation({
