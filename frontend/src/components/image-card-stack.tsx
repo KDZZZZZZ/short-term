@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { animate, easeIn, mix, motion, progress, useMotionValue, useTransform, wrap } from 'motion/react'
+import { animate, mix, motion, useMotionValue, useTransform, wrap } from 'motion/react'
 
 /**
  * 商品图片卡片堆（参照 examples.motion.dev/react/card-stack）：
@@ -70,8 +70,16 @@ function StackCard({
   // 用 Math.sin(index) 确定性地生成每张卡的基准倾斜，视觉上自然错落
   const baseRotation = mix(0, maxRotate, Math.sin(index))
   const x = useMotionValue(0)
-  const rotate = useTransform(x, [0, 400], [baseRotation, baseRotation + 10], { clamp: false })
-  const zIndex = totalImages - wrap(totalImages, 0, index - currentIndex + 1)
+  // 商品最多三张图：深度直接由环形偏移得出（0=顶层）。后面的卡向下错位、
+  // 略缩、微转，从顶卡下缘露出来——商品图同尺寸，必须靠错位才能看到堆叠。
+  const depthOffset = wrap(0, totalImages, index - currentIndex)
+  const rotate = useTransform(
+    x,
+    [0, 400],
+    [baseRotation + depthOffset * 4, baseRotation + depthOffset * 4 + 10],
+    { clamp: false },
+  )
+  const zIndex = totalImages - depthOffset
 
   const onDragEnd = () => {
     const distance = Math.abs(x.get())
@@ -84,19 +92,19 @@ function StackCard({
     }
   }
 
-  const opacity = progress(totalImages * 0.25, totalImages * 0.75, zIndex)
-  const depth = progress(0, totalImages - 1, zIndex)
-  const scale = mix(0.5, 1, easeIn(depth))
-
   return (
     <motion.div
       className="absolute inset-0 overflow-hidden rounded-2xl bg-surface-secondary shadow-2xl will-change-transform"
       style={{ zIndex, rotate, x }}
       initial={{ opacity: 0, scale: 0.3 }}
-      animate={{ opacity, scale }}
-      whileTap={index === currentIndex ? { scale: 0.98 } : undefined}
+      animate={{
+        opacity: 1 - depthOffset * 0.1,
+        scale: 1 - depthOffset * 0.05,
+        y: depthOffset * 30,
+      }}
+      whileTap={depthOffset === 0 ? { scale: 0.98 } : undefined}
       transition={{ type: 'spring', stiffness: 600, damping: 30 }}
-      drag={index === currentIndex ? 'x' : false}
+      drag={depthOffset === 0 ? 'x' : false}
       onDragEnd={onDragEnd}
     >
       <img
