@@ -29,6 +29,8 @@ service MarketplaceService {
   rpc ConfirmTrade(ConfirmTradeRequest) returns (ConfirmTradeResponse);
   rpc CreateProductComment(CreateProductCommentRequest) returns (CreateProductCommentResponse);
   rpc ListProductComments(ListProductCommentsRequest) returns (ListProductCommentsResponse);
+  rpc CreateTradeReview(CreateTradeReviewRequest) returns (CreateTradeReviewResponse);
+  rpc BatchGetProductTradeReviews(BatchGetProductTradeReviewsRequest) returns (BatchGetProductTradeReviewsResponse);
 }
 
 enum ProductStatus {
@@ -163,6 +165,8 @@ message ListUserProductsRequest {
   optional ProductStatus status = 2;
   int32 page = 3;
   int32 page_size = 4;
+  // statuses 是状态集合过滤，供公开的卖家商品列表使用；为空时不过滤。
+  repeated ProductStatus statuses = 5;
 }
 
 message ListProductsResponse {
@@ -351,4 +355,34 @@ message ListProductCommentsRequest {
 
 message ListProductCommentsResponse {
   ProductCommentPage page = 1;
+}
+
+// TradeReview 是买家在交易完成后发布的不可变文字评价。每笔交易最多一条；
+// 公开契约只暴露 buyer_id，昵称由 Gateway 批量补全。评价与商品用户评论
+// （ProductComment）相互独立。
+message TradeReview {
+  string id = 1;
+  string trade_id = 2;
+  string product_id = 3;
+  string buyer_id = 4;
+  string content = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message CreateTradeReviewRequest {
+  string actor_id = 1;
+  string trade_id = 2;
+  string content = 3;
+}
+
+message CreateTradeReviewResponse {
+  TradeReview review = 1;
+}
+
+message BatchGetProductTradeReviewsRequest {
+  repeated string product_ids = 1;
+}
+
+message BatchGetProductTradeReviewsResponse {
+  map<string, TradeReview> reviews = 1;
 }

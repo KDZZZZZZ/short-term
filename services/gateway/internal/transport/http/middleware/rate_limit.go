@@ -132,7 +132,7 @@ func (l *RateLimiter) rule(r *http.Request) (string, int) {
 
 func isTradeAction(action string) bool {
 	switch action {
-	case "accept", "reject", "cancel", "confirm":
+	case "accept", "reject", "cancel", "confirm", "review":
 		return true
 	default:
 		return false

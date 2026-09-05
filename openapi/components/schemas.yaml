@@ -105,7 +105,8 @@ ErrorCode:
     `400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；
     已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或
     对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、
-    商品或交易状态冲突使用 `409` 及对应业务码；请求过于频繁使用
+    商品或交易状态冲突使用 `409` 及对应业务码；重复发布买家评价使用
+    `409 / TRADE_REVIEW_ALREADY_EXISTS`；请求过于频繁使用
     `429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。
   enum:
     - VALIDATION_ERROR
@@ -121,6 +122,7 @@ ErrorCode:
     - PRODUCT_STATE_CONFLICT
     - CONVERSATION_MISMATCH
     - SELF_ACTION_NOT_ALLOWED
+    - TRADE_REVIEW_ALREADY_EXISTS
     - RATE_LIMITED
     - INTERNAL_ERROR
 
@@ -405,6 +407,7 @@ ProductDetail:
     - images
     - seller
     - is_favorited
+    - buyer_review
     - created_at
     - updated_at
   properties:
@@ -434,6 +437,11 @@ ProductDetail:
       $ref: '#/SellerContact'
     is_favorited:
       type: boolean
+    buyer_review:
+      oneOf:
+        - $ref: '#/TradeReview'
+        - type: 'null'
+      description: 商品已完成交易且买家已发布评价时为该买家评价，其余情况为 `null`。
     created_at:
       type: string
       format: date-time
@@ -1087,3 +1095,127 @@ CommentPageSuccess:
       properties:
         data:
           $ref: '#/CommentPage'
+
+TradeReviewContent:
+  type: string
+  minLength: 1
+  maxLength: 500
+  description: 买家评价正文，1 至 500 个字符。
+
+TradeReview:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - trade_id
+    - product_id
+    - buyer
+    - content
+    - created_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    trade_id:
+      $ref: '#/Identifier'
+    product_id:
+      $ref: '#/Identifier'
+    buyer:
+      $ref: '#/UserPublic'
+    content:
+      $ref: '#/TradeReviewContent'
+    created_at:
+      type: string
+      format: date-time
+
+TradeReviewCreateRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - content
+  properties:
+    content:
+      $ref: '#/TradeReviewContent'
+
+TradeReviewSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/TradeReview'
+
+MyProductSummary:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - price
+    - category
+    - cover_url
+    - status
+    - seller
+    - buyer_review
+    - created_at
+  properties:
+    id:
+      $ref: '#/Identifier'
+    title:
+      type: string
+      minLength: 1
+      maxLength: 100
+    price:
+      $ref: '#/Price'
+    category:
+      $ref: '#/ProductCategory'
+    cover_url:
+      type:
+        - string
+        - 'null'
+      format: uri-reference
+      maxLength: 500
+      description: 等于 `sort_order = 1` 的图片 URL；商品没有图片时为 `null`。
+    status:
+      $ref: '#/ProductStatus'
+    seller:
+      $ref: '#/UserPublic'
+    buyer_review:
+      oneOf:
+        - $ref: '#/TradeReview'
+        - type: 'null'
+      description: 该商品收到的买家评价；还没有已完成交易的买家发布评价时为 `null`。
+    created_at:
+      type: string
+      format: date-time
+
+MyProductPage:
+  type: object
+  additionalProperties: false
+  required:
+    - items
+    - page
+    - page_size
+    - total
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/MyProductSummary'
+    page:
+      type: integer
+      minimum: 1
+    page_size:
+      type: integer
+      minimum: 1
+      maximum: 100
+    total:
+      type: integer
+      minimum: 0
+
+MyProductPageSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/MyProductPage'

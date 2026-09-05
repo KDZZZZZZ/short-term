@@ -551,6 +551,7 @@ func foreignToken(t *testing.T) string {
 type stubAccounts struct {
 	changePasswordErr error
 	withoutContact    bool
+	missingUser       bool
 	lastUpdate        *accountv1.UpdateProfileRequest
 	batchCalls        int
 	lastBatchSize     int
@@ -586,6 +587,9 @@ func (s *stubAccounts) Login(_ context.Context, _ *accountv1.LoginRequest, _ ...
 }
 
 func (s *stubAccounts) GetUser(_ context.Context, req *accountv1.GetUserRequest, _ ...grpc.CallOption) (*accountv1.GetUserResponse, error) {
+	if s.missingUser {
+		return nil, errs.New(errs.CodeResourceNotFound, "用户不存在")
+	}
 	user := &accountv1.UserContact{Id: req.GetUserId(), Nickname: "小明"}
 	if !s.withoutContact {
 		wechat := "wx_xiaoming"

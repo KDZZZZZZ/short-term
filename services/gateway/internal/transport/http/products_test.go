@@ -63,6 +63,7 @@ func newProductServer(t *testing.T, accounts *stubAccounts, marketplace *stubMar
 		Users:        handler.NewUsers(accounts, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
+		TradeReviews: handler.NewTradeReviews(marketplace, aggregator, responder),
 		Comments:     handler.NewComments(marketplace, aggregator, responder),
 	})
 
@@ -616,6 +617,14 @@ type stubMarketplace struct {
 	listCommentsErr   error
 	lastCreateComment *marketplacev1.CreateProductCommentRequest
 	lastListComments  *marketplacev1.ListProductCommentsRequest
+
+	sold             bool
+	tradeReviews     map[string]*marketplacev1.TradeReview
+	batchReviewsErr  error
+	lastBatchReviews *marketplacev1.BatchGetProductTradeReviewsRequest
+	createReviewResp *marketplacev1.CreateTradeReviewResponse
+	createReviewErr  error
+	lastCreateReview *marketplacev1.CreateTradeReviewRequest
 }
 
 func (s *stubMarketplace) summary(id, sellerID string) *marketplacev1.ProductSummary {
@@ -633,13 +642,17 @@ func (s *stubMarketplace) summary(id, sellerID string) *marketplacev1.ProductSum
 }
 
 func (s *stubMarketplace) detail() *marketplacev1.ProductDetail {
+	status := marketplacev1.ProductStatus_PRODUCT_STATUS_ON_SALE
+	if s.sold {
+		status = marketplacev1.ProductStatus_PRODUCT_STATUS_SOLD
+	}
 	return &marketplacev1.ProductDetail{
 		Id:          testProductID,
 		Title:       "机械键盘",
 		PriceMinor:  12345,
 		Category:    marketplacev1.ProductCategory_PRODUCT_CATEGORY_DIGITAL,
 		Description: "九成新",
-		Status:      marketplacev1.ProductStatus_PRODUCT_STATUS_ON_SALE,
+		Status:      status,
 		Images: []*marketplacev1.ProductImage{{
 			Id:        "img_1",
 			Url:       "https://media.example.test/products/" + testProductID + "/img_1.png",

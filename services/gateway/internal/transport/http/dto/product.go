@@ -32,8 +32,31 @@ type ProductDetail struct {
 	Images      []ProductImage `json:"images"`
 	Seller      SellerContact  `json:"seller"`
 	IsFavorited bool           `json:"is_favorited"`
+	BuyerReview *TradeReview   `json:"buyer_review"`
 	CreatedAt   string         `json:"created_at"`
 	UpdatedAt   string         `json:"updated_at"`
+}
+
+// MyProductSummary 是 MyProductSummary schema：我的商品页的列表项，
+// 额外携带该商品收到的买家评价。
+type MyProductSummary struct {
+	ID          string       `json:"id"`
+	Title       string       `json:"title"`
+	Price       string       `json:"price"`
+	Category    string       `json:"category"`
+	CoverURL    *string      `json:"cover_url"`
+	Status      string       `json:"status"`
+	Seller      UserPublic   `json:"seller"`
+	BuyerReview *TradeReview `json:"buyer_review"`
+	CreatedAt   string       `json:"created_at"`
+}
+
+// MyProductPage 是 MyProductPage schema。
+type MyProductPage struct {
+	Items    []MyProductSummary `json:"items"`
+	Page     int32              `json:"page"`
+	PageSize int32              `json:"page_size"`
+	Total    int64              `json:"total"`
 }
 
 // ProductPage 是 ProductPage schema。

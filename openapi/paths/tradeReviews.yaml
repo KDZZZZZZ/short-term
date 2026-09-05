@@ -1,0 +1,43 @@
+review:
+  parameters:
+    - $ref: ../components/parameters.yaml#/TradeId
+  post:
+    tags:
+      - TradeReviews
+    summary: 发布买家评价
+    operationId: createTradeReview
+    description: |
+      当前用户必须是该交易笔的买家，且交易已进入 `COMPLETED`。每笔交易最多
+      一条买家评价，发布后不可修改、不可删除。评价内容为 1 至 500 个字符的
+      文本。发布评价不改变交易或商品状态。交易不存在或当前用户不可见返回
+      `404 / RESOURCE_NOT_FOUND`；交易未完成或操作者不是买家返回
+      `403 / FORBIDDEN`；重复发布返回 `409 / TRADE_REVIEW_ALREADY_EXISTS`。
+      买家评价与公开的用户评论相互独立；已售出商品的详情和卖家自己的
+      商品列表会展示该评价。
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/TradeReviewCreateRequest
+    responses:
+      '201':
+        description: 买家评价已发布。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/TradeReviewSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError

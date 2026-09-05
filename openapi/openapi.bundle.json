@@ -46,6 +46,10 @@
       "description": "购买意向和受控的交易状态动作。"
     },
     {
+      "name": "TradeReviews",
+      "description": "买家对已完成交易的文字评价，与公开的用户评论相互独立。"
+    },
+    {
       "name": "Comments",
       "description": "用户对商品的文字评论，不要求购买。"
     }
@@ -280,7 +284,7 @@
         ],
         "summary": "获取当前用户发布的商品",
         "operationId": "listCurrentUserProducts",
-        "description": "固定按 `created_at DESC, id DESC` 排列。页码分页不提供跨请求快照，并发变更\n可能导致后续页面漂移。\n",
+        "description": "固定按 `created_at DESC, id DESC` 排列。页码分页不提供跨请求快照，并发变更\n可能导致后续页面漂移。每件商品携带 `buyer_review`：该商品收到的买家评价，\n尚无已完成交易的买家发布评价时为 `null`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/ProductStatus"
@@ -298,7 +302,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductPageSuccess"
+                  "$ref": "#/components/schemas/MyProductPageSuccess"
                 }
               }
             }
@@ -308,6 +312,49 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/users/{userId}/products": {
+      "get": {
+        "tags": [
+          "Users",
+          "Products"
+        ],
+        "summary": "获取其他用户发布的商品",
+        "operationId": "listUserProducts",
+        "description": "返回该用户在售（`ON_SALE`）和已售出（`SOLD`）的商品，固定按\n`created_at DESC, id DESC` 排列；`RESERVED` 和 `OFF_SHELF` 只有卖家自己\n可以看到。页码分页不提供跨请求快照。用户不存在返回\n`404 / RESOURCE_NOT_FOUND`。已售出商品的买家评价通过商品详情展示。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "该用户公开可见的商品分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPageSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -424,7 +471,7 @@
         ],
         "summary": "获取商品详情和卖家联系方式",
         "operationId": "getProduct",
-        "description": "对所有已认证用户返回任意状态商品的详情；`ON_SALE`、`OFF_SHELF`、\n`RESERVED` 和 `SOLD` 的可见性相同。`404` 只表示商品不存在。响应返回\n卖家昵称、微信和 QQ，但不返回卖家学号。\n",
+        "description": "对所有已认证用户返回任意状态商品的详情；`ON_SALE`、`OFF_SHELF`、\n`RESERVED` 和 `SOLD` 的可见性相同。`404` 只表示商品不存在。响应返回\n卖家昵称、微信和 QQ，但不返回卖家学号。`buyer_review` 在商品已完成\n交易且买家已发布评价时为该评价（此时商品为 `SOLD`），否则为 `null`。\n",
         "responses": {
           "200": {
             "description": "商品详情。",
@@ -1527,6 +1574,64 @@
           }
         }
       }
+    },
+    "/trades/{tradeId}/review": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TradeId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "TradeReviews"
+        ],
+        "summary": "发布买家评价",
+        "operationId": "createTradeReview",
+        "description": "当前用户必须是该交易笔的买家，且交易已进入 `COMPLETED`。每笔交易最多\n一条买家评价，发布后不可修改、不可删除。评价内容为 1 至 500 个字符的\n文本。发布评价不改变交易或商品状态。交易不存在或当前用户不可见返回\n`404 / RESOURCE_NOT_FOUND`；交易未完成或操作者不是买家返回\n`403 / FORBIDDEN`；重复发布返回 `409 / TRADE_REVIEW_ALREADY_EXISTS`。\n买家评价与公开的用户评论相互独立；已售出商品的详情和卖家自己的\n商品列表会展示该评价。\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeReviewCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "买家评价已发布。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeReviewSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1732,7 +1837,7 @@
       },
       "ErrorCode": {
         "type": "string",
-        "description": "稳定业务错误码及其 HTTP 绑定：请求格式或字段值无效使用\n`400 / VALIDATION_ERROR`；资料缺少发布商品所需联系方式使用\n`400 / CONTACT_REQUIRED`；上传数量超过三张使用\n`400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；\n已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或\n对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、\n商品或交易状态冲突使用 `409` 及对应业务码；请求过于频繁使用\n`429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。\n",
+        "description": "稳定业务错误码及其 HTTP 绑定：请求格式或字段值无效使用\n`400 / VALIDATION_ERROR`；资料缺少发布商品所需联系方式使用\n`400 / CONTACT_REQUIRED`；上传数量超过三张使用\n`400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；\n已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或\n对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、\n商品或交易状态冲突使用 `409` 及对应业务码；重复发布买家评价使用\n`409 / TRADE_REVIEW_ALREADY_EXISTS`；请求过于频繁使用\n`429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。\n",
         "enum": [
           "VALIDATION_ERROR",
           "CONTACT_REQUIRED",
@@ -1747,6 +1852,7 @@
           "PRODUCT_STATE_CONFLICT",
           "CONVERSATION_MISMATCH",
           "SELF_ACTION_NOT_ALLOWED",
+          "TRADE_REVIEW_ALREADY_EXISTS",
           "RATE_LIMITED",
           "INTERNAL_ERROR"
         ]
@@ -1918,6 +2024,152 @@
             "$ref": "#/components/schemas/Nickname"
           }
         }
+      },
+      "TradeReviewContent": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "description": "买家评价正文，1 至 500 个字符。"
+      },
+      "TradeReview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "trade_id",
+          "product_id",
+          "buyer",
+          "content",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "trade_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "product_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "content": {
+            "$ref": "#/components/schemas/TradeReviewContent"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MyProductSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "price",
+          "category",
+          "cover_url",
+          "status",
+          "seller",
+          "buyer_review",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference",
+            "maxLength": 500,
+            "description": "等于 `sort_order = 1` 的图片 URL；商品没有图片时为 `null`。"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProductStatus"
+          },
+          "seller": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "buyer_review": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TradeReview"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "该商品收到的买家评价；还没有已完成交易的买家发布评价时为 `null`。"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MyProductPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyProductSummary"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MyProductPageSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/MyProductPage"
+              }
+            }
+          }
+        ]
       },
       "ProductSummary": {
         "type": "object",
@@ -2124,6 +2376,7 @@
           "images",
           "seller",
           "is_favorited",
+          "buyer_review",
           "created_at",
           "updated_at"
         ],
@@ -2163,6 +2416,17 @@
           },
           "is_favorited": {
             "type": "boolean"
+          },
+          "buyer_review": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TradeReview"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "商品已完成交易且买家已发布评价时为该买家评价，其余情况为 `null`。"
           },
           "created_at": {
             "type": "string",
@@ -2983,6 +3247,33 @@
             "maxLength": 200
           }
         }
+      },
+      "TradeReviewCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/TradeReviewContent"
+          }
+        }
+      },
+      "TradeReviewSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/TradeReview"
+              }
+            }
+          }
+        ]
       }
     },
     "responses": {
@@ -3127,24 +3418,6 @@
           }
         }
       },
-      "PayloadTooLarge": {
-        "description": "上传文件或请求体超过服务限制。",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "tooLarge": {
-                "value": {
-                  "code": "PAYLOAD_TOO_LARGE",
-                  "message": "上传内容超过限制"
-                }
-              }
-            }
-          }
-        }
-      },
       "NotFound": {
         "description": "目标资源不存在或对当前用户不可见。",
         "content": {
@@ -3157,6 +3430,24 @@
                 "value": {
                   "code": "RESOURCE_NOT_FOUND",
                   "message": "资源不存在"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "上传文件或请求体超过服务限制。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "tooLarge": {
+                "value": {
+                  "code": "PAYLOAD_TOO_LARGE",
+                  "message": "上传内容超过限制"
                 }
               }
             }
@@ -3210,6 +3501,15 @@
           "minimum": 1,
           "maximum": 100,
           "default": 20
+        }
+      },
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "不透明用户标识。",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
         }
       },
       "Keyword": {

@@ -39,13 +39,14 @@ type RouterOptions struct {
 	// focused handler tests; production exposes it on a private management port.
 	Metrics *middleware.HTTPMetrics
 
-	Auth      *handler.Auth
-	Users     *handler.Users
-	Products  *handler.Products
-	Trades    *handler.Trades
-	Comments  *handler.Comments
-	Favorites *handler.Favorites
-	Messaging *handler.Messaging
+	Auth         *handler.Auth
+	Users        *handler.Users
+	Products     *handler.Products
+	Trades       *handler.Trades
+	TradeReviews *handler.TradeReviews
+	Comments     *handler.Comments
+	Favorites    *handler.Favorites
+	Messaging    *handler.Messaging
 }
 
 // publicPaths 是无需令牌即可访问的唯一端点。openapi/openapi.yaml 中的其他端点
@@ -69,6 +70,7 @@ func NewRouter(opts RouterOptions) http.Handler {
 	api.HandleFunc("PATCH /users/me", opts.Users.UpdateMe)
 	api.HandleFunc("PUT /users/me/password", opts.Users.ChangePassword)
 	api.HandleFunc("GET /users/me/products", opts.Products.ListMine)
+	api.HandleFunc("GET /users/{userId}/products", opts.Products.ListByUser)
 
 	api.HandleFunc("GET /products", opts.Products.List)
 	api.HandleFunc("POST /products", opts.Products.Create)
@@ -88,6 +90,7 @@ func NewRouter(opts RouterOptions) http.Handler {
 	api.HandleFunc("POST /trades/{tradeId}/reject", opts.Trades.Reject)
 	api.HandleFunc("POST /trades/{tradeId}/cancel", opts.Trades.Cancel)
 	api.HandleFunc("POST /trades/{tradeId}/confirm", opts.Trades.Confirm)
+	api.HandleFunc("POST /trades/{tradeId}/review", opts.TradeReviews.Create)
 
 	api.HandleFunc("GET /favorites", opts.Favorites.List)
 	api.HandleFunc("PUT /favorites/{productId}", opts.Favorites.Add)

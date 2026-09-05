@@ -353,6 +353,55 @@ def run(args):
     if completed_trade.get("status") != "COMPLETED" or completed_trade.get("product", {}).get("status") != "SOLD":
         raise RuntimeError("completed trade did not move the product to SOLD")
 
+    # 买家评价：交易完成后买家发布一条，与公开的用户评论相互独立。
+    expect_error(
+        client.request(
+            "POST",
+            f"/api/v1/trades/{trade_id}/review",
+            token=observer_token,
+            json_body={"content": "M6 旁观者评价"},
+        ),
+        404,
+        "RESOURCE_NOT_FOUND",
+        "observer create trade review",
+    )
+    expect_error(
+        client.request(
+            "POST",
+            f"/api/v1/trades/{trade_id}/review",
+            token=seller_token,
+            json_body={"content": "M6 卖家评价"},
+        ),
+        403,
+        "FORBIDDEN",
+        "seller create trade review",
+    )
+    trade_review = expect(
+        client.request(
+            "POST",
+            f"/api/v1/trades/{trade_id}/review",
+            token=buyer_token,
+            json_body={"content": "M6 买家评价：交易顺利完成"},
+        ),
+        201,
+        "buyer create trade review",
+    )["data"]
+    if not trade_review.get("id") or trade_review.get("buyer", {}).get("id") != buyer_auth["user"]["id"]:
+        raise RuntimeError("trade review response did not expose the review and buyer identities")
+    if not trade_review.get("buyer", {}).get("nickname"):
+        raise RuntimeError("trade review response did not complete the buyer nickname")
+    expect_error(
+        client.request(
+            "POST",
+            f"/api/v1/trades/{trade_id}/review",
+            token=buyer_token,
+            json_body={"content": "M6 重复评价"},
+        ),
+        409,
+        "TRADE_REVIEW_ALREADY_EXISTS",
+        "duplicate trade review",
+    )
+
     # 用户评论对任意已认证用户开放：不要求购买，不限商品状态，同一用户可以
     # 发布多条评论。这里覆盖旁观者、卖家自评、买家及其第二条评论。
     observer_comment = expect(
@@ -435,6 +484,11 @@ def run(args):
     detail = expect(detail_response, 200, "get sold product")["data"]
     if detail.get("status") != "SOLD" or detail.get("is_favorited") is not True:
         raise RuntimeError("product detail did not expose SOLD and is_favorited=true")
+    detail_review = detail.get("buyer_review")
+    if not isinstance(detail_review, dict) or detail_review.get("id") != trade_review.get("id"):
+        raise RuntimeError("sold product detail did not expose the buyer review")
+    if not detail_review.get("buyer", {}).get("nickname") or not detail_review.get("content"):
+        raise RuntimeError("buyer review on product detail is incomplete")
     if "student_no" in json.dumps(detail.get("seller", {}), ensure_ascii=False):
         raise RuntimeError("product detail leaked seller student_no")
     assert_no_student_numbers(
@@ -463,6 +517,38 @@ def run(args):
         "conversation projection",
     )
 
+    my_products = expect(
+        client.request("GET", "/api/v1/users/me/products", token=seller_token),
+        200,
+        "list my products",
+    )["data"]
+    my_item = next((item for item in my_products["items"] if item["id"] == product_id), None)
+    if not my_item or my_item.get("buyer_review", {}) is None:
+        raise RuntimeError("my products page did not embed the buyer review")
+    if my_item["buyer_review"].get("id") != trade_review.get("id"):
+        raise RuntimeError("my products page embedded a different buyer review")
+    assert_no_student_numbers(
+        my_products,
+        (student_seller, student_buyer, student_observer),
+        "my products page",
+    )
+
+    seller_products = expect(
+        client.request("GET", f"/api/v1/users/{seller_auth['user']['id']}/products", token=buyer_token),
+        200,
+        "list seller products",
+    )["data"]
+    if not any(
+        item["id"] == product_id and item["status"] == "SOLD"
+        for item in seller_products["items"]
+    ):
+        raise RuntimeError("public seller product list did not include the sold product")
+    assert_no_student_numbers(
+        seller_products,
+        (student_seller, student_buyer, student_observer),
+        "seller products page",
+    )
+
     latencies = []
     for _ in range(args.baseline_samples):
         response = client.request("GET", "/api/v1/products?page=1&page_size=20", token=buyer_token)
@@ -483,6 +569,7 @@ def run(args):
             "marketplace_and_favorite_projection": "passed",
             "conversation_and_message_idempotency": "passed",
             "trade_create_or_get_and_lifecycle": "passed",
+            "trade_buyer_review_and_public_listing": "passed",
             "user_comments_on_visible_products": "passed",
             "observer_visibility_and_role_authorization": "passed",
         },

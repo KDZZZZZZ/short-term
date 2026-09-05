@@ -40,7 +40,10 @@ type ListProductsQuery struct {
 // ListUserProductsQuery 列出某个卖家的商品。
 type ListUserProductsQuery struct {
 	SellerID string
-	Status   *domain.Status
+	// Status 限定单一状态，对应 /users/me/products 的查询参数。
+	Status *domain.Status
+	// Statuses 限定状态集合，对应公开的卖家商品列表；非空时优先于 Status。
+	Statuses []domain.Status
 	Page     Page
 }
 

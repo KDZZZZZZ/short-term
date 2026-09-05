@@ -25,8 +25,11 @@ type ProductFilter struct {
 	Keyword *string
 	// Category 限定分类。nil 表示所有分类。
 	Category *domain.Category
-	// Status 限定状态。nil 表示所有状态；公开列表始终将其设置为 ON_SALE。
+	// Status 限定单一状态。nil 表示所有状态；公开列表始终将其设置为 ON_SALE。
 	Status *domain.Status
+	// Statuses 限定状态集合。非空时优先于 Status 生效，供公开的卖家商品
+	// 列表同时返回在售和已售出商品。
+	Statuses []domain.Status
 	// SellerID 限定一个卖家。为空表示所有卖家。
 	SellerID string
 }
@@ -82,6 +85,7 @@ type IDGenerator interface {
 	NewProductID() string
 	NewImageID() string
 	NewTradeID() string
+	NewTradeReviewID() string
 	NewCommentID() string
 	NewEventID() string
 }

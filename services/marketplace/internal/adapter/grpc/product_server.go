@@ -19,14 +19,15 @@ const maxBatchProducts = 200
 
 // Server 将 Marketplace 应用服务适配到生成的服务接口。
 type Server struct {
-	products *application.ProductService
-	trades   *application.TradeService
-	comments *application.CommentService
+	products     *application.ProductService
+	trades       *application.TradeService
+	comments     *application.CommentService
+	tradeReviews *application.TradeReviewService
 }
 
 // NewServer 构造 gRPC 适配器。
-func NewServer(products *application.ProductService, trades *application.TradeService, comments *application.CommentService) *Server {
-	return &Server{products: products, trades: trades, comments: comments}
+func NewServer(products *application.ProductService, trades *application.TradeService, comments *application.CommentService, tradeReviews *application.TradeReviewService) *Server {
+	return &Server{products: products, trades: trades, comments: comments, tradeReviews: tradeReviews}
 }
 
 // CreateProduct 发布商品。
@@ -72,10 +73,11 @@ func (s *Server) ListProducts(ctx context.Context, req *marketplacev1.ListProduc
 	return &marketplacev1.ListProductsResponse{Page: s.productPage(page)}, nil
 }
 
-// ListUserProducts 按任意状态列出某个卖家的商品。
+// ListUserProducts 按状态列出某个卖家的商品。
 func (s *Server) ListUserProducts(ctx context.Context, req *marketplacev1.ListUserProductsRequest) (*marketplacev1.ListUserProductsResponse, error) {
 	query := application.ListUserProductsQuery{
 		SellerID: req.GetSellerId(),
+		Statuses: domainStatuses(req.GetStatuses()),
 		Page:     application.Page{Number: req.GetPage(), Size: req.GetPageSize()},
 	}
 	if req.Status != nil {
@@ -295,6 +297,18 @@ func domainStatus(value marketplacev1.ProductStatus) domain.Status {
 	default:
 		return ""
 	}
+}
+
+// domainStatuses 将一组线路状态转换为领域状态。
+func domainStatuses(values []marketplacev1.ProductStatus) []domain.Status {
+	if len(values) == 0 {
+		return nil
+	}
+	statuses := make([]domain.Status, 0, len(values))
+	for _, value := range values {
+		statuses = append(statuses, domainStatus(value))
+	}
+	return statuses
 }
 
 func statusProto(value domain.Status) marketplacev1.ProductStatus {
