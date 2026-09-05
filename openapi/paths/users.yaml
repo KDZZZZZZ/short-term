@@ -50,8 +50,9 @@ profile:
     summary: 获取其他用户的公开资料
     operationId: getUserProfile
     description: |
-      返回该用户的公开资料：昵称与其作为卖家收到的买家评分平均值。
-      资料不包含学号和联系方式。用户不存在返回 `404 / RESOURCE_NOT_FOUND`。
+      返回该用户的公开资料：昵称、其作为卖家收到的买家评分平均值、作为卖家
+      已完成的交易数与当前在售商品数。资料不包含学号和联系方式。用户不存在
+      返回 `404 / RESOURCE_NOT_FOUND`。
     parameters:
       - $ref: ../components/parameters.yaml#/UserId
     responses:
