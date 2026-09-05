@@ -192,6 +192,7 @@ SellerContact:
     - nickname
     - wechat
     - qq
+    - average_score
   properties:
     id:
       $ref: '#/Identifier'
@@ -201,6 +202,8 @@ SellerContact:
       $ref: '#/Wechat'
     qq:
       $ref: '#/QQ'
+    average_score:
+      $ref: '#/AverageScore'
 
 UserMe:
   type: object
@@ -211,6 +214,7 @@ UserMe:
     - nickname
     - wechat
     - qq
+    - average_score
     - created_at
     - updated_at
   properties:
@@ -224,6 +228,8 @@ UserMe:
       $ref: '#/Wechat'
     qq:
       $ref: '#/QQ'
+    average_score:
+      $ref: '#/AverageScore'
     created_at:
       type: string
       format: date-time
@@ -1097,10 +1103,25 @@ CommentPageSuccess:
           $ref: '#/CommentPage'
 
 TradeReviewContent:
-  type: string
+  type:
+    - string
+    - 'null'
   minLength: 1
   maxLength: 500
-  description: 买家评价正文，1 至 500 个字符。
+  description: 买家评价文字，可选；`null` 表示买家未填写文字。
+
+Score:
+  type: integer
+  minimum: 1
+  maximum: 5
+  description: 买家评分，1 至 5 的整数。
+
+AverageScore:
+  type:
+    - string
+    - 'null'
+  pattern: '^[0-9]\.[0-9]{2}$'
+  description: 用户作为卖家收到的买家评分平均值，固定两位小数（如 `"4.50"`）；尚无评分时为 `null`。
 
 TradeReview:
   type: object
@@ -1110,6 +1131,7 @@ TradeReview:
     - trade_id
     - product_id
     - buyer
+    - score
     - content
     - created_at
   properties:
@@ -1121,6 +1143,8 @@ TradeReview:
       $ref: '#/Identifier'
     buyer:
       $ref: '#/UserPublic'
+    score:
+      $ref: '#/Score'
     content:
       $ref: '#/TradeReviewContent'
     created_at:
@@ -1131,8 +1155,10 @@ TradeReviewCreateRequest:
   type: object
   additionalProperties: false
   required:
-    - content
+    - score
   properties:
+    score:
+      $ref: '#/Score'
     content:
       $ref: '#/TradeReviewContent'
 
