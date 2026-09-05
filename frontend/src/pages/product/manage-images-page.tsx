@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Card, Spinner, toast } from '@heroui/react'
+import { Button, Card, toast } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import { ArrowLeft, ImageOff, Trash2 } from 'lucide-react'
 import { addProductImages, deleteProductImage, getProduct } from '@/lib/api/products'
 import { isApiError } from '@/lib/http'
@@ -53,7 +54,7 @@ export function ManageImagesPage() {
   if (isPending || !product) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Spinner size="lg" />
+        <LissajousLoader className="size-28 text-foreground" />
       </div>
     )
   }

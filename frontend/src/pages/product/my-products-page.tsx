@@ -6,10 +6,10 @@ import {
   Button,
   Card,
   Pagination,
-  Spinner,
   Tabs,
   toast,
 } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import { ArrowDownUp, Images, PackageOpen, Pencil, Store } from 'lucide-react'
 import { listCurrentUserProducts } from '@/lib/api/users'
 import { offShelfProduct, relistProduct } from '@/lib/api/products'
@@ -92,7 +92,7 @@ export function MyProductsPage() {
 
       {isPending ? (
         <div className="flex h-40 items-center justify-center">
-          <Spinner size="lg" />
+          <LissajousLoader className="size-28 text-foreground" />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState

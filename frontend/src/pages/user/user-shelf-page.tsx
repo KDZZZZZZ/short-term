@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Pagination, Spinner } from '@heroui/react'
+import { Pagination } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import { Store, Star, UserX } from 'lucide-react'
 import { getUserProfile, listUserProducts } from '@/lib/api/users'
 import { nicknameInitial } from '@/lib/format'
@@ -33,7 +34,7 @@ export function UserShelfPage() {
   if (profile.isPending) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <Spinner size="lg" />
+        <LissajousLoader className="size-28 text-foreground" />
       </div>
     )
   }
@@ -82,7 +83,7 @@ export function UserShelfPage() {
         <h2 className="text-sm font-semibold text-foreground">TA 的商品</h2>
         {shelf.isPending ? (
           <div className="flex h-40 items-center justify-center">
-            <Spinner size="lg" />
+            <LissajousLoader className="size-28 text-foreground" />
           </div>
         ) : !shelf.data || shelf.data.items.length === 0 ? (
           <EmptyState
