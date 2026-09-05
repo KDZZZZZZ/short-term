@@ -27,8 +27,8 @@ service MarketplaceService {
   rpc RejectTrade(RejectTradeRequest) returns (RejectTradeResponse);
   rpc CancelTrade(CancelTradeRequest) returns (CancelTradeResponse);
   rpc ConfirmTrade(ConfirmTradeRequest) returns (ConfirmTradeResponse);
-  rpc CreateReview(CreateReviewRequest) returns (CreateReviewResponse);
-  rpc ListProductReviews(ListProductReviewsRequest) returns (ListProductReviewsResponse);
+  rpc CreateProductComment(CreateProductCommentRequest) returns (CreateProductCommentResponse);
+  rpc ListProductComments(ListProductCommentsRequest) returns (ListProductCommentsResponse);
 }
 
 enum ProductStatus {
@@ -316,39 +316,39 @@ message ConfirmTradeResponse {
   bool replayed = 2;
 }
 
-// Review 是买家在交易完成后发布的不可变文字评论。每个买家对每个商品
-// 最多一条；公开契约只暴露 buyer_id，昵称由 Gateway 批量补全。
-message Review {
+// ProductComment 是用户就商品发布的不可变文字评论。任何用户可以对任何
+// 现存商品发布任意多条评论；公开契约只暴露 user_id，昵称由 Gateway 批量补全。
+message ProductComment {
   string id = 1;
   string product_id = 2;
-  string buyer_id = 3;
-  string comment = 4;
+  string user_id = 3;
+  string content = 4;
   google.protobuf.Timestamp created_at = 5;
 }
 
-message ReviewPage {
-  repeated Review items = 1;
+message ProductCommentPage {
+  repeated ProductComment items = 1;
   int32 page = 2;
   int32 page_size = 3;
   int64 total = 4;
 }
 
-message CreateReviewRequest {
+message CreateProductCommentRequest {
   string actor_id = 1;
   string product_id = 2;
-  string comment = 3;
+  string content = 3;
 }
 
-message CreateReviewResponse {
-  Review review = 1;
+message CreateProductCommentResponse {
+  ProductComment comment = 1;
 }
 
-message ListProductReviewsRequest {
+message ListProductCommentsRequest {
   string product_id = 1;
   int32 page = 2;
   int32 page_size = 3;
 }
 
-message ListProductReviewsResponse {
-  ReviewPage page = 1;
+message ListProductCommentsResponse {
+  ProductCommentPage page = 1;
 }

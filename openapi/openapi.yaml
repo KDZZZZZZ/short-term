@@ -34,8 +34,8 @@ tags:
     description: 以商品为上下文的买卖双方文字会话。
   - name: Trades
     description: 购买意向和受控的交易状态动作。
-  - name: Reviews
-    description: 买家对已完成交易的商品的文字评论。
+  - name: Comments
+    description: 用户对商品的文字评论，不要求购买。
 
 security:
   - bearerAuth: []
@@ -67,8 +67,8 @@ paths:
     $ref: ./paths/products.yaml#/offShelf
   /products/{productId}/relist:
     $ref: ./paths/products.yaml#/relist
-  /products/{productId}/reviews:
-    $ref: ./paths/reviews.yaml#/collection
+  /products/{productId}/comments:
+    $ref: ./paths/comments.yaml#/collection
 
   /favorites:
     $ref: ./paths/favorites.yaml#/collection

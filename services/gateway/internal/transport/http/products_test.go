@@ -63,7 +63,7 @@ func newProductServer(t *testing.T, accounts *stubAccounts, marketplace *stubMar
 		Users:        handler.NewUsers(accounts, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
-		Reviews:      handler.NewReviews(marketplace, aggregator, responder),
+		Comments:     handler.NewComments(marketplace, aggregator, responder),
 	})
 
 	server := httptest.NewServer(router)
@@ -610,12 +610,12 @@ type stubMarketplace struct {
 	lastAccept      *marketplacev1.AcceptTradeRequest
 	lastListTrades  *marketplacev1.ListTradesRequest
 
-	createReviewResp *marketplacev1.CreateReviewResponse
-	createReviewErr  error
-	listReviewsResp  *marketplacev1.ListProductReviewsResponse
-	listReviewsErr   error
-	lastCreateReview *marketplacev1.CreateReviewRequest
-	lastListReviews  *marketplacev1.ListProductReviewsRequest
+	createCommentResp *marketplacev1.CreateProductCommentResponse
+	createCommentErr  error
+	listCommentsResp  *marketplacev1.ListProductCommentsResponse
+	listCommentsErr   error
+	lastCreateComment *marketplacev1.CreateProductCommentRequest
+	lastListComments  *marketplacev1.ListProductCommentsRequest
 }
 
 func (s *stubMarketplace) summary(id, sellerID string) *marketplacev1.ProductSummary {

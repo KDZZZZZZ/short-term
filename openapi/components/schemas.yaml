@@ -105,8 +105,7 @@ ErrorCode:
     `400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；
     已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或
     对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、
-    商品或交易状态冲突使用 `409` 及对应业务码；重复发布买家评论使用
-    `409 / REVIEW_ALREADY_EXISTS`；请求过于频繁使用
+    商品或交易状态冲突使用 `409` 及对应业务码；请求过于频繁使用
     `429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。
   enum:
     - VALIDATION_ERROR
@@ -122,7 +121,6 @@ ErrorCode:
     - PRODUCT_STATE_CONFLICT
     - CONVERSATION_MISMATCH
     - SELF_ACTION_NOT_ALLOWED
-    - REVIEW_ALREADY_EXISTS
     - RATE_LIMITED
     - INTERNAL_ERROR
 
@@ -1013,44 +1011,44 @@ TradePageSuccess:
         data:
           $ref: '#/TradePage'
 
-ReviewComment:
+CommentContent:
   type: string
   minLength: 1
   maxLength: 500
-  description: 买家评论正文，1 至 500 个字符。
+  description: 用户评论正文，1 至 500 个字符。
 
-Review:
+Comment:
   type: object
   additionalProperties: false
   required:
     - id
     - product_id
-    - buyer
-    - comment
+    - user
+    - content
     - created_at
   properties:
     id:
       $ref: '#/Identifier'
     product_id:
       $ref: '#/Identifier'
-    buyer:
+    user:
       $ref: '#/UserPublic'
-    comment:
-      $ref: '#/ReviewComment'
+    content:
+      $ref: '#/CommentContent'
     created_at:
       type: string
       format: date-time
 
-ReviewCreateRequest:
+CommentCreateRequest:
   type: object
   additionalProperties: false
   required:
-    - comment
+    - content
   properties:
-    comment:
-      $ref: '#/ReviewComment'
+    content:
+      $ref: '#/CommentContent'
 
-ReviewPage:
+CommentPage:
   type: object
   additionalProperties: false
   required:
@@ -1062,7 +1060,7 @@ ReviewPage:
     items:
       type: array
       items:
-        $ref: '#/Review'
+        $ref: '#/Comment'
     page:
       type: integer
       minimum: 1
@@ -1074,18 +1072,18 @@ ReviewPage:
       type: integer
       minimum: 0
 
-ReviewSuccess:
+CommentSuccess:
   allOf:
     - $ref: '#/SuccessBase'
     - type: object
       properties:
         data:
-          $ref: '#/Review'
+          $ref: '#/Comment'
 
-ReviewPageSuccess:
+CommentPageSuccess:
   allOf:
     - $ref: '#/SuccessBase'
     - type: object
       properties:
         data:
-          $ref: '#/ReviewPage'
+          $ref: '#/CommentPage'
