@@ -1,5 +1,10 @@
 import { apiFetch } from '@/lib/http'
-import type { Identifier, MyProductPage, ProductPage, ProductStatusFilter } from '@/lib/types'
+import type { Identifier, MyProductPage, ProductPage, ProductStatusFilter, UserProfile } from '@/lib/types'
+
+/** 其他用户的公开资料：昵称与卖家平均分。 */
+export function getUserProfile(userId: Identifier): Promise<UserProfile> {
+  return apiFetch<UserProfile>({ path: `/users/${encodeURIComponent(userId)}` })
+}
 
 export function listCurrentUserProducts(params: {
   status?: ProductStatusFilter

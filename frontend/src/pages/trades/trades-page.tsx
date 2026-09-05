@@ -385,8 +385,16 @@ function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
           <Avatar className="size-5">
             <Avatar.Fallback>{nicknameInitial(counterpart.nickname)}</Avatar.Fallback>
           </Avatar>
-          {asLabel}：{counterpart.nickname}
+          {asLabel}：
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:text-accent hover:underline"
+            to={`/users/${counterpart.id}`}
+          >
+            {counterpart.nickname}
+          </Link>
         </span>
+        <span>微信 {counterpart.wechat ?? '未填写'}</span>
+        <span>QQ {counterpart.qq ?? '未填写'}</span>
       </div>
 
       <TradeTimeline trade={trade} />

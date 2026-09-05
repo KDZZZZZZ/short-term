@@ -254,6 +254,11 @@ async function run() {
     await buyer.goto(productUrl)
     await buyer.getByText(/买家评价 5 分 · /).waitFor({ timeout: 8_000 })
     await buyer.getByText(/评分 5\.00 · /).waitFor({ timeout: 8_000 })
+
+    await buyer.goto(`${BASE}/trades`)
+    await buyer.getByRole('button', { name: '我买到的' }).click()
+    await buyer.getByText(`微信 wx_${SELLER.student_no}`).first().waitFor({ timeout: 8_000 })
+    console.log('✓ 交易卡展示对方联系方式与主页链接')
     await buyer.getByPlaceholder('1-500 字，任何人都可以评论').fill('这本单词书确实不错，推荐！')
     await buyer.getByRole('button', { name: '发布评论' }).click()
     await buyer.getByText('这本单词书确实不错，推荐！').waitFor({ timeout: 8_000 })
@@ -267,8 +272,9 @@ async function run() {
     await buyer.goto(productUrl)
     await buyer.getByRole('link', { name: SELLER.nickname }).first().click()
     await buyer.waitForURL(/\/users\/[^/]+$/, { timeout: 8_000 })
+    await buyer.getByText(/卖家评分 5\.00/).waitFor({ timeout: 8_000 })
     await buyer.getByText(PRODUCT_TITLE).first().waitFor({ timeout: 8_000 })
-    console.log('✓ 卖家公开货架展示商品')
+    console.log('✓ 卖家公开主页展示平均分与商品')
     await shot(buyerContext, 'seller-shelf')
 
     // ---------- 11. 卖家修改资料（改昵称） ----------
