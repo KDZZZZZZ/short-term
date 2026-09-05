@@ -75,9 +75,14 @@ func ProductSummary(src *marketplacev1.ProductSummary, sellers map[string]*accou
 	}
 }
 
-// ProductDetail 映射详情响应。is_favorited 和卖家联系方式由调用方解析，
-// 因为调用方知道请求是否已通过认证。
-func ProductDetail(src *marketplacev1.ProductDetail, seller dto.SellerContact, isFavorited bool) dto.ProductDetail {
+// ProductDetail 映射详情响应。is_favorited、卖家联系方式和买家评价由调用方
+// 解析，因为调用方知道请求是否已通过认证、以及该商品是否存在买家评价。
+func ProductDetail(src *marketplacev1.ProductDetail, seller dto.SellerContact, isFavorited bool, buyerReview *marketplacev1.TradeReview, users map[string]*accountUserPublic) dto.ProductDetail {
+	var review *dto.TradeReview
+	if buyerReview != nil {
+		mapped := TradeReview(buyerReview, users)
+		review = &mapped
+	}
 	return dto.ProductDetail{
 		ID:          src.GetId(),
 		Title:       src.GetTitle(),
@@ -88,6 +93,7 @@ func ProductDetail(src *marketplacev1.ProductDetail, seller dto.SellerContact, i
 		Images:      ProductImages(src.GetImages()),
 		Seller:      seller,
 		IsFavorited: isFavorited,
+		BuyerReview: review,
 		CreatedAt:   Timestamp(src.GetCreatedAt()),
 		UpdatedAt:   Timestamp(src.GetUpdatedAt()),
 	}
@@ -114,6 +120,39 @@ func ProductPage(src *marketplacev1.ProductPage, sellers map[string]*accountUser
 		items = append(items, ProductSummary(item, sellers))
 	}
 	return dto.ProductPage{
+		Items:    items,
+		Page:     src.GetPage(),
+		PageSize: src.GetPageSize(),
+		Total:    src.GetTotal(),
+	}
+}
+
+// MyProductSummary 映射我的商品页的一行，并嵌入该商品收到的买家评价。
+func MyProductSummary(src *marketplacev1.ProductSummary, sellers map[string]*accountUserPublic, buyerReview *marketplacev1.TradeReview, users map[string]*accountUserPublic) dto.MyProductSummary {
+	summary := dto.MyProductSummary{
+		ID:        src.GetId(),
+		Title:     src.GetTitle(),
+		Price:     FormatPrice(src.GetPriceMinor()),
+		Category:  ProductCategory(src.GetCategory()),
+		CoverURL:  src.CoverUrl,
+		Status:    ProductStatus(src.GetStatus()),
+		Seller:    lookupSeller(src.GetSellerId(), sellers),
+		CreatedAt: Timestamp(src.GetCreatedAt()),
+	}
+	if buyerReview != nil {
+		review := TradeReview(buyerReview, users)
+		summary.BuyerReview = &review
+	}
+	return summary
+}
+
+// MyProductPage 映射我的商品页，buyerReviews 以商品标识索引各行的买家评价。
+func MyProductPage(src *marketplacev1.ProductPage, sellers map[string]*accountUserPublic, buyerReviews map[string]*marketplacev1.TradeReview, users map[string]*accountUserPublic) dto.MyProductPage {
+	items := make([]dto.MyProductSummary, 0, len(src.GetItems()))
+	for _, item := range src.GetItems() {
+		items = append(items, MyProductSummary(item, sellers, buyerReviews[item.GetId()], users))
+	}
+	return dto.MyProductPage{
 		Items:    items,
 		Page:     src.GetPage(),
 		PageSize: src.GetPageSize(),

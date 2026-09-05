@@ -32,6 +32,10 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 			Id: "cm_route", ProductId: testProductID, UserId: testActor, Content: "不错",
 			CreatedAt: timestamppb.New(time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)),
 		}},
+		createReviewResp: &marketplacev1.CreateTradeReviewResponse{Review: &marketplacev1.TradeReview{
+			Id: "tr_route", TradeId: "t_route", ProductId: testProductID, BuyerId: testActor, Content: "交易愉快",
+			CreatedAt: timestamppb.New(time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)),
+		}},
 	}
 	favorites := &routeFavoriteStub{}
 	messaging := newRouteMessagingStub()
@@ -50,6 +54,8 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 		{name: "remove favorite", method: http.MethodDelete, path: basePath + "/favorites/" + testProductID, wantStatus: http.StatusOK},
 		{name: "list comments", method: http.MethodGet, path: basePath + "/products/" + testProductID + "/comments", wantStatus: http.StatusOK},
 		{name: "create comment", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/comments", body: `{"content":"不错"}`, wantStatus: http.StatusCreated},
+		{name: "list other user's products", method: http.MethodGet, path: basePath + "/users/u_seller/products", wantStatus: http.StatusOK},
+		{name: "create trade review", method: http.MethodPost, path: basePath + "/trades/t_route/review", body: `{"content":"交易愉快"}`, wantStatus: http.StatusCreated},
 		{name: "get or create conversation", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/conversations", wantStatus: http.StatusOK},
 		{name: "list conversations", method: http.MethodGet, path: basePath + "/conversations", wantStatus: http.StatusOK},
 		{name: "unread count", method: http.MethodGet, path: basePath + "/conversations/unread-count", wantStatus: http.StatusOK},
@@ -103,6 +109,7 @@ func newMilestoneServer(
 		Users:        handler.NewUsers(accounts, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
+		TradeReviews: handler.NewTradeReviews(marketplace, aggregator, responder),
 		Comments:     handler.NewComments(marketplace, aggregator, responder),
 		Favorites:    handler.NewFavorites(favorites, aggregator, responder),
 		Messaging:    handler.NewMessaging(messaging, aggregator, responder),

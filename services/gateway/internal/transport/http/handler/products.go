@@ -93,6 +93,41 @@ func (h *Products) ListMine(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.respondWithMyPage(w, r, resp.GetPage())
+}
+
+// ListByUser 处理 GET /users/{userId}/products。
+//
+// 公开列表只返回 ON_SALE 与 SOLD 商品：在售商品用于浏览，已售出商品用于在
+// 详情中展示买家评价；RESERVED 和 OFF_SHELF 只有卖家自己可见。
+func (h *Products) ListByUser(w http.ResponseWriter, r *http.Request) {
+	if _, err := h.accounts.GetUser(h.downstream(r), &accountv1.GetUserRequest{
+		UserId: r.PathValue("userId"),
+	}); err != nil {
+		// 对不存在的用户不区分“无商品”和“用户不存在”，契约规定后者返回 404。
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	page, size, ok := h.pagination(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.marketplace.ListUserProducts(h.downstream(r), &marketplacev1.ListUserProductsRequest{
+		SellerId: r.PathValue("userId"),
+		Statuses: []marketplacev1.ProductStatus{
+			marketplacev1.ProductStatus_PRODUCT_STATUS_ON_SALE,
+			marketplacev1.ProductStatus_PRODUCT_STATUS_SOLD,
+		},
+		Page:     page,
+		PageSize: size,
+	})
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
 	h.respondWithPage(w, r, resp.GetPage())
 }
 
@@ -285,10 +320,47 @@ func (h *Products) respondWithPage(w http.ResponseWriter, r *http.Request, page 
 	h.responder.OK(w, r, mapper.ProductPage(page, sellers))
 }
 
-// respondWithDetail 补全卖家联系方式和收藏标记。
+// respondWithMyPage 写入我的商品页：补全卖家身份，并按页批量读取每件商品
+// 收到的买家评价、补全买家昵称。评价最多每商品一条，因此按商品标识索引。
+func (h *Products) respondWithMyPage(w http.ResponseWriter, r *http.Request, page *marketplacev1.ProductPage) {
+	ctx := h.downstream(r)
+
+	productIDs := make([]string, 0, len(page.GetItems()))
+	sellerIDs := make([]string, 0, len(page.GetItems()))
+	for _, item := range page.GetItems() {
+		productIDs = append(productIDs, item.GetId())
+		sellerIDs = append(sellerIDs, item.GetSellerId())
+	}
+
+	sellers, err := h.aggregator.Users(ctx, sellerIDs)
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	batch, err := h.marketplace.BatchGetProductTradeReviews(ctx, &marketplacev1.BatchGetProductTradeReviewsRequest{
+		ProductIds: productIDs,
+	})
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+	reviews := batch.GetReviews()
+
+	buyers, err := h.aggregator.Users(ctx, mapper.TradeReviewBuyerIDs(reviews))
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.OK(w, r, mapper.MyProductPage(page, sellers, reviews, buyers))
+}
+
+// respondWithDetail 补全卖家联系方式、收藏标记和买家评价。
 //
-// 两者都是 ProductDetail 的必填字段，因此获取任一字段失败都会使请求失败，
-// 不会返回填充虚构值的响应（docs/software-design.md 第 8.3 节）。
+// 前两者都是 ProductDetail 的必填字段，因此获取任一字段失败都会使请求失败，
+// 不会返回填充虚构值的响应（docs/software-design.md 第 8.3 节）。买家评价
+// 只存在于已完成交易的商品上，因此仅对 SOLD 商品批量读取一次。
 func (h *Products) respondWithDetail(w http.ResponseWriter, r *http.Request, product *marketplacev1.ProductDetail, status int) {
 	ctx := h.downstream(r)
 
@@ -304,7 +376,27 @@ func (h *Products) respondWithDetail(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	h.responder.Success(w, r, status, mapper.ProductDetail(product, mapper.SellerContact(contact), favorited))
+	var review *marketplacev1.TradeReview
+	var reviewers map[string]*accountv1.UserPublic
+	if product.GetStatus() == marketplacev1.ProductStatus_PRODUCT_STATUS_SOLD {
+		batch, err := h.marketplace.BatchGetProductTradeReviews(ctx, &marketplacev1.BatchGetProductTradeReviewsRequest{
+			ProductIds: []string{product.GetId()},
+		})
+		if err != nil {
+			h.responder.Error(w, r, err)
+			return
+		}
+		review = batch.GetReviews()[product.GetId()]
+		if review != nil {
+			reviewers, err = h.aggregator.Users(ctx, []string{review.GetBuyerId()})
+			if err != nil {
+				h.responder.Error(w, r, err)
+				return
+			}
+		}
+	}
+
+	h.responder.Success(w, r, status, mapper.ProductDetail(product, mapper.SellerContact(contact), favorited, review, reviewers))
 }
 
 // hasContact 判断当前用户是否填写了微信或 QQ 联系方式。

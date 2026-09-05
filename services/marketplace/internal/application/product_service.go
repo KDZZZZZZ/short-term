@@ -124,7 +124,7 @@ func (s *ProductService) List(ctx context.Context, query ListProductsQuery) (Pro
 	return page, nil
 }
 
-// ListBySeller 按任意状态列出某个卖家的商品。
+// ListBySeller 按状态列出某个卖家的商品。
 func (s *ProductService) ListBySeller(ctx context.Context, query ListUserProductsQuery) (ProductPage, error) {
 	if query.SellerID == "" {
 		return ProductPage{}, errs.New(errs.CodeUnauthorized, "请先登录")
@@ -132,8 +132,17 @@ func (s *ProductService) ListBySeller(ctx context.Context, query ListUserProduct
 	if query.Status != nil && !query.Status.Valid() {
 		return ProductPage{}, errs.New(errs.CodeValidation, "商品状态不合法")
 	}
+	for _, status := range query.Statuses {
+		if !status.Valid() {
+			return ProductPage{}, errs.New(errs.CodeValidation, "商品状态不合法")
+		}
+	}
 
-	page, err := s.products.List(ctx, ProductFilter{SellerID: query.SellerID, Status: query.Status}, query.Page.normalize())
+	page, err := s.products.List(ctx, ProductFilter{
+		SellerID: query.SellerID,
+		Status:   query.Status,
+		Statuses: query.Statuses,
+	}, query.Page.normalize())
 	if err != nil {
 		return ProductPage{}, errs.Wrap(errs.CodeInternal, "服务暂时不可用", err)
 	}

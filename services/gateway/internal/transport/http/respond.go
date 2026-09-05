@@ -32,6 +32,7 @@ var httpStatus = map[errs.Code]int{
 	errs.CodeTradeStateConflict:   http.StatusConflict,
 	errs.CodeConversationMismatch: http.StatusConflict,
 	errs.CodeSelfActionNotAllowed: http.StatusConflict,
+	errs.CodeTradeReviewExists:    http.StatusConflict,
 	errs.CodePayloadTooLarge:      http.StatusRequestEntityTooLarge,
 	errs.CodeRateLimited:          http.StatusTooManyRequests,
 	errs.CodeInternal:             http.StatusInternalServerError,

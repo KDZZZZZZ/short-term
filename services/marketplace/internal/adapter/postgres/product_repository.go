@@ -362,6 +362,14 @@ func buildFilter(filter application.ProductFilter) (string, []any) {
 		args = append(args, string(*filter.Status))
 		conditions = append(conditions, fmt.Sprintf("status = $%d", len(args)))
 	}
+	if len(filter.Statuses) > 0 {
+		values := make([]string, 0, len(filter.Statuses))
+		for _, status := range filter.Statuses {
+			values = append(values, string(status))
+		}
+		args = append(args, values)
+		conditions = append(conditions, fmt.Sprintf("status = ANY($%d)", len(args)))
+	}
 	if filter.Category != nil {
 		args = append(args, string(*filter.Category))
 		conditions = append(conditions, fmt.Sprintf("category = $%d", len(args)))
