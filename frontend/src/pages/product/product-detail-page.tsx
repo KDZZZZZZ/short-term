@@ -216,6 +216,7 @@ export function ProductDetailPage() {
                 {product.seller.nickname}
               </Link>
               <p className="text-xs text-muted">
+                {product.seller.average_score != null ? `评分 ${product.seller.average_score} · ` : ''}
                 微信 {product.seller.wechat ?? '未填写'} · QQ {product.seller.qq ?? '未填写'}
               </p>
             </div>
@@ -226,10 +227,12 @@ export function ProductDetailPage() {
             <div className="mt-5 rounded-xl border border-border-secondary bg-surface-tertiary p-3">
               <p className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-foreground">
                 <Star className="size-3.5 text-highlight" />
-                买家评价 · {product.buyer_review.buyer.nickname} ·{' '}
+                买家评价 {product.buyer_review.score} 分 · {product.buyer_review.buyer.nickname} ·{' '}
                 {formatRelativeTime(product.buyer_review.created_at)}
               </p>
-              <p className="mt-1.5 leading-6 text-foreground/90">{product.buyer_review.content}</p>
+              {product.buyer_review.content ? (
+                <p className="mt-1.5 leading-6 text-foreground/90">{product.buyer_review.content}</p>
+              ) : null}
             </div>
           ) : null}
 
