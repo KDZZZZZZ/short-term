@@ -43,6 +43,7 @@ type RouterOptions struct {
 	Users     *handler.Users
 	Products  *handler.Products
 	Trades    *handler.Trades
+	Reviews   *handler.Reviews
 	Favorites *handler.Favorites
 	Messaging *handler.Messaging
 }
@@ -77,6 +78,8 @@ func NewRouter(opts RouterOptions) http.Handler {
 	api.HandleFunc("DELETE /products/{productId}/images/{imageId}", opts.Products.DeleteImage)
 	api.HandleFunc("POST /products/{productId}/off-shelf", opts.Products.OffShelf)
 	api.HandleFunc("POST /products/{productId}/relist", opts.Products.Relist)
+	api.HandleFunc("GET /products/{productId}/reviews", opts.Reviews.List)
+	api.HandleFunc("POST /products/{productId}/reviews", opts.Reviews.Create)
 
 	api.HandleFunc("POST /products/{productId}/trades", opts.Trades.Create)
 	api.HandleFunc("GET /trades", opts.Trades.List)

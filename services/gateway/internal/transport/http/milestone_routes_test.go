@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	favoritev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/favorite/v1"
+	marketplacev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1"
 	messagingv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/messaging/v1"
 	"github.com/KDZZZZZZ/short-term/platform/auth"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/application/aggregation"
@@ -26,7 +27,12 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 	t.Parallel()
 
 	accounts := &stubAccounts{}
-	marketplace := &stubMarketplace{}
+	marketplace := &stubMarketplace{
+		createReviewResp: &marketplacev1.CreateReviewResponse{Review: &marketplacev1.Review{
+			Id: "rv_route", ProductId: testProductID, BuyerId: testActor, Comment: "不错",
+			CreatedAt: timestamppb.New(time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)),
+		}},
+	}
 	favorites := &routeFavoriteStub{}
 	messaging := newRouteMessagingStub()
 	aggregator := aggregation.New(accounts, marketplace, nil)
@@ -42,6 +48,8 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 		{name: "list favorites", method: http.MethodGet, path: basePath + "/favorites", wantStatus: http.StatusOK},
 		{name: "add favorite", method: http.MethodPut, path: basePath + "/favorites/" + testProductID, wantStatus: http.StatusOK},
 		{name: "remove favorite", method: http.MethodDelete, path: basePath + "/favorites/" + testProductID, wantStatus: http.StatusOK},
+		{name: "list reviews", method: http.MethodGet, path: basePath + "/products/" + testProductID + "/reviews", wantStatus: http.StatusOK},
+		{name: "create review", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/reviews", body: `{"comment":"不错"}`, wantStatus: http.StatusCreated},
 		{name: "get or create conversation", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/conversations", wantStatus: http.StatusOK},
 		{name: "list conversations", method: http.MethodGet, path: basePath + "/conversations", wantStatus: http.StatusOK},
 		{name: "unread count", method: http.MethodGet, path: basePath + "/conversations/unread-count", wantStatus: http.StatusOK},
@@ -95,6 +103,7 @@ func newMilestoneServer(
 		Users:        handler.NewUsers(accounts, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
+		Reviews:      handler.NewReviews(marketplace, aggregator, responder),
 		Favorites:    handler.NewFavorites(favorites, aggregator, responder),
 		Messaging:    handler.NewMessaging(messaging, aggregator, responder),
 	})

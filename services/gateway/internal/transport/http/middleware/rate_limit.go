@@ -119,6 +119,10 @@ func (l *RateLimiter) rule(r *http.Request) (string, int) {
 		return "message", l.config.Message
 	case len(parts) == 3 && parts[0] == "products" && parts[1] != "" && parts[2] == "trades":
 		return "trade", l.config.Trade
+	// Review creation is user-generated text like messages, so it shares the
+	// message budget instead of introducing another configured limit class.
+	case len(parts) == 3 && parts[0] == "products" && parts[1] != "" && parts[2] == "reviews":
+		return "message", l.config.Message
 	case len(parts) == 3 && parts[0] == "trades" && parts[1] != "" && isTradeAction(parts[2]):
 		return "trade", l.config.Trade
 	default:

@@ -78,6 +78,10 @@ func newHarnessWithConversationVerifier(t *testing.T, ids application.IDGenerato
 	if err != nil {
 		t.Fatalf("NewTradeService: %v", err)
 	}
+	reviews, err := application.NewReviewService(postgres.NewReviewRepository(pool), ids, system.Clock{})
+	if err != nil {
+		t.Fatalf("NewReviewService: %v", err)
+	}
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -87,7 +91,7 @@ func newHarnessWithConversationVerifier(t *testing.T, ids application.IDGenerato
 		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
 		HandlerTimeout: 30 * time.Second,
 	})
-	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades))
+	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades, reviews))
 	go func() { _ = server.Serve(listener) }()
 	t.Cleanup(server.Stop)
 

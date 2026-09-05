@@ -32,6 +32,7 @@ const (
 	PrefixProduct      Prefix = "p"
 	PrefixProductImage Prefix = "img"
 	PrefixTrade        Prefix = "t"
+	PrefixReview       Prefix = "rv"
 	PrefixConversation Prefix = "c"
 	PrefixMessage      Prefix = "m"
 	PrefixEvent        Prefix = "evt"
