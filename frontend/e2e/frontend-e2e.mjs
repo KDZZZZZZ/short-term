@@ -4,7 +4,7 @@
  *
  * 覆盖：注册登录、完善资料、发布商品（含图片）、市场搜索/分类、
  * 商品详情、收藏、会话聊天（含未读与已读）、购买意向、卖家接受、
- * 双方确认完成、下架/重新上架、图片管理、修改资料与退出登录。
+ * 双方确认完成、买家评价、公开评论、卖家公开货架、下架/重新上架、图片管理、修改资料与退出登录。
  *
  * 关键截图保存到 e2e/shots/ 供人工/评审复核。
  */
@@ -240,6 +240,34 @@ async function run() {
     await seller.locator('[data-slot="chip"], .chip', { hasText: '已售出' }).first().waitFor({ timeout: 8_000 })
     console.log('✓ 商品状态变为已售出')
     await shot(sellerContext, 'product-sold')
+
+    // ---------- 10.5 买家评价、公开评论、卖家公开货架 ----------
+    await buyer.goto(`${BASE}/trades`)
+    await buyer.getByRole('button', { name: '写买家评价' }).click()
+    await buyer.getByPlaceholder('1-500 字，说说这次交易体验').fill('卖家很爽快，书成色和描述一致，交易愉快！')
+    await buyer.getByRole('button', { name: '发布评价' }).click()
+    await buyer.getByText('卖家很爽快，书成色和描述一致，交易愉快！').waitFor({ timeout: 8_000 })
+    console.log('✓ 买家发布交易评价')
+    await shot(buyerContext, 'buyer-trade-review')
+
+    await buyer.goto(productUrl)
+    await buyer.getByText(/买家评价 · /).waitFor({ timeout: 8_000 })
+    await buyer.getByPlaceholder('1-500 字，任何人都可以评论').fill('这本单词书确实不错，推荐！')
+    await buyer.getByRole('button', { name: '发布评论' }).click()
+    await buyer.getByText('这本单词书确实不错，推荐！').waitFor({ timeout: 8_000 })
+    console.log('✓ 商品详情展示买家评价与公开评论')
+    await shot(buyerContext, 'product-comments')
+
+    await seller.goto(`${BASE}/my/products`)
+    await seller.getByText(/买家评价：卖家很爽快/).waitFor({ timeout: 8_000 })
+    console.log('✓ 卖家「我的商品」展示买家评价')
+
+    await buyer.goto(productUrl)
+    await buyer.getByRole('link', { name: SELLER.nickname }).first().click()
+    await buyer.waitForURL(/\/users\/[^/]+$/, { timeout: 8_000 })
+    await buyer.getByText(PRODUCT_TITLE).first().waitFor({ timeout: 8_000 })
+    console.log('✓ 卖家公开货架展示商品')
+    await shot(buyerContext, 'seller-shelf')
 
     // ---------- 11. 卖家修改资料（改昵称） ----------
     await seller.goto(`${BASE}/profile`)

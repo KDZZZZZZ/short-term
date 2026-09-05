@@ -20,6 +20,7 @@ import {
   Check,
   CheckCheck,
   MessageCircle,
+  Star,
   Store,
   X,
 } from 'lucide-react'
@@ -28,13 +29,14 @@ import {
   acceptTrade,
   cancelTrade,
   confirmTrade,
+  createTradeReview,
   listTrades,
   rejectTrade,
 } from '@/lib/api/trades'
 import { getOrCreateProductConversation } from '@/lib/api/conversations'
 import { isApiError } from '@/lib/http'
 import { formatPrice, nicknameInitial, TRADE_STATUS_OPTIONS } from '@/lib/format'
-import type { Trade, TradeRole, TradeStatus } from '@/lib/types'
+import type { Trade, TradeReview, TradeRole, TradeStatus } from '@/lib/types'
 import { EmptyState } from '@/components/empty-state'
 import { TradeStatusChip } from '@/components/status-chip'
 import { useAuthStore } from '@/stores/auth-store'
@@ -239,6 +241,82 @@ function ReasonDialog({
   )
 }
 
+/** 买家评价：仅 COMPLETED 交易的买家可见；每笔交易最多一条，重复发布服务端 409。 */
+function TradeReviewSection({ trade }: { trade: Trade }) {
+  const queryClient = useQueryClient()
+  const [composing, setComposing] = useState(false)
+  const [content, setContent] = useState('')
+  const [review, setReview] = useState<TradeReview | null>(null)
+
+  const mutation = useMutation({
+    mutationFn: () => createTradeReview(trade.id, { content: content.trim() }),
+    onSuccess: (created) => {
+      toast.success('评价已发布')
+      setReview(created)
+      setComposing(false)
+      setContent('')
+      void queryClient.invalidateQueries({ queryKey: ['trades'] })
+      void queryClient.invalidateQueries({ queryKey: ['product', trade.product.id] })
+    },
+    onError: (err) => {
+      if (isApiError(err)) {
+        if (err.code === 'TRADE_REVIEW_ALREADY_EXISTS') {
+          toast.warning('该交易已发布过评价')
+          setComposing(false)
+        } else {
+          toast.danger(err.message)
+        }
+      }
+    },
+  })
+
+  if (review) {
+    return (
+      <div className="rounded-xl border border-border-secondary bg-surface-tertiary p-3">
+        <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <Star className="size-3.5 text-highlight" />
+          我的买家评价
+        </p>
+        <p className="mt-1 leading-5 text-foreground/90">{review.content}</p>
+      </div>
+    )
+  }
+
+  if (!composing) {
+    return (
+      <Button className="self-start" size="sm" variant="outline" onPress={() => setComposing(true)}>
+        <Star className="size-4" />
+        写买家评价
+      </Button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border-secondary bg-surface-tertiary p-3">
+      <TextField className="w-full" value={content} onChange={setContent}>
+        <Label>买家评价（公开展示，发布后不可修改删除）</Label>
+        <TextArea maxLength={500} placeholder="1-500 字，说说这次交易体验" rows={3} />
+      </TextField>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted">{content.length}/500</span>
+        <div className="flex gap-2">
+          <Button size="sm" variant="tertiary" onPress={() => setComposing(false)}>
+            取消
+          </Button>
+          <Button
+            isDisabled={content.trim().length < 1}
+            isPending={mutation.isPending}
+            size="sm"
+            onPress={() => mutation.mutate()}
+          >
+            发布评价
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
   const me = useAuthStore((state) => state.user)
   const counterpart = as === 'buyer' ? trade.seller : trade.buyer
@@ -306,6 +384,8 @@ function TradeCard({ trade, as }: { trade: Trade; as: TradeRole }) {
           取消原因：{trade.cancel_reason}
         </p>
       ) : null}
+
+      {as === 'buyer' && trade.status === 'COMPLETED' ? <TradeReviewSection trade={trade} /> : null}
 
       {trade.status === 'PENDING' || trade.status === 'ACCEPTED' ? (
         <TradeActions as={as} trade={trade} />

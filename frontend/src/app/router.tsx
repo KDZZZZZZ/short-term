@@ -16,6 +16,7 @@ import { PublishProductPage } from '@/pages/product/publish-product-page'
 import { ProfilePage } from '@/pages/profile/profile-page'
 import { RegisterPage } from '@/pages/auth/register-page'
 import { TradesPage } from '@/pages/trades/trades-page'
+import { UserShelfPage } from '@/pages/user/user-shelf-page'
 
 export const router = createBrowserRouter([
   {
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
       { path: 'chats/:conversationId', element: <ChatPage /> },
       { path: 'trades', element: <TradesPage /> },
       { path: 'profile', element: <ProfilePage /> },
+      { path: 'users/:userId', element: <UserShelfPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
