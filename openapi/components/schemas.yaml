@@ -1274,6 +1274,8 @@ UserProfile:
     - id
     - nickname
     - average_score
+    - completed_trades_count
+    - on_sale_products_count
   properties:
     id:
       $ref: '#/Identifier'
@@ -1281,7 +1283,15 @@ UserProfile:
       $ref: '#/Nickname'
     average_score:
       $ref: '#/AverageScore'
-  description: 公开用户资料：只有昵称与卖家平均分，不含学号和联系方式。
+    completed_trades_count:
+      type: integer
+      minimum: 0
+      description: 该用户作为卖家已完成的交易数（终态 `COMPLETED`）。
+    on_sale_products_count:
+      type: integer
+      minimum: 0
+      description: 该用户当前在售（`ON_SALE`）的商品数。
+  description: 公开用户资料：只有昵称、卖家平均分与公开统计，不含学号和联系方式。
 
 UserProfileSuccess:
   allOf:

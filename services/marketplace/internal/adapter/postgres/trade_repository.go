@@ -110,6 +110,17 @@ func (r *TradeRepository) ByID(ctx context.Context, tradeID string) (*domain.Tra
 	return trade, nil
 }
 
+// CountCompletedBySeller 统计用户作为卖家已完成的交易数。
+func (r *TradeRepository) CountCompletedBySeller(ctx context.Context, sellerID string) (int64, error) {
+	var total int64
+	if err := r.pool.QueryRow(ctx,
+		`SELECT count(*) FROM trades WHERE seller_id = $1 AND status = 'COMPLETED'`, sellerID,
+	).Scan(&total); err != nil {
+		return 0, fmt.Errorf("postgres: count completed trades: %w", err)
+	}
+	return total, nil
+}
+
 // List 返回操作人交易的一页，按最新优先，并以标识作为确定性的平局裁决。
 func (r *TradeRepository) List(ctx context.Context, filter application.TradeFilter, page application.Page) (application.TradePage, error) {
 	party := "seller_id"

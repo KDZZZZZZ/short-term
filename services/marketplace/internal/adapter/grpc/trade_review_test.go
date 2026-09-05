@@ -175,3 +175,40 @@ func TestSellerProductListFiltersPublicStatuses(t *testing.T) {
 	}
 	_ = tradeID
 }
+
+func TestUserStatsCountsSellerActivity(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	sold := h.create(t, seller, "已售出统计机械键盘", nil)
+	tradeID := h.completeTrade(t, tradeReviewBuyer, sold.GetId())
+	if _, err := h.createTradeReview(t, tradeReviewBuyer, tradeID, 5, "统计用评价"); err != nil {
+		t.Fatalf("CreateTradeReview: %v", err)
+	}
+	h.create(t, seller, "在售统计机械键盘", nil)
+	offShelf := h.create(t, seller, "已下架统计机械键盘", nil)
+	if _, err := h.client.OffShelfProduct(t.Context(), &marketplacev1.OffShelfProductRequest{
+		ActorId: seller, ProductId: offShelf.GetId(),
+	}); err != nil {
+		t.Fatalf("OffShelfProduct: %v", err)
+	}
+
+	stats, err := h.client.GetUserStats(t.Context(), &marketplacev1.GetUserStatsRequest{UserId: seller})
+	if err != nil {
+		t.Fatalf("GetUserStats: %v", err)
+	}
+	if stats.GetCompletedTrades() != 1 {
+		t.Fatalf("completed trades = %d, want 1", stats.GetCompletedTrades())
+	}
+	if stats.GetOnSaleProducts() != 1 {
+		t.Fatalf("on-sale products = %d, want 1 (OFF_SHELF and SOLD must not count)", stats.GetOnSaleProducts())
+	}
+
+	idle, err := h.client.GetUserStats(t.Context(), &marketplacev1.GetUserStatsRequest{UserId: tradeReviewBuyer})
+	if err != nil {
+		t.Fatalf("GetUserStats: %v", err)
+	}
+	if idle.GetCompletedTrades() != 0 || idle.GetOnSaleProducts() != 0 {
+		t.Fatalf("a user without selling activity must have zero stats: %+v", idle)
+	}
+}

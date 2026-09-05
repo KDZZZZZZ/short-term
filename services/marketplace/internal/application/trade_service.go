@@ -374,6 +374,22 @@ func (s *TradeService) List(ctx context.Context, query ListTradesQuery) (TradePa
 // Products 暴露商品仓储，使调用方可以用商品当前状态补全交易响应中的商品投影。
 func (s *TradeService) Products() ProductRepository { return s.products }
 
+// UserStats 汇总用户作为卖家的公开统计：已完成交易数与在售商品数。
+// 两者都是只读投影，用户不存在时返回零值，由调用方决定 404 语义。
+func (s *TradeService) UserStats(ctx context.Context, userID string) (completedTrades, onSaleProducts int64, err error) {
+	completedTrades, err = s.trades.CountCompletedBySeller(ctx, userID)
+	if err != nil {
+		return 0, 0, errs.Wrap(errs.CodeInternal, "服务暂时不可用", err)
+	}
+
+	onSale := domain.StatusOnSale
+	page, err := s.products.List(ctx, ProductFilter{SellerID: userID, Status: &onSale}, Page{Number: 1, Size: 1})
+	if err != nil {
+		return 0, 0, errs.Wrap(errs.CodeInternal, "服务暂时不可用", err)
+	}
+	return completedTrades, page.Total, nil
+}
+
 // --- 共享机制 ----------------------------------------------------------------
 
 // run 执行一条命令；使用相同幂等键的并发请求赢得竞争时重试一次。

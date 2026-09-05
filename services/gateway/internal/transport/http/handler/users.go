@@ -118,7 +118,13 @@ func (h *Users) Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.responder.OK(w, r, mapper.UserProfile(resp.GetUser().GetId(), resp.GetUser().GetNickname(), average))
+	stats, err := h.aggregator.SellerStats(r.Context(), userID)
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.OK(w, r, mapper.UserProfile(resp.GetUser().GetId(), resp.GetUser().GetNickname(), average, stats))
 }
 
 // ChangePassword 处理 PUT /users/me/password。

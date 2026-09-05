@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { Avatar, Badge, Button, Dropdown, Separator, toast } from '@heroui/react'
 import {
+  Heart,
   MessageCircle,
   Moon,
   Plus,
@@ -106,6 +107,12 @@ export function AppLayout() {
             />
             <NavLink
               current={location.pathname}
+              icon={<Heart className="size-4" />}
+              label="收藏"
+              to="/favorites"
+            />
+            <NavLink
+              current={location.pathname}
               icon={<User className="size-4" />}
               label="我的"
               to="/my/products"
@@ -170,7 +177,7 @@ export function AppLayout() {
                   我的商品
                 </Dropdown.Item>
                 <Dropdown.Item id="favorites" textValue="我的收藏">
-                  <Store className="size-4" />
+                  <Heart className="size-4" />
                   我的收藏
                 </Dropdown.Item>
                 <Dropdown.Item id="logout" textValue="退出登录" variant="danger">

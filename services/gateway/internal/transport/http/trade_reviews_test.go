@@ -51,6 +51,13 @@ func (s *stubMarketplace) BatchGetProductTradeReviews(_ context.Context, req *ma
 	return &marketplacev1.BatchGetProductTradeReviewsResponse{Reviews: reviews}, nil
 }
 
+func (s *stubMarketplace) GetUserStats(_ context.Context, _ *marketplacev1.GetUserStatsRequest, _ ...grpc.CallOption) (*marketplacev1.GetUserStatsResponse, error) {
+	if s.statsErr != nil {
+		return nil, s.statsErr
+	}
+	return s.userStats, nil
+}
+
 func (s *stubMarketplace) BatchGetUserAverageScores(_ context.Context, req *marketplacev1.BatchGetUserAverageScoresRequest, _ ...grpc.CallOption) (*marketplacev1.BatchGetUserAverageScoresResponse, error) {
 	s.lastBatchScores = req
 	if s.batchScoresErr != nil {

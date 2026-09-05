@@ -41,6 +41,7 @@ const (
 	MarketplaceService_CreateTradeReview_FullMethodName           = "/shortterm.marketplace.v1.MarketplaceService/CreateTradeReview"
 	MarketplaceService_BatchGetProductTradeReviews_FullMethodName = "/shortterm.marketplace.v1.MarketplaceService/BatchGetProductTradeReviews"
 	MarketplaceService_BatchGetUserAverageScores_FullMethodName   = "/shortterm.marketplace.v1.MarketplaceService/BatchGetUserAverageScores"
+	MarketplaceService_GetUserStats_FullMethodName                = "/shortterm.marketplace.v1.MarketplaceService/GetUserStats"
 )
 
 // MarketplaceServiceClient is the client API for MarketplaceService service.
@@ -73,6 +74,7 @@ type MarketplaceServiceClient interface {
 	CreateTradeReview(ctx context.Context, in *CreateTradeReviewRequest, opts ...grpc.CallOption) (*CreateTradeReviewResponse, error)
 	BatchGetProductTradeReviews(ctx context.Context, in *BatchGetProductTradeReviewsRequest, opts ...grpc.CallOption) (*BatchGetProductTradeReviewsResponse, error)
 	BatchGetUserAverageScores(ctx context.Context, in *BatchGetUserAverageScoresRequest, opts ...grpc.CallOption) (*BatchGetUserAverageScoresResponse, error)
+	GetUserStats(ctx context.Context, in *GetUserStatsRequest, opts ...grpc.CallOption) (*GetUserStatsResponse, error)
 }
 
 type marketplaceServiceClient struct {
@@ -303,6 +305,16 @@ func (c *marketplaceServiceClient) BatchGetUserAverageScores(ctx context.Context
 	return out, nil
 }
 
+func (c *marketplaceServiceClient) GetUserStats(ctx context.Context, in *GetUserStatsRequest, opts ...grpc.CallOption) (*GetUserStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserStatsResponse)
+	err := c.cc.Invoke(ctx, MarketplaceService_GetUserStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MarketplaceServiceServer is the server API for MarketplaceService service.
 // All implementations should embed UnimplementedMarketplaceServiceServer
 // for forward compatibility.
@@ -333,6 +345,7 @@ type MarketplaceServiceServer interface {
 	CreateTradeReview(context.Context, *CreateTradeReviewRequest) (*CreateTradeReviewResponse, error)
 	BatchGetProductTradeReviews(context.Context, *BatchGetProductTradeReviewsRequest) (*BatchGetProductTradeReviewsResponse, error)
 	BatchGetUserAverageScores(context.Context, *BatchGetUserAverageScoresRequest) (*BatchGetUserAverageScoresResponse, error)
+	GetUserStats(context.Context, *GetUserStatsRequest) (*GetUserStatsResponse, error)
 }
 
 // UnimplementedMarketplaceServiceServer should be embedded to have
@@ -407,6 +420,9 @@ func (UnimplementedMarketplaceServiceServer) BatchGetProductTradeReviews(context
 }
 func (UnimplementedMarketplaceServiceServer) BatchGetUserAverageScores(context.Context, *BatchGetUserAverageScoresRequest) (*BatchGetUserAverageScoresResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUserAverageScores not implemented")
+}
+func (UnimplementedMarketplaceServiceServer) GetUserStats(context.Context, *GetUserStatsRequest) (*GetUserStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserStats not implemented")
 }
 func (UnimplementedMarketplaceServiceServer) testEmbeddedByValue() {}
 
@@ -824,6 +840,24 @@ func _MarketplaceService_BatchGetUserAverageScores_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MarketplaceService_GetUserStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MarketplaceServiceServer).GetUserStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MarketplaceService_GetUserStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MarketplaceServiceServer).GetUserStats(ctx, req.(*GetUserStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MarketplaceService_ServiceDesc is the grpc.ServiceDesc for MarketplaceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -918,6 +952,10 @@ var MarketplaceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchGetUserAverageScores",
 			Handler:    _MarketplaceService_BatchGetUserAverageScores_Handler,
+		},
+		{
+			MethodName: "GetUserStats",
+			Handler:    _MarketplaceService_GetUserStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

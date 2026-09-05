@@ -604,6 +604,15 @@ def run(args):
     )["data"]
     if seller_profile.get("average_score") != "5.00" or not seller_profile.get("nickname"):
         raise RuntimeError("public profile did not expose the average score")
+    if seller_profile.get("completed_trades_count") != 1 or seller_profile.get("on_sale_products_count") != 0:
+        raise RuntimeError("public profile did not expose the seller stats")
+    buyer_profile = expect(
+        client.request("GET", f"/api/v1/users/{buyer_auth['user']['id']}", token=observer_token),
+        200,
+        "get buyer public profile",
+    )["data"]
+    if buyer_profile.get("completed_trades_count") != 0 or buyer_profile.get("on_sale_products_count") != 0:
+        raise RuntimeError("a user without selling activity must have zero stats")
     if "student_no" in json.dumps(seller_profile, ensure_ascii=False) or "wechat" in json.dumps(seller_profile, ensure_ascii=False):
         raise RuntimeError("public profile leaked private fields")
     assert_no_student_numbers(

@@ -629,6 +629,9 @@ type stubMarketplace struct {
 	averageScores   map[string]string
 	batchScoresErr  error
 	lastBatchScores *marketplacev1.BatchGetUserAverageScoresRequest
+
+	userStats *marketplacev1.GetUserStatsResponse
+	statsErr  error
 }
 
 func (s *stubMarketplace) summary(id, sellerID string) *marketplacev1.ProductSummary {

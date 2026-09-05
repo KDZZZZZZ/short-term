@@ -143,6 +143,8 @@ type TradeRepository interface {
 	ByID(ctx context.Context, tradeID string) (*domain.Trade, error)
 	// List 按确定性顺序返回一页交易。
 	List(ctx context.Context, filter TradeFilter, page Page) (TradePage, error)
+	// CountCompletedBySeller 统计用户作为卖家已完成的交易数（终态 COMPLETED）。
+	CountCompletedBySeller(ctx context.Context, sellerID string) (int64, error)
 }
 
 // Conversation 是 Messaging Service 拥有的、交易绑定校验所需的最小事实投影。

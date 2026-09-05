@@ -58,11 +58,15 @@ export interface TradeParty {
   qq: string | null
 }
 
-/** 公开用户资料：只有昵称与卖家平均分，不含学号和联系方式。 */
+/** 公开用户资料：只有昵称、卖家平均分与公开统计，不含学号和联系方式。 */
 export interface UserProfile {
   id: Identifier
   nickname: string
   average_score: string | null
+  /** 该用户作为卖家已完成的交易数。 */
+  completed_trades_count: number
+  /** 该用户当前在售的商品数。 */
+  on_sale_products_count: number
 }
 
 export interface SellerContact {

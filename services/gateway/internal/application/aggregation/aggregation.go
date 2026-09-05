@@ -102,6 +102,11 @@ func (a *Aggregator) AverageScores(ctx context.Context, userIDs []string) (map[s
 	return resp.GetAverageScores(), nil
 }
 
+// SellerStats 返回用户作为卖家的公开统计：已完成交易数与在售商品数。
+func (a *Aggregator) SellerStats(ctx context.Context, userID string) (*marketplacev1.GetUserStatsResponse, error) {
+	return a.products.GetUserStats(ctx, &marketplacev1.GetUserStatsRequest{UserId: userID})
+}
+
 // IsFavorited 返回当前用户是否收藏了某个商品。匿名调用方永远不会被视为已收藏。
 func (a *Aggregator) IsFavorited(ctx context.Context, actorID, productID string) (bool, error) {
 	if actorID == "" || a.favorites == nil {

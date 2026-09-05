@@ -243,7 +243,7 @@
         ],
         "summary": "获取其他用户的公开资料",
         "operationId": "getUserProfile",
-        "description": "返回该用户的公开资料：昵称与其作为卖家收到的买家评分平均值。\n资料不包含学号和联系方式。用户不存在返回 `404 / RESOURCE_NOT_FOUND`。\n",
+        "description": "返回该用户的公开资料：昵称、其作为卖家收到的买家评分平均值、作为卖家\n已完成的交易数与当前在售商品数。资料不包含学号和联系方式。用户不存在\n返回 `404 / RESOURCE_NOT_FOUND`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/UserId"
@@ -2021,7 +2021,9 @@
         "required": [
           "id",
           "nickname",
-          "average_score"
+          "average_score",
+          "completed_trades_count",
+          "on_sale_products_count"
         ],
         "properties": {
           "id": {
@@ -2032,9 +2034,19 @@
           },
           "average_score": {
             "$ref": "#/components/schemas/AverageScore"
+          },
+          "completed_trades_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "该用户作为卖家已完成的交易数（终态 `COMPLETED`）。"
+          },
+          "on_sale_products_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "该用户当前在售（`ON_SALE`）的商品数。"
           }
         },
-        "description": "公开用户资料：只有昵称与卖家平均分，不含学号和联系方式。"
+        "description": "公开用户资料：只有昵称、卖家平均分与公开统计，不含学号和联系方式。"
       },
       "UserProfileSuccess": {
         "allOf": [

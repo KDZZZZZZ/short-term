@@ -8,9 +8,11 @@ type UserPublic struct {
 
 // UserProfile 是 UserProfile schema：公开用户资料，不含学号和联系方式。
 type UserProfile struct {
-	ID           string  `json:"id"`
-	Nickname     string  `json:"nickname"`
-	AverageScore *string `json:"average_score"`
+	ID                   string  `json:"id"`
+	Nickname             string  `json:"nickname"`
+	AverageScore         *string `json:"average_score"`
+	CompletedTradesCount int64   `json:"completed_trades_count"`
+	OnSaleProductsCount  int64   `json:"on_sale_products_count"`
 }
 
 // SellerContact 是 SellerContact schema。它包含卖家的微信、QQ 和公开平均分，
