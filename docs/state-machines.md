@@ -52,8 +52,9 @@ PENDING --卖家接受--> ACCEPTED --双方均确认--> COMPLETED
 
 | 当前状态 | 动作 | 操作者 | 新状态 | 商品副作用 |
 | --- | --- | --- | --- | --- |
-| 不存在 | 创建购买意向 | 非卖家的登录用户 | `PENDING`，HTTP `201` | 保持 `ON_SALE` |
-| 任意已存在状态 | 再次创建同商品意向 | 同一买家 | 状态不变，HTTP `200` | 无 |
+| 不存在进行中意向 | 创建购买意向 | 非卖家的登录用户 | `PENDING`，HTTP `201` | 保持 `ON_SALE` |
+| 存在进行中意向 | 再次创建同商品意向 | 同一买家 | 返回既有意向，HTTP `200` | 无 |
+| 仅有已取消意向 | 再次创建同商品意向 | 同一买家 | 新建 `PENDING`，HTTP `201` | 保持 `ON_SALE` |
 | `PENDING` | 接受 | 卖家 | `ACCEPTED` | `ON_SALE -> RESERVED` |
 | `PENDING` | 拒绝 | 卖家 | `CANCELLED` | 无 |
 | `PENDING` | 取消 | 买家 | `CANCELLED` | 无 |
@@ -63,11 +64,13 @@ PENDING --卖家接受--> ACCEPTED --双方均确认--> COMPLETED
 
 `COMPLETED` 和 `CANCELLED` 是交易终态。
 
-Trade 是购买意向而不是一次 HTTP 尝试。数据库必须保证 `(product_id, buyer_id)` 在商品
-整个生命周期内唯一；换用新的 `Idempotency-Key`、先前意向被拒绝或取消、商品后来重新
-回到 `ON_SALE`，都不得为同一买家创建第二条 Trade。创建接口采用 create-or-get：首次
-创建返回 `201`；已有意向时返回同一 Trade 的当前表示和 `200`，且不改变状态或发送新通知。
-同一 `Idempotency-Key` 的重试仍优先重放首次成功的状态码和响应体。
+Trade 是购买意向而不是一次 HTTP 尝试。数据库必须保证同一 `(product_id, buyer_id)`
+同时最多一笔进行中（`PENDING` 或 `ACCEPTED`）的意向（部分唯一约束）；被拒绝或取消
+的意向进入终态后不再占名额，买家可以再次发起新的购买意向——生成一条新 Trade，历史
+记录保留，不得复用或复活终态行。再次创建仍受商品状态约束：商品必须已回到 `ON_SALE`。
+创建接口采用 create-or-get：首次创建返回 `201`；存在进行中意向时返回同一 Trade 的
+当前表示和 `200`，且不改变状态或发送新通知。同一 `Idempotency-Key` 的重试仍优先重放
+首次成功的状态码和响应体，即使该结果对应的是一条此后被取消的交易。
 
 创建请求携带 `conversation_id` 时，服务端必须验证 Conversation 的 `product_id` 与路径商品
 一致，且 `buyer_id`、`seller_id` 分别为当前用户与商品卖家。会话不存在或当前用户不可见
@@ -139,7 +142,7 @@ Trade 是购买意向而不是一次 HTTP 尝试。数据库必须保证 `(produ
 - `SOLD` 是终态。
 - `RESERVED`、`SOLD`、`OFF_SHELF` 商品不能创建或接受新交易。
 - `PENDING` 是进行中的购买意向。只要商品存在任意 `PENDING` Trade，卖家必须先逐笔拒绝，不能将商品从 `ON_SALE` 下架。
-- `PENDING` 不预留商品：Product 仍为 `ON_SALE` 并继续出现在公开列表，其他买家仍可各自创建唯一购买意向，直到卖家接受其中一笔。
+- `PENDING` 不预留商品：Product 仍为 `ON_SALE` 并继续出现在公开列表，其他买家仍可各自创建进行中购买意向，直到卖家接受其中一笔。
 - 公开商品列表只返回 `ON_SALE`。
 - 已认证用户可以通过详情接口查看任意状态的现存商品；`OFF_SHELF`、`RESERVED` 和 `SOLD` 不因状态而返回 `404`。
 - 商品字段和图片只能在 `ON_SALE` 或 `OFF_SHELF` 且不存在 `PENDING` Trade 时修改；存在 `PENDING` 时返回 `409 / TRADE_STATE_CONFLICT`，`RESERVED`、`SOLD` 时返回 `409 / PRODUCT_STATE_CONFLICT`。
@@ -160,7 +163,8 @@ Trade 是购买意向而不是一次 HTTP 尝试。数据库必须保证 `(produ
 | 动作 | 必须原子提交的状态变化 |
 | --- | --- |
 | 首次创建购买意向 | 锁定 Product 并验证 `ON_SALE`；按 `(product_id, buyer_id)` 唯一创建 Trade `PENDING`；写入 Outbox 与幂等结果 |
-| 再次创建同一购买意向 | 读取并返回既有 Trade；不得更新状态、价格快照、会话或产生新 Outbox 事件 |
+| 再次创建且存在进行中意向 | 读取并返回既有 Trade；不得更新状态、价格快照、会话或产生新 Outbox 事件 |
+| 再次创建且仅有已取消意向 | 按进行中唯一约束新建 `PENDING` Trade 并写入快照与 Outbox；已取消记录保留不动 |
 | 商品下架 | 锁定 Product 并验证 `ON_SALE`；确认不存在 `PENDING` Trade 后更新为 `OFF_SHELF`；检查与更新之间不得插入新意向 |
 | 修改商品或图片 | 锁定 Product，验证状态为 `ON_SALE`/`OFF_SHELF` 且不存在 `PENDING` Trade；变更与新意向创建不得交错提交 |
 | 卖家接受 | 目标 Trade `PENDING -> ACCEPTED`；Product `ON_SALE -> RESERVED`；同商品其他 PENDING Trade -> `CANCELLED` |
@@ -187,8 +191,9 @@ Trade 是购买意向而不是一次 HTTP 尝试。数据库必须保证 `(produ
 `OFF_SHELF` 并返回 `409 / PRODUCT_NOT_AVAILABLE`；编辑先提交时，新意向读取编辑后的
 同一版本并生成价格快照。不得提交 `OFF_SHELF + PENDING`，也不得让意向指向交错更新的商品内容。
 
-并发创建同一买家、同一商品的意向由 `(product_id, buyer_id)` 唯一约束串行化；一个请求
-创建并返回 `201`，其他请求读取同一 Trade 并返回 `200`，不得把唯一约束错误泄漏为 `500`。
+并发创建同一买家、同一商品的意向由 `(product_id, buyer_id)` 上的进行中部分唯一约束
+串行化；一个请求创建并返回 `201`，其他请求读取同一 Trade 并返回 `200`，不得把唯一
+约束错误泄漏为 `500`。
 
 卖家接受交易时，事务必须锁定商品和目标交易，验证商品仍为 `ON_SALE`、交易仍为 `PENDING` 且操作者为卖家，再执行联动更新。数据库或服务层必须保证同一商品最多存在一个 `ACCEPTED` 交易。
 

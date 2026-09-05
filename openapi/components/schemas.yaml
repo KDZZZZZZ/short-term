@@ -914,8 +914,9 @@ Trade:
   type: object
   additionalProperties: false
   description: |
-    一个商品与一个买家的唯一购买意向。同一 `(product.id, buyer.id)` 在商品整个
-    生命周期内只对应一个 Trade；状态变化或终止后也不会创建第二个 Trade。
+    一个商品与一个买家的购买意向。同一 `(product.id, buyer.id)` 同时最多只有一笔
+    进行中（`PENDING` 或 `ACCEPTED`）的意向；`CANCELLED` 或 `COMPLETED` 的历史
+    Trade 保留，买家在取消后可再次发起新的购买意向。
   required:
     - id
     - product
