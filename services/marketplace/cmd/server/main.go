@@ -106,13 +106,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	reviews, err := application.NewReviewService(postgres.NewReviewRepository(pool), ids, clock)
+	if err != nil {
+		return err
+	}
 
 	server := grpcx.NewServer(grpcx.ServerOptions{
 		Logger:         logger,
 		HandlerTimeout: cfg.HandlerTimeout,
 	})
 	grpcx.RegisterHealthServer(server, pool.Ping)
-	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades))
+	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades, reviews))
 
 	logger.Info("media store ready", slog.String("root", objects.Root()), slog.String("public_url", cfg.MediaPublicURL))
 	return grpcx.Serve(ctx, server, cfg.GRPCAddr, logger)

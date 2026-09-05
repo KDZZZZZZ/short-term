@@ -21,11 +21,12 @@ const maxBatchProducts = 200
 type Server struct {
 	products *application.ProductService
 	trades   *application.TradeService
+	reviews  *application.ReviewService
 }
 
 // NewServer 构造 gRPC 适配器。
-func NewServer(products *application.ProductService, trades *application.TradeService) *Server {
-	return &Server{products: products, trades: trades}
+func NewServer(products *application.ProductService, trades *application.TradeService, reviews *application.ReviewService) *Server {
+	return &Server{products: products, trades: trades, reviews: reviews}
 }
 
 // CreateProduct 发布商品。

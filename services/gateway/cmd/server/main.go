@@ -108,6 +108,7 @@ func run() error {
 		Users:        handler.NewUsers(clients.Account, responder),
 		Products:     handler.NewProducts(clients.Marketplace, clients.Account, aggregator, responder),
 		Trades:       handler.NewTrades(clients.Marketplace, aggregator, responder),
+		Reviews:      handler.NewReviews(clients.Marketplace, aggregator, responder),
 		Favorites:    handler.NewFavorites(clients.Favorite, aggregator, responder),
 		Messaging:    handler.NewMessaging(clients.Messaging, aggregator, responder),
 	})

@@ -353,6 +353,70 @@ def run(args):
     if completed_trade.get("status") != "COMPLETED" or completed_trade.get("product", {}).get("status") != "SOLD":
         raise RuntimeError("completed trade did not move the product to SOLD")
 
+    expect_error(
+        client.request(
+            "POST",
+            f"/api/v1/products/{product_id}/reviews",
+            token=observer_token,
+            json_body={"comment": "M6 旁观者评论"},
+        ),
+        403,
+        "FORBIDDEN",
+        "observer create review",
+    )
+    expect_error(
+        client.request(
+            "POST",
+            f"/api/v1/products/{product_id}/reviews",
+            token=seller_token,
+            json_body={"comment": "M6 卖家自评"},
+        ),
+        403,
+        "FORBIDDEN",
+        "seller create review",
+    )
+    review = expect(
+        client.request(
+            "POST",
+            f"/api/v1/products/{product_id}/reviews",
+            token=buyer_token,
+            json_body={"comment": "M6 买家评论：交易顺利完成"},
+        ),
+        201,
+        "create review",
+    )["data"]
+    review_id = review.get("id")
+    if not review_id or review.get("buyer", {}).get("id") != buyer_auth["user"]["id"]:
+        raise RuntimeError("review response did not expose the review and buyer identities")
+    if not review.get("buyer", {}).get("nickname"):
+        raise RuntimeError("review response did not complete the buyer nickname")
+    expect_error(
+        client.request(
+            "POST",
+            f"/api/v1/products/{product_id}/reviews",
+            token=buyer_token,
+            json_body={"comment": "M6 重复评论"},
+        ),
+        409,
+        "REVIEW_ALREADY_EXISTS",
+        "duplicate review",
+    )
+    reviews = expect(
+        client.request("GET", f"/api/v1/products/{product_id}/reviews", token=observer_token),
+        200,
+        "list reviews",
+    )["data"]
+    if reviews.get("total") != 1 or not reviews.get("items"):
+        raise RuntimeError("review list did not return the created review")
+    listed_review = reviews["items"][0]
+    if listed_review.get("id") != review_id or not listed_review.get("buyer", {}).get("nickname"):
+        raise RuntimeError("review list item is inconsistent with the created review")
+    assert_no_student_numbers(
+        reviews,
+        (student_seller, student_buyer, student_observer),
+        "review list",
+    )
+
     detail_response = client.request(
         "GET",
         f"/api/v1/products/{product_id}",
@@ -401,6 +465,7 @@ def run(args):
         "product_id": product_id,
         "conversation_id": conversation_id,
         "trade_id": trade_id,
+        "review_id": review_id,
         "trace_request_id": trace_request_id,
         "status": "COMPLETED",
         "projection_status": "SOLD",
@@ -409,6 +474,7 @@ def run(args):
             "marketplace_and_favorite_projection": "passed",
             "conversation_and_message_idempotency": "passed",
             "trade_create_or_get_and_lifecycle": "passed",
+            "buyer_review_after_completed_trade": "passed",
             "observer_visibility_and_role_authorization": "passed",
         },
         "baseline": {
@@ -441,7 +507,8 @@ def main():
     print(
         "E2E_OK "
         f"product={result['product_id']} conversation={result['conversation_id']} "
-        f"trade={result['trade_id']} status={result['status']} projection={result['projection_status']}"
+        f"trade={result['trade_id']} review={result['review_id']} "
+        f"status={result['status']} projection={result['projection_status']}"
     )
     print("STORIES_OK " + ",".join(sorted(result["stories"])))
     baseline = result["baseline"]

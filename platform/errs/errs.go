@@ -37,6 +37,7 @@ const (
 	CodeProductStateConflict Code = "PRODUCT_STATE_CONFLICT"
 	CodeConversationMismatch Code = "CONVERSATION_MISMATCH"
 	CodeSelfActionNotAllowed Code = "SELF_ACTION_NOT_ALLOWED"
+	CodeReviewAlreadyExists  Code = "REVIEW_ALREADY_EXISTS"
 	CodeRateLimited          Code = "RATE_LIMITED"
 	CodeInternal             Code = "INTERNAL_ERROR"
 )
@@ -57,6 +58,7 @@ var grpcCodes = map[Code]codes.Code{
 	CodeProductStateConflict: codes.FailedPrecondition,
 	CodeConversationMismatch: codes.FailedPrecondition,
 	CodeSelfActionNotAllowed: codes.FailedPrecondition,
+	CodeReviewAlreadyExists:  codes.AlreadyExists,
 	CodeRateLimited:          codes.ResourceExhausted,
 	CodeInternal:             codes.Internal,
 }

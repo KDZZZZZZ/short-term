@@ -82,6 +82,7 @@ type IDGenerator interface {
 	NewProductID() string
 	NewImageID() string
 	NewTradeID() string
+	NewReviewID() string
 	NewEventID() string
 }
 
