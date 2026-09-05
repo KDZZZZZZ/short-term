@@ -82,7 +82,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-full flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-header-border bg-header backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-2 px-4">
           <Link className="flex items-center gap-2 text-base font-bold text-header-foreground" to="/">
             <MarketStallIcon className="h-6 w-auto text-header-active" />
             <span className="hidden sm:inline">校园二手集市</span>
@@ -190,7 +190,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         <motion.div
           animate={{ opacity: 1, y: 0 }}
           initial={{ opacity: 0, y: 6 }}
