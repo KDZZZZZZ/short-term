@@ -6,6 +6,14 @@ ProductId:
   schema:
     $ref: ./schemas.yaml#/Identifier
 
+UserId:
+  name: userId
+  in: path
+  required: true
+  description: 不透明用户标识。
+  schema:
+    $ref: ./schemas.yaml#/Identifier
+
 ImageId:
   name: imageId
   in: path

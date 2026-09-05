@@ -77,7 +77,8 @@ products:
     operationId: listCurrentUserProducts
     description: |
       固定按 `created_at DESC, id DESC` 排列。页码分页不提供跨请求快照，并发变更
-      可能导致后续页面漂移。
+      可能导致后续页面漂移。每件商品携带 `buyer_review`：该商品收到的买家评价，
+      尚无已完成交易的买家发布评价时为 `null`。
     parameters:
       - $ref: ../components/parameters.yaml#/ProductStatus
       - $ref: ../components/parameters.yaml#/Page
@@ -88,10 +89,40 @@ products:
         content:
           application/json:
             schema:
-              $ref: ../components/schemas.yaml#/ProductPageSuccess
+              $ref: ../components/schemas.yaml#/MyProductPageSuccess
       '400':
         $ref: ../components/responses.yaml#/BadRequest
       '401':
         $ref: ../components/responses.yaml#/Unauthorized
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+
+userProducts:
+  get:
+    tags:
+      - Users
+      - Products
+    summary: 获取其他用户发布的商品
+    operationId: listUserProducts
+    description: |
+      返回该用户在售（`ON_SALE`）和已售出（`SOLD`）的商品，固定按
+      `created_at DESC, id DESC` 排列；`RESERVED` 和 `OFF_SHELF` 只有卖家自己
+      可以看到。页码分页不提供跨请求快照。用户不存在返回
+      `404 / RESOURCE_NOT_FOUND`。已售出商品的买家评价通过商品详情展示。
+    parameters:
+      - $ref: ../components/parameters.yaml#/UserId
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 该用户公开可见的商品分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ProductPageSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
       '500':
         $ref: ../components/responses.yaml#/InternalServerError

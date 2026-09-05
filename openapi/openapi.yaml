@@ -34,6 +34,8 @@ tags:
     description: 以商品为上下文的买卖双方文字会话。
   - name: Trades
     description: 购买意向和受控的交易状态动作。
+  - name: TradeReviews
+    description: 买家对已完成交易的文字评价，与公开的用户评论相互独立。
   - name: Comments
     description: 用户对商品的文字评论，不要求购买。
 
@@ -54,6 +56,8 @@ paths:
     $ref: ./paths/users.yaml#/password
   /users/me/products:
     $ref: ./paths/users.yaml#/products
+  /users/{userId}/products:
+    $ref: ./paths/users.yaml#/userProducts
 
   /products:
     $ref: ./paths/products.yaml#/collection
@@ -100,6 +104,8 @@ paths:
     $ref: ./paths/trades.yaml#/cancel
   /trades/{tradeId}/confirm:
     $ref: ./paths/trades.yaml#/confirm
+  /trades/{tradeId}/review:
+    $ref: ./paths/tradeReviews.yaml#/review
 
 components:
   securitySchemes:
