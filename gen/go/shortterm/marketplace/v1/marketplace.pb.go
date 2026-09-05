@@ -1168,11 +1168,13 @@ func (x *ListProductsRequest) GetPageSize() int32 {
 }
 
 type ListUserProductsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SellerId      string                 `protobuf:"bytes,1,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
-	Status        *ProductStatus         `protobuf:"varint,2,opt,name=status,proto3,enum=shortterm.marketplace.v1.ProductStatus,oneof" json:"status,omitempty"`
-	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	SellerId string                 `protobuf:"bytes,1,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
+	Status   *ProductStatus         `protobuf:"varint,2,opt,name=status,proto3,enum=shortterm.marketplace.v1.ProductStatus,oneof" json:"status,omitempty"`
+	Page     int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// statuses 是状态集合过滤，供公开的卖家商品列表使用；为空时不过滤。
+	Statuses      []ProductStatus `protobuf:"varint,5,rep,packed,name=statuses,proto3,enum=shortterm.marketplace.v1.ProductStatus" json:"statuses,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1233,6 +1235,13 @@ func (x *ListUserProductsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListUserProductsRequest) GetStatuses() []ProductStatus {
+	if x != nil {
+		return x.Statuses
+	}
+	return nil
 }
 
 type ListProductsResponse struct {
@@ -3106,6 +3115,285 @@ func (x *ListProductCommentsResponse) GetPage() *ProductCommentPage {
 	return nil
 }
 
+// TradeReview 是买家在交易完成后发布的不可变文字评价。每笔交易最多一条；
+// 公开契约只暴露 buyer_id，昵称由 Gateway 批量补全。评价与商品用户评论
+// （ProductComment）相互独立。
+type TradeReview struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TradeId       string                 `protobuf:"bytes,2,opt,name=trade_id,json=tradeId,proto3" json:"trade_id,omitempty"`
+	ProductId     string                 `protobuf:"bytes,3,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	BuyerId       string                 `protobuf:"bytes,4,opt,name=buyer_id,json=buyerId,proto3" json:"buyer_id,omitempty"`
+	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TradeReview) Reset() {
+	*x = TradeReview{}
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TradeReview) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TradeReview) ProtoMessage() {}
+
+func (x *TradeReview) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TradeReview.ProtoReflect.Descriptor instead.
+func (*TradeReview) Descriptor() ([]byte, []int) {
+	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *TradeReview) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TradeReview) GetTradeId() string {
+	if x != nil {
+		return x.TradeId
+	}
+	return ""
+}
+
+func (x *TradeReview) GetProductId() string {
+	if x != nil {
+		return x.ProductId
+	}
+	return ""
+}
+
+func (x *TradeReview) GetBuyerId() string {
+	if x != nil {
+		return x.BuyerId
+	}
+	return ""
+}
+
+func (x *TradeReview) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *TradeReview) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type CreateTradeReviewRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ActorId       string                 `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	TradeId       string                 `protobuf:"bytes,2,opt,name=trade_id,json=tradeId,proto3" json:"trade_id,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTradeReviewRequest) Reset() {
+	*x = CreateTradeReviewRequest{}
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTradeReviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTradeReviewRequest) ProtoMessage() {}
+
+func (x *CreateTradeReviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTradeReviewRequest.ProtoReflect.Descriptor instead.
+func (*CreateTradeReviewRequest) Descriptor() ([]byte, []int) {
+	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *CreateTradeReviewRequest) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *CreateTradeReviewRequest) GetTradeId() string {
+	if x != nil {
+		return x.TradeId
+	}
+	return ""
+}
+
+func (x *CreateTradeReviewRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type CreateTradeReviewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Review        *TradeReview           `protobuf:"bytes,1,opt,name=review,proto3" json:"review,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTradeReviewResponse) Reset() {
+	*x = CreateTradeReviewResponse{}
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTradeReviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTradeReviewResponse) ProtoMessage() {}
+
+func (x *CreateTradeReviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTradeReviewResponse.ProtoReflect.Descriptor instead.
+func (*CreateTradeReviewResponse) Descriptor() ([]byte, []int) {
+	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *CreateTradeReviewResponse) GetReview() *TradeReview {
+	if x != nil {
+		return x.Review
+	}
+	return nil
+}
+
+type BatchGetProductTradeReviewsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProductIds    []string               `protobuf:"bytes,1,rep,name=product_ids,json=productIds,proto3" json:"product_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetProductTradeReviewsRequest) Reset() {
+	*x = BatchGetProductTradeReviewsRequest{}
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetProductTradeReviewsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetProductTradeReviewsRequest) ProtoMessage() {}
+
+func (x *BatchGetProductTradeReviewsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetProductTradeReviewsRequest.ProtoReflect.Descriptor instead.
+func (*BatchGetProductTradeReviewsRequest) Descriptor() ([]byte, []int) {
+	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *BatchGetProductTradeReviewsRequest) GetProductIds() []string {
+	if x != nil {
+		return x.ProductIds
+	}
+	return nil
+}
+
+type BatchGetProductTradeReviewsResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Reviews       map[string]*TradeReview `protobuf:"bytes,1,rep,name=reviews,proto3" json:"reviews,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetProductTradeReviewsResponse) Reset() {
+	*x = BatchGetProductTradeReviewsResponse{}
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetProductTradeReviewsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetProductTradeReviewsResponse) ProtoMessage() {}
+
+func (x *BatchGetProductTradeReviewsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetProductTradeReviewsResponse.ProtoReflect.Descriptor instead.
+func (*BatchGetProductTradeReviewsResponse) Descriptor() ([]byte, []int) {
+	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *BatchGetProductTradeReviewsResponse) GetReviews() map[string]*TradeReview {
+	if x != nil {
+		return x.Reviews
+	}
+	return nil
+}
+
 var File_shortterm_marketplace_v1_marketplace_proto protoreflect.FileDescriptor
 
 const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
@@ -3213,12 +3501,13 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSizeB\n" +
 	"\n" +
 	"\b_keywordB\v\n" +
-	"\t_category\"\xb8\x01\n" +
+	"\t_category\"\xfd\x01\n" +
 	"\x17ListUserProductsRequest\x12\x1b\n" +
 	"\tseller_id\x18\x01 \x01(\tR\bsellerId\x12D\n" +
 	"\x06status\x18\x02 \x01(\x0e2'.shortterm.marketplace.v1.ProductStatusH\x00R\x06status\x88\x01\x01\x12\x12\n" +
 	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSizeB\t\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12C\n" +
+	"\bstatuses\x18\x05 \x03(\x0e2'.shortterm.marketplace.v1.ProductStatusR\bstatusesB\t\n" +
 	"\a_status\"Q\n" +
 	"\x14ListProductsResponse\x129\n" +
 	"\x04page\x18\x01 \x01(\v2%.shortterm.marketplace.v1.ProductPageR\x04page\"U\n" +
@@ -3359,7 +3648,30 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"_\n" +
 	"\x1bListProductCommentsResponse\x12@\n" +
-	"\x04page\x18\x01 \x01(\v2,.shortterm.marketplace.v1.ProductCommentPageR\x04page*\x9f\x01\n" +
+	"\x04page\x18\x01 \x01(\v2,.shortterm.marketplace.v1.ProductCommentPageR\x04page\"\xc7\x01\n" +
+	"\vTradeReview\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
+	"\btrade_id\x18\x02 \x01(\tR\atradeId\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x03 \x01(\tR\tproductId\x12\x19\n" +
+	"\bbuyer_id\x18\x04 \x01(\tR\abuyerId\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\tR\acontent\x129\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"j\n" +
+	"\x18CreateTradeReviewRequest\x12\x19\n" +
+	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x19\n" +
+	"\btrade_id\x18\x02 \x01(\tR\atradeId\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"Z\n" +
+	"\x19CreateTradeReviewResponse\x12=\n" +
+	"\x06review\x18\x01 \x01(\v2%.shortterm.marketplace.v1.TradeReviewR\x06review\"E\n" +
+	"\"BatchGetProductTradeReviewsRequest\x12\x1f\n" +
+	"\vproduct_ids\x18\x01 \x03(\tR\n" +
+	"productIds\"\xee\x01\n" +
+	"#BatchGetProductTradeReviewsResponse\x12d\n" +
+	"\areviews\x18\x01 \x03(\v2J.shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse.ReviewsEntryR\areviews\x1aa\n" +
+	"\fReviewsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12;\n" +
+	"\x05value\x18\x02 \x01(\v2%.shortterm.marketplace.v1.TradeReviewR\x05value:\x028\x01*\x9f\x01\n" +
 	"\rProductStatus\x12\x1e\n" +
 	"\x1aPRODUCT_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16PRODUCT_STATUS_ON_SALE\x10\x01\x12\x1b\n" +
@@ -3377,7 +3689,7 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x19PRODUCT_CATEGORY_TEXTBOOK\x10\x01\x12\x1c\n" +
 	"\x18PRODUCT_CATEGORY_DIGITAL\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_CATEGORY_LIFE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_CATEGORY_OTHER\x10\x042\xa4\x11\n" +
+	"\x16PRODUCT_CATEGORY_OTHER\x10\x042\xbf\x13\n" +
 	"\x12MarketplaceService\x12p\n" +
 	"\rCreateProduct\x12..shortterm.marketplace.v1.CreateProductRequest\x1a/.shortterm.marketplace.v1.CreateProductResponse\x12g\n" +
 	"\n" +
@@ -3399,7 +3711,9 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\vCancelTrade\x12,.shortterm.marketplace.v1.CancelTradeRequest\x1a-.shortterm.marketplace.v1.CancelTradeResponse\x12m\n" +
 	"\fConfirmTrade\x12-.shortterm.marketplace.v1.ConfirmTradeRequest\x1a..shortterm.marketplace.v1.ConfirmTradeResponse\x12\x85\x01\n" +
 	"\x14CreateProductComment\x125.shortterm.marketplace.v1.CreateProductCommentRequest\x1a6.shortterm.marketplace.v1.CreateProductCommentResponse\x12\x82\x01\n" +
-	"\x13ListProductComments\x124.shortterm.marketplace.v1.ListProductCommentsRequest\x1a5.shortterm.marketplace.v1.ListProductCommentsResponseBNZLgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1b\x06proto3"
+	"\x13ListProductComments\x124.shortterm.marketplace.v1.ListProductCommentsRequest\x1a5.shortterm.marketplace.v1.ListProductCommentsResponse\x12|\n" +
+	"\x11CreateTradeReview\x122.shortterm.marketplace.v1.CreateTradeReviewRequest\x1a3.shortterm.marketplace.v1.CreateTradeReviewResponse\x12\x9a\x01\n" +
+	"\x1bBatchGetProductTradeReviews\x12<.shortterm.marketplace.v1.BatchGetProductTradeReviewsRequest\x1a=.shortterm.marketplace.v1.BatchGetProductTradeReviewsResponseBNZLgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1b\x06proto3"
 
 var (
 	file_shortterm_marketplace_v1_marketplace_proto_rawDescOnce sync.Once
@@ -3414,81 +3728,87 @@ func file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP() []byte {
 }
 
 var file_shortterm_marketplace_v1_marketplace_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_shortterm_marketplace_v1_marketplace_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
+var file_shortterm_marketplace_v1_marketplace_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
 var file_shortterm_marketplace_v1_marketplace_proto_goTypes = []any{
-	(ProductStatus)(0),                   // 0: shortterm.marketplace.v1.ProductStatus
-	(TradeStatus)(0),                     // 1: shortterm.marketplace.v1.TradeStatus
-	(ProductCategory)(0),                 // 2: shortterm.marketplace.v1.ProductCategory
-	(*ImageUpload)(nil),                  // 3: shortterm.marketplace.v1.ImageUpload
-	(*ProductImage)(nil),                 // 4: shortterm.marketplace.v1.ProductImage
-	(*ProductSummary)(nil),               // 5: shortterm.marketplace.v1.ProductSummary
-	(*ProductDetail)(nil),                // 6: shortterm.marketplace.v1.ProductDetail
-	(*ProductPage)(nil),                  // 7: shortterm.marketplace.v1.ProductPage
-	(*TradeProduct)(nil),                 // 8: shortterm.marketplace.v1.TradeProduct
-	(*Trade)(nil),                        // 9: shortterm.marketplace.v1.Trade
-	(*TradePage)(nil),                    // 10: shortterm.marketplace.v1.TradePage
-	(*CreateProductRequest)(nil),         // 11: shortterm.marketplace.v1.CreateProductRequest
-	(*CreateProductResponse)(nil),        // 12: shortterm.marketplace.v1.CreateProductResponse
-	(*GetProductRequest)(nil),            // 13: shortterm.marketplace.v1.GetProductRequest
-	(*GetProductResponse)(nil),           // 14: shortterm.marketplace.v1.GetProductResponse
-	(*ListProductsRequest)(nil),          // 15: shortterm.marketplace.v1.ListProductsRequest
-	(*ListUserProductsRequest)(nil),      // 16: shortterm.marketplace.v1.ListUserProductsRequest
-	(*ListProductsResponse)(nil),         // 17: shortterm.marketplace.v1.ListProductsResponse
-	(*ListUserProductsResponse)(nil),     // 18: shortterm.marketplace.v1.ListUserProductsResponse
-	(*BatchGetProductsRequest)(nil),      // 19: shortterm.marketplace.v1.BatchGetProductsRequest
-	(*BatchGetProductsResponse)(nil),     // 20: shortterm.marketplace.v1.BatchGetProductsResponse
-	(*UpdateProductRequest)(nil),         // 21: shortterm.marketplace.v1.UpdateProductRequest
-	(*UpdateProductResponse)(nil),        // 22: shortterm.marketplace.v1.UpdateProductResponse
-	(*AddProductImagesRequest)(nil),      // 23: shortterm.marketplace.v1.AddProductImagesRequest
-	(*AddProductImagesResponse)(nil),     // 24: shortterm.marketplace.v1.AddProductImagesResponse
-	(*DeleteProductImageRequest)(nil),    // 25: shortterm.marketplace.v1.DeleteProductImageRequest
-	(*DeleteProductImageResponse)(nil),   // 26: shortterm.marketplace.v1.DeleteProductImageResponse
-	(*OffShelfProductRequest)(nil),       // 27: shortterm.marketplace.v1.OffShelfProductRequest
-	(*OffShelfProductResponse)(nil),      // 28: shortterm.marketplace.v1.OffShelfProductResponse
-	(*RelistProductRequest)(nil),         // 29: shortterm.marketplace.v1.RelistProductRequest
-	(*RelistProductResponse)(nil),        // 30: shortterm.marketplace.v1.RelistProductResponse
-	(*CreateTradeRequest)(nil),           // 31: shortterm.marketplace.v1.CreateTradeRequest
-	(*CreateTradeResponse)(nil),          // 32: shortterm.marketplace.v1.CreateTradeResponse
-	(*ListTradesRequest)(nil),            // 33: shortterm.marketplace.v1.ListTradesRequest
-	(*ListTradesResponse)(nil),           // 34: shortterm.marketplace.v1.ListTradesResponse
-	(*GetTradeRequest)(nil),              // 35: shortterm.marketplace.v1.GetTradeRequest
-	(*GetTradeResponse)(nil),             // 36: shortterm.marketplace.v1.GetTradeResponse
-	(*AcceptTradeRequest)(nil),           // 37: shortterm.marketplace.v1.AcceptTradeRequest
-	(*AcceptTradeResponse)(nil),          // 38: shortterm.marketplace.v1.AcceptTradeResponse
-	(*RejectTradeRequest)(nil),           // 39: shortterm.marketplace.v1.RejectTradeRequest
-	(*RejectTradeResponse)(nil),          // 40: shortterm.marketplace.v1.RejectTradeResponse
-	(*CancelTradeRequest)(nil),           // 41: shortterm.marketplace.v1.CancelTradeRequest
-	(*CancelTradeResponse)(nil),          // 42: shortterm.marketplace.v1.CancelTradeResponse
-	(*ConfirmTradeRequest)(nil),          // 43: shortterm.marketplace.v1.ConfirmTradeRequest
-	(*ConfirmTradeResponse)(nil),         // 44: shortterm.marketplace.v1.ConfirmTradeResponse
-	(*ProductComment)(nil),               // 45: shortterm.marketplace.v1.ProductComment
-	(*ProductCommentPage)(nil),           // 46: shortterm.marketplace.v1.ProductCommentPage
-	(*CreateProductCommentRequest)(nil),  // 47: shortterm.marketplace.v1.CreateProductCommentRequest
-	(*CreateProductCommentResponse)(nil), // 48: shortterm.marketplace.v1.CreateProductCommentResponse
-	(*ListProductCommentsRequest)(nil),   // 49: shortterm.marketplace.v1.ListProductCommentsRequest
-	(*ListProductCommentsResponse)(nil),  // 50: shortterm.marketplace.v1.ListProductCommentsResponse
-	nil,                                  // 51: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry
-	(*timestamppb.Timestamp)(nil),        // 52: google.protobuf.Timestamp
+	(ProductStatus)(0),                          // 0: shortterm.marketplace.v1.ProductStatus
+	(TradeStatus)(0),                            // 1: shortterm.marketplace.v1.TradeStatus
+	(ProductCategory)(0),                        // 2: shortterm.marketplace.v1.ProductCategory
+	(*ImageUpload)(nil),                         // 3: shortterm.marketplace.v1.ImageUpload
+	(*ProductImage)(nil),                        // 4: shortterm.marketplace.v1.ProductImage
+	(*ProductSummary)(nil),                      // 5: shortterm.marketplace.v1.ProductSummary
+	(*ProductDetail)(nil),                       // 6: shortterm.marketplace.v1.ProductDetail
+	(*ProductPage)(nil),                         // 7: shortterm.marketplace.v1.ProductPage
+	(*TradeProduct)(nil),                        // 8: shortterm.marketplace.v1.TradeProduct
+	(*Trade)(nil),                               // 9: shortterm.marketplace.v1.Trade
+	(*TradePage)(nil),                           // 10: shortterm.marketplace.v1.TradePage
+	(*CreateProductRequest)(nil),                // 11: shortterm.marketplace.v1.CreateProductRequest
+	(*CreateProductResponse)(nil),               // 12: shortterm.marketplace.v1.CreateProductResponse
+	(*GetProductRequest)(nil),                   // 13: shortterm.marketplace.v1.GetProductRequest
+	(*GetProductResponse)(nil),                  // 14: shortterm.marketplace.v1.GetProductResponse
+	(*ListProductsRequest)(nil),                 // 15: shortterm.marketplace.v1.ListProductsRequest
+	(*ListUserProductsRequest)(nil),             // 16: shortterm.marketplace.v1.ListUserProductsRequest
+	(*ListProductsResponse)(nil),                // 17: shortterm.marketplace.v1.ListProductsResponse
+	(*ListUserProductsResponse)(nil),            // 18: shortterm.marketplace.v1.ListUserProductsResponse
+	(*BatchGetProductsRequest)(nil),             // 19: shortterm.marketplace.v1.BatchGetProductsRequest
+	(*BatchGetProductsResponse)(nil),            // 20: shortterm.marketplace.v1.BatchGetProductsResponse
+	(*UpdateProductRequest)(nil),                // 21: shortterm.marketplace.v1.UpdateProductRequest
+	(*UpdateProductResponse)(nil),               // 22: shortterm.marketplace.v1.UpdateProductResponse
+	(*AddProductImagesRequest)(nil),             // 23: shortterm.marketplace.v1.AddProductImagesRequest
+	(*AddProductImagesResponse)(nil),            // 24: shortterm.marketplace.v1.AddProductImagesResponse
+	(*DeleteProductImageRequest)(nil),           // 25: shortterm.marketplace.v1.DeleteProductImageRequest
+	(*DeleteProductImageResponse)(nil),          // 26: shortterm.marketplace.v1.DeleteProductImageResponse
+	(*OffShelfProductRequest)(nil),              // 27: shortterm.marketplace.v1.OffShelfProductRequest
+	(*OffShelfProductResponse)(nil),             // 28: shortterm.marketplace.v1.OffShelfProductResponse
+	(*RelistProductRequest)(nil),                // 29: shortterm.marketplace.v1.RelistProductRequest
+	(*RelistProductResponse)(nil),               // 30: shortterm.marketplace.v1.RelistProductResponse
+	(*CreateTradeRequest)(nil),                  // 31: shortterm.marketplace.v1.CreateTradeRequest
+	(*CreateTradeResponse)(nil),                 // 32: shortterm.marketplace.v1.CreateTradeResponse
+	(*ListTradesRequest)(nil),                   // 33: shortterm.marketplace.v1.ListTradesRequest
+	(*ListTradesResponse)(nil),                  // 34: shortterm.marketplace.v1.ListTradesResponse
+	(*GetTradeRequest)(nil),                     // 35: shortterm.marketplace.v1.GetTradeRequest
+	(*GetTradeResponse)(nil),                    // 36: shortterm.marketplace.v1.GetTradeResponse
+	(*AcceptTradeRequest)(nil),                  // 37: shortterm.marketplace.v1.AcceptTradeRequest
+	(*AcceptTradeResponse)(nil),                 // 38: shortterm.marketplace.v1.AcceptTradeResponse
+	(*RejectTradeRequest)(nil),                  // 39: shortterm.marketplace.v1.RejectTradeRequest
+	(*RejectTradeResponse)(nil),                 // 40: shortterm.marketplace.v1.RejectTradeResponse
+	(*CancelTradeRequest)(nil),                  // 41: shortterm.marketplace.v1.CancelTradeRequest
+	(*CancelTradeResponse)(nil),                 // 42: shortterm.marketplace.v1.CancelTradeResponse
+	(*ConfirmTradeRequest)(nil),                 // 43: shortterm.marketplace.v1.ConfirmTradeRequest
+	(*ConfirmTradeResponse)(nil),                // 44: shortterm.marketplace.v1.ConfirmTradeResponse
+	(*ProductComment)(nil),                      // 45: shortterm.marketplace.v1.ProductComment
+	(*ProductCommentPage)(nil),                  // 46: shortterm.marketplace.v1.ProductCommentPage
+	(*CreateProductCommentRequest)(nil),         // 47: shortterm.marketplace.v1.CreateProductCommentRequest
+	(*CreateProductCommentResponse)(nil),        // 48: shortterm.marketplace.v1.CreateProductCommentResponse
+	(*ListProductCommentsRequest)(nil),          // 49: shortterm.marketplace.v1.ListProductCommentsRequest
+	(*ListProductCommentsResponse)(nil),         // 50: shortterm.marketplace.v1.ListProductCommentsResponse
+	(*TradeReview)(nil),                         // 51: shortterm.marketplace.v1.TradeReview
+	(*CreateTradeReviewRequest)(nil),            // 52: shortterm.marketplace.v1.CreateTradeReviewRequest
+	(*CreateTradeReviewResponse)(nil),           // 53: shortterm.marketplace.v1.CreateTradeReviewResponse
+	(*BatchGetProductTradeReviewsRequest)(nil),  // 54: shortterm.marketplace.v1.BatchGetProductTradeReviewsRequest
+	(*BatchGetProductTradeReviewsResponse)(nil), // 55: shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse
+	nil,                           // 56: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry
+	nil,                           // 57: shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse.ReviewsEntry
+	(*timestamppb.Timestamp)(nil), // 58: google.protobuf.Timestamp
 }
 var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
-	52, // 0: shortterm.marketplace.v1.ProductImage.created_at:type_name -> google.protobuf.Timestamp
+	58, // 0: shortterm.marketplace.v1.ProductImage.created_at:type_name -> google.protobuf.Timestamp
 	2,  // 1: shortterm.marketplace.v1.ProductSummary.category:type_name -> shortterm.marketplace.v1.ProductCategory
 	0,  // 2: shortterm.marketplace.v1.ProductSummary.status:type_name -> shortterm.marketplace.v1.ProductStatus
-	52, // 3: shortterm.marketplace.v1.ProductSummary.created_at:type_name -> google.protobuf.Timestamp
+	58, // 3: shortterm.marketplace.v1.ProductSummary.created_at:type_name -> google.protobuf.Timestamp
 	2,  // 4: shortterm.marketplace.v1.ProductDetail.category:type_name -> shortterm.marketplace.v1.ProductCategory
 	0,  // 5: shortterm.marketplace.v1.ProductDetail.status:type_name -> shortterm.marketplace.v1.ProductStatus
 	4,  // 6: shortterm.marketplace.v1.ProductDetail.images:type_name -> shortterm.marketplace.v1.ProductImage
-	52, // 7: shortterm.marketplace.v1.ProductDetail.created_at:type_name -> google.protobuf.Timestamp
-	52, // 8: shortterm.marketplace.v1.ProductDetail.updated_at:type_name -> google.protobuf.Timestamp
+	58, // 7: shortterm.marketplace.v1.ProductDetail.created_at:type_name -> google.protobuf.Timestamp
+	58, // 8: shortterm.marketplace.v1.ProductDetail.updated_at:type_name -> google.protobuf.Timestamp
 	5,  // 9: shortterm.marketplace.v1.ProductPage.items:type_name -> shortterm.marketplace.v1.ProductSummary
 	0,  // 10: shortterm.marketplace.v1.TradeProduct.status:type_name -> shortterm.marketplace.v1.ProductStatus
 	8,  // 11: shortterm.marketplace.v1.Trade.product:type_name -> shortterm.marketplace.v1.TradeProduct
 	1,  // 12: shortterm.marketplace.v1.Trade.status:type_name -> shortterm.marketplace.v1.TradeStatus
-	52, // 13: shortterm.marketplace.v1.Trade.created_at:type_name -> google.protobuf.Timestamp
-	52, // 14: shortterm.marketplace.v1.Trade.accepted_at:type_name -> google.protobuf.Timestamp
-	52, // 15: shortterm.marketplace.v1.Trade.completed_at:type_name -> google.protobuf.Timestamp
-	52, // 16: shortterm.marketplace.v1.Trade.cancelled_at:type_name -> google.protobuf.Timestamp
-	52, // 17: shortterm.marketplace.v1.Trade.updated_at:type_name -> google.protobuf.Timestamp
+	58, // 13: shortterm.marketplace.v1.Trade.created_at:type_name -> google.protobuf.Timestamp
+	58, // 14: shortterm.marketplace.v1.Trade.accepted_at:type_name -> google.protobuf.Timestamp
+	58, // 15: shortterm.marketplace.v1.Trade.completed_at:type_name -> google.protobuf.Timestamp
+	58, // 16: shortterm.marketplace.v1.Trade.cancelled_at:type_name -> google.protobuf.Timestamp
+	58, // 17: shortterm.marketplace.v1.Trade.updated_at:type_name -> google.protobuf.Timestamp
 	9,  // 18: shortterm.marketplace.v1.TradePage.items:type_name -> shortterm.marketplace.v1.Trade
 	2,  // 19: shortterm.marketplace.v1.CreateProductRequest.category:type_name -> shortterm.marketplace.v1.ProductCategory
 	3,  // 20: shortterm.marketplace.v1.CreateProductRequest.images:type_name -> shortterm.marketplace.v1.ImageUpload
@@ -3496,71 +3816,80 @@ var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	6,  // 22: shortterm.marketplace.v1.GetProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
 	2,  // 23: shortterm.marketplace.v1.ListProductsRequest.category:type_name -> shortterm.marketplace.v1.ProductCategory
 	0,  // 24: shortterm.marketplace.v1.ListUserProductsRequest.status:type_name -> shortterm.marketplace.v1.ProductStatus
-	7,  // 25: shortterm.marketplace.v1.ListProductsResponse.page:type_name -> shortterm.marketplace.v1.ProductPage
-	7,  // 26: shortterm.marketplace.v1.ListUserProductsResponse.page:type_name -> shortterm.marketplace.v1.ProductPage
-	51, // 27: shortterm.marketplace.v1.BatchGetProductsResponse.products:type_name -> shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry
-	2,  // 28: shortterm.marketplace.v1.UpdateProductRequest.category:type_name -> shortterm.marketplace.v1.ProductCategory
-	6,  // 29: shortterm.marketplace.v1.UpdateProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
-	3,  // 30: shortterm.marketplace.v1.AddProductImagesRequest.images:type_name -> shortterm.marketplace.v1.ImageUpload
-	4,  // 31: shortterm.marketplace.v1.AddProductImagesResponse.images:type_name -> shortterm.marketplace.v1.ProductImage
-	6,  // 32: shortterm.marketplace.v1.OffShelfProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
-	6,  // 33: shortterm.marketplace.v1.RelistProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
-	9,  // 34: shortterm.marketplace.v1.CreateTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	1,  // 35: shortterm.marketplace.v1.ListTradesRequest.status:type_name -> shortterm.marketplace.v1.TradeStatus
-	10, // 36: shortterm.marketplace.v1.ListTradesResponse.page:type_name -> shortterm.marketplace.v1.TradePage
-	9,  // 37: shortterm.marketplace.v1.GetTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	9,  // 38: shortterm.marketplace.v1.AcceptTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	9,  // 39: shortterm.marketplace.v1.RejectTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	9,  // 40: shortterm.marketplace.v1.CancelTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	9,  // 41: shortterm.marketplace.v1.ConfirmTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	52, // 42: shortterm.marketplace.v1.ProductComment.created_at:type_name -> google.protobuf.Timestamp
-	45, // 43: shortterm.marketplace.v1.ProductCommentPage.items:type_name -> shortterm.marketplace.v1.ProductComment
-	45, // 44: shortterm.marketplace.v1.CreateProductCommentResponse.comment:type_name -> shortterm.marketplace.v1.ProductComment
-	46, // 45: shortterm.marketplace.v1.ListProductCommentsResponse.page:type_name -> shortterm.marketplace.v1.ProductCommentPage
-	5,  // 46: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry.value:type_name -> shortterm.marketplace.v1.ProductSummary
-	11, // 47: shortterm.marketplace.v1.MarketplaceService.CreateProduct:input_type -> shortterm.marketplace.v1.CreateProductRequest
-	13, // 48: shortterm.marketplace.v1.MarketplaceService.GetProduct:input_type -> shortterm.marketplace.v1.GetProductRequest
-	15, // 49: shortterm.marketplace.v1.MarketplaceService.ListProducts:input_type -> shortterm.marketplace.v1.ListProductsRequest
-	16, // 50: shortterm.marketplace.v1.MarketplaceService.ListUserProducts:input_type -> shortterm.marketplace.v1.ListUserProductsRequest
-	19, // 51: shortterm.marketplace.v1.MarketplaceService.BatchGetProducts:input_type -> shortterm.marketplace.v1.BatchGetProductsRequest
-	21, // 52: shortterm.marketplace.v1.MarketplaceService.UpdateProduct:input_type -> shortterm.marketplace.v1.UpdateProductRequest
-	23, // 53: shortterm.marketplace.v1.MarketplaceService.AddProductImages:input_type -> shortterm.marketplace.v1.AddProductImagesRequest
-	25, // 54: shortterm.marketplace.v1.MarketplaceService.DeleteProductImage:input_type -> shortterm.marketplace.v1.DeleteProductImageRequest
-	27, // 55: shortterm.marketplace.v1.MarketplaceService.OffShelfProduct:input_type -> shortterm.marketplace.v1.OffShelfProductRequest
-	29, // 56: shortterm.marketplace.v1.MarketplaceService.RelistProduct:input_type -> shortterm.marketplace.v1.RelistProductRequest
-	31, // 57: shortterm.marketplace.v1.MarketplaceService.CreateTrade:input_type -> shortterm.marketplace.v1.CreateTradeRequest
-	33, // 58: shortterm.marketplace.v1.MarketplaceService.ListTrades:input_type -> shortterm.marketplace.v1.ListTradesRequest
-	35, // 59: shortterm.marketplace.v1.MarketplaceService.GetTrade:input_type -> shortterm.marketplace.v1.GetTradeRequest
-	37, // 60: shortterm.marketplace.v1.MarketplaceService.AcceptTrade:input_type -> shortterm.marketplace.v1.AcceptTradeRequest
-	39, // 61: shortterm.marketplace.v1.MarketplaceService.RejectTrade:input_type -> shortterm.marketplace.v1.RejectTradeRequest
-	41, // 62: shortterm.marketplace.v1.MarketplaceService.CancelTrade:input_type -> shortterm.marketplace.v1.CancelTradeRequest
-	43, // 63: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:input_type -> shortterm.marketplace.v1.ConfirmTradeRequest
-	47, // 64: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:input_type -> shortterm.marketplace.v1.CreateProductCommentRequest
-	49, // 65: shortterm.marketplace.v1.MarketplaceService.ListProductComments:input_type -> shortterm.marketplace.v1.ListProductCommentsRequest
-	12, // 66: shortterm.marketplace.v1.MarketplaceService.CreateProduct:output_type -> shortterm.marketplace.v1.CreateProductResponse
-	14, // 67: shortterm.marketplace.v1.MarketplaceService.GetProduct:output_type -> shortterm.marketplace.v1.GetProductResponse
-	17, // 68: shortterm.marketplace.v1.MarketplaceService.ListProducts:output_type -> shortterm.marketplace.v1.ListProductsResponse
-	18, // 69: shortterm.marketplace.v1.MarketplaceService.ListUserProducts:output_type -> shortterm.marketplace.v1.ListUserProductsResponse
-	20, // 70: shortterm.marketplace.v1.MarketplaceService.BatchGetProducts:output_type -> shortterm.marketplace.v1.BatchGetProductsResponse
-	22, // 71: shortterm.marketplace.v1.MarketplaceService.UpdateProduct:output_type -> shortterm.marketplace.v1.UpdateProductResponse
-	24, // 72: shortterm.marketplace.v1.MarketplaceService.AddProductImages:output_type -> shortterm.marketplace.v1.AddProductImagesResponse
-	26, // 73: shortterm.marketplace.v1.MarketplaceService.DeleteProductImage:output_type -> shortterm.marketplace.v1.DeleteProductImageResponse
-	28, // 74: shortterm.marketplace.v1.MarketplaceService.OffShelfProduct:output_type -> shortterm.marketplace.v1.OffShelfProductResponse
-	30, // 75: shortterm.marketplace.v1.MarketplaceService.RelistProduct:output_type -> shortterm.marketplace.v1.RelistProductResponse
-	32, // 76: shortterm.marketplace.v1.MarketplaceService.CreateTrade:output_type -> shortterm.marketplace.v1.CreateTradeResponse
-	34, // 77: shortterm.marketplace.v1.MarketplaceService.ListTrades:output_type -> shortterm.marketplace.v1.ListTradesResponse
-	36, // 78: shortterm.marketplace.v1.MarketplaceService.GetTrade:output_type -> shortterm.marketplace.v1.GetTradeResponse
-	38, // 79: shortterm.marketplace.v1.MarketplaceService.AcceptTrade:output_type -> shortterm.marketplace.v1.AcceptTradeResponse
-	40, // 80: shortterm.marketplace.v1.MarketplaceService.RejectTrade:output_type -> shortterm.marketplace.v1.RejectTradeResponse
-	42, // 81: shortterm.marketplace.v1.MarketplaceService.CancelTrade:output_type -> shortterm.marketplace.v1.CancelTradeResponse
-	44, // 82: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:output_type -> shortterm.marketplace.v1.ConfirmTradeResponse
-	48, // 83: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:output_type -> shortterm.marketplace.v1.CreateProductCommentResponse
-	50, // 84: shortterm.marketplace.v1.MarketplaceService.ListProductComments:output_type -> shortterm.marketplace.v1.ListProductCommentsResponse
-	66, // [66:85] is the sub-list for method output_type
-	47, // [47:66] is the sub-list for method input_type
-	47, // [47:47] is the sub-list for extension type_name
-	47, // [47:47] is the sub-list for extension extendee
-	0,  // [0:47] is the sub-list for field type_name
+	0,  // 25: shortterm.marketplace.v1.ListUserProductsRequest.statuses:type_name -> shortterm.marketplace.v1.ProductStatus
+	7,  // 26: shortterm.marketplace.v1.ListProductsResponse.page:type_name -> shortterm.marketplace.v1.ProductPage
+	7,  // 27: shortterm.marketplace.v1.ListUserProductsResponse.page:type_name -> shortterm.marketplace.v1.ProductPage
+	56, // 28: shortterm.marketplace.v1.BatchGetProductsResponse.products:type_name -> shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry
+	2,  // 29: shortterm.marketplace.v1.UpdateProductRequest.category:type_name -> shortterm.marketplace.v1.ProductCategory
+	6,  // 30: shortterm.marketplace.v1.UpdateProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
+	3,  // 31: shortterm.marketplace.v1.AddProductImagesRequest.images:type_name -> shortterm.marketplace.v1.ImageUpload
+	4,  // 32: shortterm.marketplace.v1.AddProductImagesResponse.images:type_name -> shortterm.marketplace.v1.ProductImage
+	6,  // 33: shortterm.marketplace.v1.OffShelfProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
+	6,  // 34: shortterm.marketplace.v1.RelistProductResponse.product:type_name -> shortterm.marketplace.v1.ProductDetail
+	9,  // 35: shortterm.marketplace.v1.CreateTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
+	1,  // 36: shortterm.marketplace.v1.ListTradesRequest.status:type_name -> shortterm.marketplace.v1.TradeStatus
+	10, // 37: shortterm.marketplace.v1.ListTradesResponse.page:type_name -> shortterm.marketplace.v1.TradePage
+	9,  // 38: shortterm.marketplace.v1.GetTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
+	9,  // 39: shortterm.marketplace.v1.AcceptTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
+	9,  // 40: shortterm.marketplace.v1.RejectTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
+	9,  // 41: shortterm.marketplace.v1.CancelTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
+	9,  // 42: shortterm.marketplace.v1.ConfirmTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
+	58, // 43: shortterm.marketplace.v1.ProductComment.created_at:type_name -> google.protobuf.Timestamp
+	45, // 44: shortterm.marketplace.v1.ProductCommentPage.items:type_name -> shortterm.marketplace.v1.ProductComment
+	45, // 45: shortterm.marketplace.v1.CreateProductCommentResponse.comment:type_name -> shortterm.marketplace.v1.ProductComment
+	46, // 46: shortterm.marketplace.v1.ListProductCommentsResponse.page:type_name -> shortterm.marketplace.v1.ProductCommentPage
+	58, // 47: shortterm.marketplace.v1.TradeReview.created_at:type_name -> google.protobuf.Timestamp
+	51, // 48: shortterm.marketplace.v1.CreateTradeReviewResponse.review:type_name -> shortterm.marketplace.v1.TradeReview
+	57, // 49: shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse.reviews:type_name -> shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse.ReviewsEntry
+	5,  // 50: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry.value:type_name -> shortterm.marketplace.v1.ProductSummary
+	51, // 51: shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse.ReviewsEntry.value:type_name -> shortterm.marketplace.v1.TradeReview
+	11, // 52: shortterm.marketplace.v1.MarketplaceService.CreateProduct:input_type -> shortterm.marketplace.v1.CreateProductRequest
+	13, // 53: shortterm.marketplace.v1.MarketplaceService.GetProduct:input_type -> shortterm.marketplace.v1.GetProductRequest
+	15, // 54: shortterm.marketplace.v1.MarketplaceService.ListProducts:input_type -> shortterm.marketplace.v1.ListProductsRequest
+	16, // 55: shortterm.marketplace.v1.MarketplaceService.ListUserProducts:input_type -> shortterm.marketplace.v1.ListUserProductsRequest
+	19, // 56: shortterm.marketplace.v1.MarketplaceService.BatchGetProducts:input_type -> shortterm.marketplace.v1.BatchGetProductsRequest
+	21, // 57: shortterm.marketplace.v1.MarketplaceService.UpdateProduct:input_type -> shortterm.marketplace.v1.UpdateProductRequest
+	23, // 58: shortterm.marketplace.v1.MarketplaceService.AddProductImages:input_type -> shortterm.marketplace.v1.AddProductImagesRequest
+	25, // 59: shortterm.marketplace.v1.MarketplaceService.DeleteProductImage:input_type -> shortterm.marketplace.v1.DeleteProductImageRequest
+	27, // 60: shortterm.marketplace.v1.MarketplaceService.OffShelfProduct:input_type -> shortterm.marketplace.v1.OffShelfProductRequest
+	29, // 61: shortterm.marketplace.v1.MarketplaceService.RelistProduct:input_type -> shortterm.marketplace.v1.RelistProductRequest
+	31, // 62: shortterm.marketplace.v1.MarketplaceService.CreateTrade:input_type -> shortterm.marketplace.v1.CreateTradeRequest
+	33, // 63: shortterm.marketplace.v1.MarketplaceService.ListTrades:input_type -> shortterm.marketplace.v1.ListTradesRequest
+	35, // 64: shortterm.marketplace.v1.MarketplaceService.GetTrade:input_type -> shortterm.marketplace.v1.GetTradeRequest
+	37, // 65: shortterm.marketplace.v1.MarketplaceService.AcceptTrade:input_type -> shortterm.marketplace.v1.AcceptTradeRequest
+	39, // 66: shortterm.marketplace.v1.MarketplaceService.RejectTrade:input_type -> shortterm.marketplace.v1.RejectTradeRequest
+	41, // 67: shortterm.marketplace.v1.MarketplaceService.CancelTrade:input_type -> shortterm.marketplace.v1.CancelTradeRequest
+	43, // 68: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:input_type -> shortterm.marketplace.v1.ConfirmTradeRequest
+	47, // 69: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:input_type -> shortterm.marketplace.v1.CreateProductCommentRequest
+	49, // 70: shortterm.marketplace.v1.MarketplaceService.ListProductComments:input_type -> shortterm.marketplace.v1.ListProductCommentsRequest
+	52, // 71: shortterm.marketplace.v1.MarketplaceService.CreateTradeReview:input_type -> shortterm.marketplace.v1.CreateTradeReviewRequest
+	54, // 72: shortterm.marketplace.v1.MarketplaceService.BatchGetProductTradeReviews:input_type -> shortterm.marketplace.v1.BatchGetProductTradeReviewsRequest
+	12, // 73: shortterm.marketplace.v1.MarketplaceService.CreateProduct:output_type -> shortterm.marketplace.v1.CreateProductResponse
+	14, // 74: shortterm.marketplace.v1.MarketplaceService.GetProduct:output_type -> shortterm.marketplace.v1.GetProductResponse
+	17, // 75: shortterm.marketplace.v1.MarketplaceService.ListProducts:output_type -> shortterm.marketplace.v1.ListProductsResponse
+	18, // 76: shortterm.marketplace.v1.MarketplaceService.ListUserProducts:output_type -> shortterm.marketplace.v1.ListUserProductsResponse
+	20, // 77: shortterm.marketplace.v1.MarketplaceService.BatchGetProducts:output_type -> shortterm.marketplace.v1.BatchGetProductsResponse
+	22, // 78: shortterm.marketplace.v1.MarketplaceService.UpdateProduct:output_type -> shortterm.marketplace.v1.UpdateProductResponse
+	24, // 79: shortterm.marketplace.v1.MarketplaceService.AddProductImages:output_type -> shortterm.marketplace.v1.AddProductImagesResponse
+	26, // 80: shortterm.marketplace.v1.MarketplaceService.DeleteProductImage:output_type -> shortterm.marketplace.v1.DeleteProductImageResponse
+	28, // 81: shortterm.marketplace.v1.MarketplaceService.OffShelfProduct:output_type -> shortterm.marketplace.v1.OffShelfProductResponse
+	30, // 82: shortterm.marketplace.v1.MarketplaceService.RelistProduct:output_type -> shortterm.marketplace.v1.RelistProductResponse
+	32, // 83: shortterm.marketplace.v1.MarketplaceService.CreateTrade:output_type -> shortterm.marketplace.v1.CreateTradeResponse
+	34, // 84: shortterm.marketplace.v1.MarketplaceService.ListTrades:output_type -> shortterm.marketplace.v1.ListTradesResponse
+	36, // 85: shortterm.marketplace.v1.MarketplaceService.GetTrade:output_type -> shortterm.marketplace.v1.GetTradeResponse
+	38, // 86: shortterm.marketplace.v1.MarketplaceService.AcceptTrade:output_type -> shortterm.marketplace.v1.AcceptTradeResponse
+	40, // 87: shortterm.marketplace.v1.MarketplaceService.RejectTrade:output_type -> shortterm.marketplace.v1.RejectTradeResponse
+	42, // 88: shortterm.marketplace.v1.MarketplaceService.CancelTrade:output_type -> shortterm.marketplace.v1.CancelTradeResponse
+	44, // 89: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:output_type -> shortterm.marketplace.v1.ConfirmTradeResponse
+	48, // 90: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:output_type -> shortterm.marketplace.v1.CreateProductCommentResponse
+	50, // 91: shortterm.marketplace.v1.MarketplaceService.ListProductComments:output_type -> shortterm.marketplace.v1.ListProductCommentsResponse
+	53, // 92: shortterm.marketplace.v1.MarketplaceService.CreateTradeReview:output_type -> shortterm.marketplace.v1.CreateTradeReviewResponse
+	55, // 93: shortterm.marketplace.v1.MarketplaceService.BatchGetProductTradeReviews:output_type -> shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse
+	73, // [73:94] is the sub-list for method output_type
+	52, // [52:73] is the sub-list for method input_type
+	52, // [52:52] is the sub-list for extension type_name
+	52, // [52:52] is the sub-list for extension extendee
+	0,  // [0:52] is the sub-list for field type_name
 }
 
 func init() { file_shortterm_marketplace_v1_marketplace_proto_init() }
@@ -3586,7 +3915,7 @@ func file_shortterm_marketplace_v1_marketplace_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shortterm_marketplace_v1_marketplace_proto_rawDesc), len(file_shortterm_marketplace_v1_marketplace_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   49,
+			NumMessages:   55,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
