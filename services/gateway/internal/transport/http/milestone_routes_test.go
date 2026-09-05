@@ -34,7 +34,7 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 		}},
 		createReviewResp: &marketplacev1.CreateTradeReviewResponse{Review: &marketplacev1.TradeReview{
 			Id: "tr_route", TradeId: "t_route", ProductId: testProductID, BuyerId: testActor, Content: "交易愉快",
-			CreatedAt: timestamppb.New(time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)),
+			Score: 5, CreatedAt: timestamppb.New(time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)),
 		}},
 	}
 	favorites := &routeFavoriteStub{}
@@ -55,7 +55,7 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 		{name: "list comments", method: http.MethodGet, path: basePath + "/products/" + testProductID + "/comments", wantStatus: http.StatusOK},
 		{name: "create comment", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/comments", body: `{"content":"不错"}`, wantStatus: http.StatusCreated},
 		{name: "list other user's products", method: http.MethodGet, path: basePath + "/users/u_seller/products", wantStatus: http.StatusOK},
-		{name: "create trade review", method: http.MethodPost, path: basePath + "/trades/t_route/review", body: `{"content":"交易愉快"}`, wantStatus: http.StatusCreated},
+		{name: "create trade review", method: http.MethodPost, path: basePath + "/trades/t_route/review", body: `{"score":5,"content":"交易愉快"}`, wantStatus: http.StatusCreated},
 		{name: "get or create conversation", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/conversations", wantStatus: http.StatusOK},
 		{name: "list conversations", method: http.MethodGet, path: basePath + "/conversations", wantStatus: http.StatusOK},
 		{name: "unread count", method: http.MethodGet, path: basePath + "/conversations/unread-count", wantStatus: http.StatusOK},
@@ -105,8 +105,8 @@ func newMilestoneServer(
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
 		Ready:        func(context.Context) error { return nil },
-		Auth:         handler.NewAuth(accounts, responder),
-		Users:        handler.NewUsers(accounts, responder),
+		Auth:         handler.NewAuth(accounts, aggregator, responder),
+		Users:        handler.NewUsers(accounts, aggregator, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
 		TradeReviews: handler.NewTradeReviews(marketplace, aggregator, responder),

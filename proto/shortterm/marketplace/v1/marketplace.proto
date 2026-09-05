@@ -31,6 +31,7 @@ service MarketplaceService {
   rpc ListProductComments(ListProductCommentsRequest) returns (ListProductCommentsResponse);
   rpc CreateTradeReview(CreateTradeReviewRequest) returns (CreateTradeReviewResponse);
   rpc BatchGetProductTradeReviews(BatchGetProductTradeReviewsRequest) returns (BatchGetProductTradeReviewsResponse);
+  rpc BatchGetUserAverageScores(BatchGetUserAverageScoresRequest) returns (BatchGetUserAverageScoresResponse);
 }
 
 enum ProductStatus {
@@ -357,9 +358,9 @@ message ListProductCommentsResponse {
   ProductCommentPage page = 1;
 }
 
-// TradeReview 是买家在交易完成后发布的不可变文字评价。每笔交易最多一条；
-// 公开契约只暴露 buyer_id，昵称由 Gateway 批量补全。评价与商品用户评论
-// （ProductComment）相互独立。
+// TradeReview 是买家在交易完成后发布的不可变评价。每笔交易最多一条；
+// 评分必填，文字可选（空字符串表示未填写）。公开契约只暴露 buyer_id，
+// 昵称由 Gateway 批量补全。评价与商品用户评论（ProductComment）相互独立。
 message TradeReview {
   string id = 1;
   string trade_id = 2;
@@ -367,12 +368,14 @@ message TradeReview {
   string buyer_id = 4;
   string content = 5;
   google.protobuf.Timestamp created_at = 6;
+  int32 score = 7;
 }
 
 message CreateTradeReviewRequest {
   string actor_id = 1;
   string trade_id = 2;
   string content = 3;
+  int32 score = 4;
 }
 
 message CreateTradeReviewResponse {
@@ -385,4 +388,14 @@ message BatchGetProductTradeReviewsRequest {
 
 message BatchGetProductTradeReviewsResponse {
   map<string, TradeReview> reviews = 1;
+}
+
+message BatchGetUserAverageScoresRequest {
+  repeated string user_ids = 1;
+}
+
+// average_scores 以用户标识索引其作为卖家的评分平均值；
+// 没有任何评分的用户不会出现在结果中。
+message BatchGetUserAverageScoresResponse {
+  map<string, string> average_scores = 1;
 }

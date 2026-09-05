@@ -141,7 +141,8 @@ export function MyProductsPage() {
                   </div>
                   {product.buyer_review ? (
                     <p className="mt-0.5 line-clamp-1 text-xs text-muted">
-                      买家评价：{product.buyer_review.content}
+                      买家评价：{product.buyer_review.score} 分
+                      {product.buyer_review.content ? `：${product.buyer_review.content}` : ''}
                     </p>
                   ) : null}
                 </div>

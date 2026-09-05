@@ -17,6 +17,7 @@ import (
 	accountv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1"
 	"github.com/KDZZZZZZ/short-term/platform/auth"
 	"github.com/KDZZZZZZ/short-term/platform/errs"
+	"github.com/KDZZZZZZ/short-term/services/gateway/internal/application/aggregation"
 	gatewayhttp "github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/handler"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/middleware"
@@ -55,14 +56,15 @@ func newServer(t *testing.T, accounts accountv1.AccountServiceClient) (*httptest
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	responder := gatewayhttp.NewResponder(logger)
+	aggregator := aggregation.New(accounts, &stubMarketplace{}, nil)
 	router := gatewayhttp.NewRouter(gatewayhttp.RouterOptions{
 		BasePath:     basePath,
 		Verifier:     verifier,
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
 		Ready:        func(context.Context) error { return nil },
-		Auth:         handler.NewAuth(accounts, responder),
-		Users:        handler.NewUsers(accounts, responder),
+		Auth:         handler.NewAuth(accounts, aggregator, responder),
+		Users:        handler.NewUsers(accounts, aggregator, responder),
 	})
 
 	server := httptest.NewServer(router)
@@ -350,14 +352,15 @@ func TestReadinessFailsWhileADependencyIsDown(t *testing.T) {
 		t.Fatalf("NewVerifier: %v", err)
 	}
 	accounts := &stubAccounts{}
+	aggregator := aggregation.New(accounts, &stubMarketplace{}, nil)
 	router := gatewayhttp.NewRouter(gatewayhttp.RouterOptions{
 		BasePath:     basePath,
 		Verifier:     verifier,
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
 		Ready:        func(context.Context) error { return errs.New(errs.CodeInternal, "database unavailable") },
-		Auth:         handler.NewAuth(accounts, responder),
-		Users:        handler.NewUsers(accounts, responder),
+		Auth:         handler.NewAuth(accounts, aggregator, responder),
+		Users:        handler.NewUsers(accounts, aggregator, responder),
 	})
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)
@@ -388,6 +391,7 @@ func TestRegisterRateLimitUsesTheContractEnvelopeAndHeaders(t *testing.T) {
 		t.Fatalf("NewRateLimiter: %v", err)
 	}
 	accounts := &stubAccounts{}
+	aggregator := aggregation.New(accounts, &stubMarketplace{}, nil)
 	router := gatewayhttp.NewRouter(gatewayhttp.RouterOptions{
 		BasePath:     basePath,
 		Verifier:     verifier,
@@ -395,8 +399,8 @@ func TestRegisterRateLimitUsesTheContractEnvelopeAndHeaders(t *testing.T) {
 		Logger:       logger,
 		Ready:        func(context.Context) error { return nil },
 		RateLimiter:  limiter,
-		Auth:         handler.NewAuth(accounts, responder),
-		Users:        handler.NewUsers(accounts, responder),
+		Auth:         handler.NewAuth(accounts, aggregator, responder),
+		Users:        handler.NewUsers(accounts, aggregator, responder),
 	})
 
 	for attempt := 1; attempt <= 2; attempt++ {

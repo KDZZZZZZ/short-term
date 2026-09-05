@@ -21,4 +21,7 @@ type TradeReviewRepository interface {
 	Insert(ctx context.Context, review *domain.TradeReview) error
 	// ByProductIDs 一次读取多个商品的买家评价（每个商品最多一条）。
 	ByProductIDs(ctx context.Context, productIDs []string) (map[string]*domain.TradeReview, error)
+	// AverageScoresByUserIDs 一次计算多个用户作为卖家收到的评分平均值，
+	// 格式为固定两位小数的字符串；没有评分的用户不出现在结果中。
+	AverageScoresByUserIDs(ctx context.Context, userIDs []string) (map[string]string, error)
 }

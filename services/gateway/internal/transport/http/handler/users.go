@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	accountv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1"
 	"github.com/KDZZZZZZ/short-term/platform/errs"
 	"github.com/KDZZZZZZ/short-term/platform/grpcx"
+	"github.com/KDZZZZZZ/short-term/services/gateway/internal/application/aggregation"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/dto"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/mapper"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/middleware"
@@ -13,13 +15,14 @@ import (
 
 // Users 提供 /users/me 和 /users/me/password。
 type Users struct {
-	accounts  accountv1.AccountServiceClient
-	responder Responder
+	accounts   accountv1.AccountServiceClient
+	aggregator *aggregation.Aggregator
+	responder  Responder
 }
 
 // NewUsers 构造当前用户处理器。
-func NewUsers(accounts accountv1.AccountServiceClient, responder Responder) *Users {
-	return &Users{accounts: accounts, responder: responder}
+func NewUsers(accounts accountv1.AccountServiceClient, aggregator *aggregation.Aggregator, responder Responder) *Users {
+	return &Users{accounts: accounts, aggregator: aggregator, responder: responder}
 }
 
 // Me 处理 GET /users/me。
@@ -32,7 +35,13 @@ func (h *Users) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.responder.OK(w, r, mapper.UserMe(resp.GetUser()))
+	average, err := aggregatedAverageScore(r.Context(), h.aggregator, actorID)
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.OK(w, r, mapper.UserMe(resp.GetUser(), average))
 }
 
 // UpdateMe 处理 PATCH /users/me。
@@ -81,7 +90,13 @@ func (h *Users) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.responder.OK(w, r, mapper.UserMe(resp.GetUser()))
+	average, err := aggregatedAverageScore(r.Context(), h.aggregator, req.GetUserId())
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.OK(w, r, mapper.UserMe(resp.GetUser(), average))
 }
 
 // ChangePassword 处理 PUT /users/me/password。
@@ -103,6 +118,22 @@ func (h *Users) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.responder.Empty(w, r)
+}
+
+// aggregatedAverageScore 读取用户作为卖家收到的评分平均值；
+// 没有评分时返回 nil，映射为契约中的 null。
+func aggregatedAverageScore(ctx context.Context, aggregator *aggregation.Aggregator, userID string) (*string, error) {
+	if aggregator == nil {
+		return nil, nil
+	}
+	scores, err := aggregator.AverageScores(ctx, []string{userID})
+	if err != nil {
+		return nil, err
+	}
+	if score, ok := scores[userID]; ok {
+		return &score, nil
+	}
+	return nil, nil
 }
 
 // contactPatch 将更新输入转换为线路上的 patch 消息。省略表示保持不变，

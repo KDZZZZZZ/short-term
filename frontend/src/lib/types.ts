@@ -55,6 +55,8 @@ export interface SellerContact {
   nickname: string
   wechat: string | null
   qq: string | null
+  /** 卖家收到的买家评分平均值，固定两位小数；尚无评分为 null。 */
+  average_score: string | null
 }
 
 export interface UserMe {
@@ -63,6 +65,8 @@ export interface UserMe {
   nickname: string
   wechat: string | null
   qq: string | null
+  /** 自己作为卖家收到的买家评分平均值；尚无评分为 null。 */
+  average_score: string | null
   created_at: string
   updated_at: string
 }
@@ -240,13 +244,16 @@ export interface TradeReview {
   trade_id: Identifier
   product_id: Identifier
   buyer: UserPublic
-  /** 买家评价正文，1 至 500 个字符。 */
-  content: string
+  /** 买家评分，1 至 5 的整数。 */
+  score: number
+  /** 买家评价文字，可选；null 表示买家未填写文字。 */
+  content: string | null
   created_at: string
 }
 
 export interface TradeReviewCreateRequest {
-  content: string
+  score: number
+  content?: string | null
 }
 
 /** 公开用户评论：任何已认证用户可对任何商品发布，发布后不可改删。 */

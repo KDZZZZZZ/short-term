@@ -244,14 +244,16 @@ async function run() {
     // ---------- 10.5 买家评价、公开评论、卖家公开货架 ----------
     await buyer.goto(`${BASE}/trades`)
     await buyer.getByRole('button', { name: '写买家评价' }).click()
-    await buyer.getByPlaceholder('1-500 字，说说这次交易体验').fill('卖家很爽快，书成色和描述一致，交易愉快！')
+    await buyer.getByRole('button', { name: '5 分' }).click()
+    await buyer.getByPlaceholder('1-500 字，说说这次交易体验（可选）').fill('卖家很爽快，书成色和描述一致，交易愉快！')
     await buyer.getByRole('button', { name: '发布评价' }).click()
     await buyer.getByText('卖家很爽快，书成色和描述一致，交易愉快！').waitFor({ timeout: 8_000 })
     console.log('✓ 买家发布交易评价')
     await shot(buyerContext, 'buyer-trade-review')
 
     await buyer.goto(productUrl)
-    await buyer.getByText(/买家评价 · /).waitFor({ timeout: 8_000 })
+    await buyer.getByText(/买家评价 5 分 · /).waitFor({ timeout: 8_000 })
+    await buyer.getByText(/评分 5\.00 · /).waitFor({ timeout: 8_000 })
     await buyer.getByPlaceholder('1-500 字，任何人都可以评论').fill('这本单词书确实不错，推荐！')
     await buyer.getByRole('button', { name: '发布评论' }).click()
     await buyer.getByText('这本单词书确实不错，推荐！').waitFor({ timeout: 8_000 })
@@ -259,8 +261,8 @@ async function run() {
     await shot(buyerContext, 'product-comments')
 
     await seller.goto(`${BASE}/my/products`)
-    await seller.getByText(/买家评价：卖家很爽快/).waitFor({ timeout: 8_000 })
-    console.log('✓ 卖家「我的商品」展示买家评价')
+    await seller.getByText(/买家评价：5 分：卖家很爽快/).waitFor({ timeout: 8_000 })
+    console.log('✓ 卖家「我的商品」展示买家评分与评价')
 
     await buyer.goto(productUrl)
     await buyer.getByRole('link', { name: SELLER.nickname }).first().click()

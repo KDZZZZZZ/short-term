@@ -16,7 +16,7 @@ import (
 const tradeReviewUniqueConstraint = "trade_reviews_trade_unique"
 
 // tradeReviewColumns 是所有买家评价读取共享的字段投影。
-const tradeReviewColumns = `id, trade_id, product_id, buyer_id, content, created_at`
+const tradeReviewColumns = `id, trade_id, product_id, buyer_id, content, score, created_at`
 
 // TradeReviewRepository 存储买家评价。
 type TradeReviewRepository struct {
@@ -34,11 +34,11 @@ var _ application.TradeReviewRepository = (*TradeReviewRepository)(nil)
 // 约束兜底，COMPLETED 是交易终态，因此不需要事务包裹。
 func (r *TradeReviewRepository) Insert(ctx context.Context, review *domain.TradeReview) error {
 	const query = `
-		INSERT INTO trade_reviews (id, trade_id, product_id, buyer_id, content, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`
+		INSERT INTO trade_reviews (id, trade_id, product_id, buyer_id, content, score, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	if _, err := r.pool.Exec(ctx, query,
-		review.ID, review.TradeID, review.ProductID, review.BuyerID, review.Content, review.CreatedAt,
+		review.ID, review.TradeID, review.ProductID, review.BuyerID, review.Content, review.Score, review.CreatedAt,
 	); err != nil {
 		switch {
 		case pg.IsUniqueViolation(err, tradeReviewUniqueConstraint):
@@ -68,7 +68,7 @@ func (r *TradeReviewRepository) ByProductIDs(ctx context.Context, productIDs []s
 	reviews := make(map[string]*domain.TradeReview, len(productIDs))
 	for rows.Next() {
 		var review domain.TradeReview
-		if err := rows.Scan(&review.ID, &review.TradeID, &review.ProductID, &review.BuyerID, &review.Content, &review.CreatedAt); err != nil {
+		if err := rows.Scan(&review.ID, &review.TradeID, &review.ProductID, &review.BuyerID, &review.Content, &review.Score, &review.CreatedAt); err != nil {
 			return nil, fmt.Errorf("postgres: scan trade review: %w", err)
 		}
 		reviews[review.ProductID] = &review
@@ -77,4 +77,39 @@ func (r *TradeReviewRepository) ByProductIDs(ctx context.Context, productIDs []s
 		return nil, fmt.Errorf("postgres: iterate trade reviews: %w", err)
 	}
 	return reviews, nil
+}
+
+// AverageScoresByUserIDs 计算用户作为卖家收到的评分平均值。
+// 平均值由数据库聚合得出，固定两位小数；没有评分的用户不出现在结果中。
+func (r *TradeReviewRepository) AverageScoresByUserIDs(ctx context.Context, userIDs []string) (map[string]string, error) {
+	if len(userIDs) == 0 {
+		return map[string]string{}, nil
+	}
+
+	const query = `
+		SELECT products.seller_id, ROUND(AVG(trade_reviews.score), 2)::text
+		  FROM trade_reviews
+		  JOIN products ON products.id = trade_reviews.product_id
+		 WHERE trade_reviews.score IS NOT NULL
+		   AND products.seller_id = ANY($1)
+		 GROUP BY products.seller_id`
+
+	rows, err := r.pool.Query(ctx, query, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: select average scores: %w", err)
+	}
+	defer rows.Close()
+
+	scores := make(map[string]string, len(userIDs))
+	for rows.Next() {
+		var sellerID, average string
+		if err := rows.Scan(&sellerID, &average); err != nil {
+			return nil, fmt.Errorf("postgres: scan average score: %w", err)
+		}
+		scores[sellerID] = average
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres: iterate average scores: %w", err)
+	}
+	return scores, nil
 }

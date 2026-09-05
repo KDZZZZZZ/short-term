@@ -53,14 +53,14 @@ func TestTradeReviewPersistsAndBatchesByProduct(t *testing.T) {
 	seedTradeReview(t, pool, "t_1", "p_1", "u_buyer", "u_seller")
 	seedTradeReview(t, pool, "t_2", "p_2", "u_buyer", "u_seller")
 
-	first, err := domain.NewTradeReview("tr_1", &domain.Trade{ID: "t_1", ProductID: "p_1", BuyerID: "u_buyer"}, "很好", created)
+	first, err := domain.NewTradeReview("tr_1", &domain.Trade{ID: "t_1", ProductID: "p_1", BuyerID: "u_buyer"}, 5, "很好", created)
 	if err != nil {
 		t.Fatalf("NewTradeReview: %v", err)
 	}
 	if err := repo.Insert(t.Context(), first); err != nil {
 		t.Fatalf("Insert: %v", err)
 	}
-	second, err := domain.NewTradeReview("tr_2", &domain.Trade{ID: "t_2", ProductID: "p_2", BuyerID: "u_buyer"}, "不错", created)
+	second, err := domain.NewTradeReview("tr_2", &domain.Trade{ID: "t_2", ProductID: "p_2", BuyerID: "u_buyer"}, 4, "不错", created)
 	if err != nil {
 		t.Fatalf("NewTradeReview: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestTradeReviewRejectsASecondReviewForTheSameTrade(t *testing.T) {
 	seedTradeReview(t, pool, "t_1", "p_1", "u_buyer", "u_seller")
 
 	trade := &domain.Trade{ID: "t_1", ProductID: "p_1", BuyerID: "u_buyer"}
-	first, err := domain.NewTradeReview("tr_1", trade, "很好", created)
+	first, err := domain.NewTradeReview("tr_1", trade, 5, "很好", created)
 	if err != nil {
 		t.Fatalf("NewTradeReview: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestTradeReviewRejectsASecondReviewForTheSameTrade(t *testing.T) {
 		t.Fatalf("Insert: %v", err)
 	}
 
-	second, err := domain.NewTradeReview("tr_2", trade, "换一条", created)
+	second, err := domain.NewTradeReview("tr_2", trade, 3, "换一条", created)
 	if err != nil {
 		t.Fatalf("NewTradeReview: %v", err)
 	}
@@ -109,12 +109,54 @@ func TestTradeReviewInsertMapsMissingTradeToNotFound(t *testing.T) {
 
 	repo, _ := newTradeReviewRepository(t)
 
-	review, err := domain.NewTradeReview("tr_1", &domain.Trade{ID: "t_missing", ProductID: "p_1", BuyerID: "u_buyer"}, "评论", created)
+	review, err := domain.NewTradeReview("tr_1", &domain.Trade{ID: "t_missing", ProductID: "p_1", BuyerID: "u_buyer"}, 5, "评论", created)
 	if err != nil {
 		t.Fatalf("NewTradeReview: %v", err)
 	}
 	if err := repo.Insert(t.Context(), review); !errors.Is(err, application.ErrNotFound) {
 		t.Fatalf("missing trade insert error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestAverageScoresByUserIDs(t *testing.T) {
+	t.Parallel()
+
+	repo, pool := newTradeReviewRepository(t)
+	seedTradeReview(t, pool, "t_1", "p_1", "u_buyer_1", "u_seller")
+	seedTradeReview(t, pool, "t_2", "p_2", "u_buyer_2", "u_seller")
+	seedTradeReview(t, pool, "t_3", "p_3", "u_buyer_3", "u_other")
+
+	for _, tt := range []struct {
+		id    string
+		trade string
+		score int32
+	}{
+		{id: "tr_1", trade: "t_1", score: 5},
+		{id: "tr_2", trade: "t_2", score: 4},
+	} {
+		review, err := domain.NewTradeReview(tt.id, &domain.Trade{ID: tt.trade, ProductID: "p_" + tt.trade[2:], BuyerID: "u_buyer"}, tt.score, "评论", created)
+		if err != nil {
+			t.Fatalf("NewTradeReview: %v", err)
+		}
+		if err := repo.Insert(t.Context(), review); err != nil {
+			t.Fatalf("Insert %s: %v", tt.id, err)
+		}
+	}
+
+	scores, err := repo.AverageScoresByUserIDs(t.Context(), []string{"u_seller", "u_other"})
+	if err != nil {
+		t.Fatalf("AverageScoresByUserIDs: %v", err)
+	}
+	if got := scores["u_seller"]; got != "4.50" {
+		t.Fatalf("average = %q, want 4.50", got)
+	}
+	if _, exists := scores["u_other"]; exists {
+		t.Fatalf("a seller without scores must be absent: %v", scores)
+	}
+
+	empty, err := repo.AverageScoresByUserIDs(t.Context(), nil)
+	if err != nil || len(empty) != 0 {
+		t.Fatalf("empty input = %v, %v, want an empty map", empty, err)
 	}
 }
 
@@ -128,7 +170,7 @@ func TestTradeReviewArbitratesConcurrentDuplicates(t *testing.T) {
 	const attempts = 8
 	reviews := make([]*domain.TradeReview, attempts)
 	for i := range attempts {
-		review, err := domain.NewTradeReview(fmt.Sprintf("tr_concurrent_%d", i), trade, "并发评价", created)
+		review, err := domain.NewTradeReview(fmt.Sprintf("tr_concurrent_%d", i), trade, 5, "并发评价", created)
 		if err != nil {
 			t.Fatalf("NewTradeReview: %v", err)
 		}

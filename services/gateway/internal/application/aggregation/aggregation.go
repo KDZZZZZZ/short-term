@@ -70,6 +70,23 @@ func (a *Aggregator) SellerContact(ctx context.Context, sellerID string) (*accou
 	return resp.GetUser(), nil
 }
 
+// AverageScores 一次返回指定用户作为卖家收到的评分平均值。
+// 没有评分的用户不会出现在结果中，由调用方渲染为 null。
+func (a *Aggregator) AverageScores(ctx context.Context, userIDs []string) (map[string]string, error) {
+	unique := dedupe(userIDs)
+	if len(unique) == 0 {
+		return map[string]string{}, nil
+	}
+
+	resp, err := a.products.BatchGetUserAverageScores(ctx, &marketplacev1.BatchGetUserAverageScoresRequest{
+		UserIds: unique,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetAverageScores(), nil
+}
+
 // IsFavorited 返回当前用户是否收藏了某个商品。匿名调用方永远不会被视为已收藏。
 func (a *Aggregator) IsFavorited(ctx context.Context, actorID, productID string) (bool, error) {
 	if actorID == "" || a.favorites == nil {

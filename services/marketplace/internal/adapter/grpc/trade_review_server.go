@@ -20,6 +20,7 @@ func (s *Server) CreateTradeReview(ctx context.Context, req *marketplacev1.Creat
 	review, err := s.tradeReviews.Create(ctx, application.CreateTradeReviewCommand{
 		ActorID: req.GetActorId(),
 		TradeID: req.GetTradeId(),
+		Score:   req.GetScore(),
 		Content: req.GetContent(),
 	})
 	if err != nil {
@@ -46,6 +47,19 @@ func (s *Server) BatchGetProductTradeReviews(ctx context.Context, req *marketpla
 	return &marketplacev1.BatchGetProductTradeReviewsResponse{Reviews: mapped}, nil
 }
 
+// BatchGetUserAverageScores 返回请求用户的评分平均值；没有评分的用户缺席。
+func (s *Server) BatchGetUserAverageScores(ctx context.Context, req *marketplacev1.BatchGetUserAverageScoresRequest) (*marketplacev1.BatchGetUserAverageScoresResponse, error) {
+	if len(req.GetUserIds()) > maxBatchTradeReviews {
+		return nil, errs.Newf(errs.CodeValidation, "单次最多查询 %d 个用户的平均分", maxBatchTradeReviews)
+	}
+
+	scores, err := s.tradeReviews.AverageScoresByUserIDs(ctx, req.GetUserIds())
+	if err != nil {
+		return nil, err
+	}
+	return &marketplacev1.BatchGetUserAverageScoresResponse{AverageScores: scores}, nil
+}
+
 func tradeReviewProto(review *domain.TradeReview) *marketplacev1.TradeReview {
 	return &marketplacev1.TradeReview{
 		Id:        review.ID,
@@ -53,6 +67,7 @@ func tradeReviewProto(review *domain.TradeReview) *marketplacev1.TradeReview {
 		ProductId: review.ProductID,
 		BuyerId:   review.BuyerID,
 		Content:   review.Content,
+		Score:     review.Score,
 		CreatedAt: timestamppb.New(review.CreatedAt),
 	}
 }

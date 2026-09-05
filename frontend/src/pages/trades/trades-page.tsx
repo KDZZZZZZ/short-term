@@ -245,11 +245,17 @@ function ReasonDialog({
 function TradeReviewSection({ trade }: { trade: Trade }) {
   const queryClient = useQueryClient()
   const [composing, setComposing] = useState(false)
+  const [score, setScore] = useState<number | null>(null)
   const [content, setContent] = useState('')
   const [review, setReview] = useState<TradeReview | null>(null)
 
   const mutation = useMutation({
-    mutationFn: () => createTradeReview(trade.id, { content: content.trim() }),
+    mutationFn: () =>
+      createTradeReview(trade.id, {
+        score: score as number,
+        // 文字可选：未填写时提交 null，而不是空字符串。
+        content: content.trim() ? content.trim() : null,
+      }),
     onSuccess: (created) => {
       toast.success('评价已发布')
       setReview(created)
@@ -275,9 +281,9 @@ function TradeReviewSection({ trade }: { trade: Trade }) {
       <div className="rounded-xl border border-border-secondary bg-surface-tertiary p-3">
         <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
           <Star className="size-3.5 text-highlight" />
-          我的买家评价
+          我的买家评价 · {review.score} 分
         </p>
-        <p className="mt-1 leading-5 text-foreground/90">{review.content}</p>
+        {review.content ? <p className="mt-1 leading-5 text-foreground/90">{review.content}</p> : null}
       </div>
     )
   }
@@ -293,9 +299,26 @@ function TradeReviewSection({ trade }: { trade: Trade }) {
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-border-secondary bg-surface-tertiary p-3">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-medium text-foreground">评分</span>
+        {[1, 2, 3, 4, 5].map((value) => (
+          <Button
+            key={value}
+            aria-label={`${value} 分`}
+            className="size-8"
+            isIconOnly
+            size="sm"
+            variant={score === value ? 'primary' : 'outline'}
+            onPress={() => setScore(value)}
+          >
+            <Star className="size-3.5" />
+            {value}
+          </Button>
+        ))}
+      </div>
       <TextField className="w-full" value={content} onChange={setContent}>
-        <Label>买家评价（公开展示，发布后不可修改删除）</Label>
-        <TextArea maxLength={500} placeholder="1-500 字，说说这次交易体验" rows={3} />
+        <Label>买家评价（公开展示，发布后不可修改删除，文字可选）</Label>
+        <TextArea maxLength={500} placeholder="1-500 字，说说这次交易体验（可选）" rows={3} />
       </TextField>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted">{content.length}/500</span>
@@ -304,7 +327,7 @@ function TradeReviewSection({ trade }: { trade: Trade }) {
             取消
           </Button>
           <Button
-            isDisabled={content.trim().length < 1}
+            isDisabled={score == null}
             isPending={mutation.isPending}
             size="sm"
             onPress={() => mutation.mutate()}
