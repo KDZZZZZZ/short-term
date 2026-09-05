@@ -234,6 +234,5 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:29090/metrics >"$RUNNER_TEMP/gateway-metrics.txt"
           grep -F 'route="POST /products/{productId}/trades",status="201"} 2' "$RUNNER_TEMP/gateway-metrics.txt"
           grep -F 'route="POST /trades/{tradeId}/confirm",status="200"} 2' "$RUNNER_TEMP/gateway-metrics.txt"
-          grep -F 'route="POST /products/{productId}/reviews",status="201"} 1' "$RUNNER_TEMP/gateway-metrics.txt"
-          grep -F 'route="POST /products/{productId}/reviews",status="403"} 2' "$RUNNER_TEMP/gateway-metrics.txt"
-          grep -F 'route="POST /products/{productId}/reviews",status="409"} 1' "$RUNNER_TEMP/gateway-metrics.txt"
+          grep -F 'route="POST /products/{productId}/comments",status="201"} 4' "$RUNNER_TEMP/gateway-metrics.txt"
+          grep -F 'route="POST /products/{productId}/comments",status="404"} 1' "$RUNNER_TEMP/gateway-metrics.txt"
