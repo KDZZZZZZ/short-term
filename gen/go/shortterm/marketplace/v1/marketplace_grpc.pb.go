@@ -36,6 +36,8 @@ const (
 	MarketplaceService_RejectTrade_FullMethodName        = "/shortterm.marketplace.v1.MarketplaceService/RejectTrade"
 	MarketplaceService_CancelTrade_FullMethodName        = "/shortterm.marketplace.v1.MarketplaceService/CancelTrade"
 	MarketplaceService_ConfirmTrade_FullMethodName       = "/shortterm.marketplace.v1.MarketplaceService/ConfirmTrade"
+	MarketplaceService_CreateReview_FullMethodName       = "/shortterm.marketplace.v1.MarketplaceService/CreateReview"
+	MarketplaceService_ListProductReviews_FullMethodName = "/shortterm.marketplace.v1.MarketplaceService/ListProductReviews"
 )
 
 // MarketplaceServiceClient is the client API for MarketplaceService service.
@@ -63,6 +65,8 @@ type MarketplaceServiceClient interface {
 	RejectTrade(ctx context.Context, in *RejectTradeRequest, opts ...grpc.CallOption) (*RejectTradeResponse, error)
 	CancelTrade(ctx context.Context, in *CancelTradeRequest, opts ...grpc.CallOption) (*CancelTradeResponse, error)
 	ConfirmTrade(ctx context.Context, in *ConfirmTradeRequest, opts ...grpc.CallOption) (*ConfirmTradeResponse, error)
+	CreateReview(ctx context.Context, in *CreateReviewRequest, opts ...grpc.CallOption) (*CreateReviewResponse, error)
+	ListProductReviews(ctx context.Context, in *ListProductReviewsRequest, opts ...grpc.CallOption) (*ListProductReviewsResponse, error)
 }
 
 type marketplaceServiceClient struct {
@@ -243,6 +247,26 @@ func (c *marketplaceServiceClient) ConfirmTrade(ctx context.Context, in *Confirm
 	return out, nil
 }
 
+func (c *marketplaceServiceClient) CreateReview(ctx context.Context, in *CreateReviewRequest, opts ...grpc.CallOption) (*CreateReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateReviewResponse)
+	err := c.cc.Invoke(ctx, MarketplaceService_CreateReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *marketplaceServiceClient) ListProductReviews(ctx context.Context, in *ListProductReviewsRequest, opts ...grpc.CallOption) (*ListProductReviewsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProductReviewsResponse)
+	err := c.cc.Invoke(ctx, MarketplaceService_ListProductReviews_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MarketplaceServiceServer is the server API for MarketplaceService service.
 // All implementations should embed UnimplementedMarketplaceServiceServer
 // for forward compatibility.
@@ -268,6 +292,8 @@ type MarketplaceServiceServer interface {
 	RejectTrade(context.Context, *RejectTradeRequest) (*RejectTradeResponse, error)
 	CancelTrade(context.Context, *CancelTradeRequest) (*CancelTradeResponse, error)
 	ConfirmTrade(context.Context, *ConfirmTradeRequest) (*ConfirmTradeResponse, error)
+	CreateReview(context.Context, *CreateReviewRequest) (*CreateReviewResponse, error)
+	ListProductReviews(context.Context, *ListProductReviewsRequest) (*ListProductReviewsResponse, error)
 }
 
 // UnimplementedMarketplaceServiceServer should be embedded to have
@@ -327,6 +353,12 @@ func (UnimplementedMarketplaceServiceServer) CancelTrade(context.Context, *Cance
 }
 func (UnimplementedMarketplaceServiceServer) ConfirmTrade(context.Context, *ConfirmTradeRequest) (*ConfirmTradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfirmTrade not implemented")
+}
+func (UnimplementedMarketplaceServiceServer) CreateReview(context.Context, *CreateReviewRequest) (*CreateReviewResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateReview not implemented")
+}
+func (UnimplementedMarketplaceServiceServer) ListProductReviews(context.Context, *ListProductReviewsRequest) (*ListProductReviewsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListProductReviews not implemented")
 }
 func (UnimplementedMarketplaceServiceServer) testEmbeddedByValue() {}
 
@@ -654,6 +686,42 @@ func _MarketplaceService_ConfirmTrade_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MarketplaceService_CreateReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MarketplaceServiceServer).CreateReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MarketplaceService_CreateReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MarketplaceServiceServer).CreateReview(ctx, req.(*CreateReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MarketplaceService_ListProductReviews_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProductReviewsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MarketplaceServiceServer).ListProductReviews(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MarketplaceService_ListProductReviews_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MarketplaceServiceServer).ListProductReviews(ctx, req.(*ListProductReviewsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MarketplaceService_ServiceDesc is the grpc.ServiceDesc for MarketplaceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -728,6 +796,14 @@ var MarketplaceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConfirmTrade",
 			Handler:    _MarketplaceService_ConfirmTrade_Handler,
+		},
+		{
+			MethodName: "CreateReview",
+			Handler:    _MarketplaceService_CreateReview_Handler,
+		},
+		{
+			MethodName: "ListProductReviews",
+			Handler:    _MarketplaceService_ListProductReviews_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
