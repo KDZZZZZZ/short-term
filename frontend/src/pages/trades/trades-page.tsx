@@ -478,10 +478,9 @@ export function TradesPage() {
 
         <Select
           className="sm:w-40"
-          placeholder="全部状态"
-          value={status === 'ALL' ? null : status}
+          value={status}
           onChange={(key) => {
-            setStatus((key as TradeStatus | null) ?? 'ALL')
+            setStatus(key as TradeStatus | 'ALL')
             setPage(1)
           }}
         >
@@ -491,6 +490,10 @@ export function TradesPage() {
           </Select.Trigger>
           <Select.Popover>
             <ListBox>
+              <ListBox.Item id="ALL" textValue="全部">
+                全部
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
               {TRADE_STATUS_OPTIONS.map((option) => (
                 <ListBox.Item id={option.value} key={option.value} textValue={option.label}>
                   {option.label}
