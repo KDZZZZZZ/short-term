@@ -347,6 +347,34 @@ def run(args):
         "buyer accept seller-only trade",
     )
 
+    # 取消后的意向不占名额：卖家拒绝后，买家可以再次发起（生成新 Trade）。
+    rejected = expect(
+        client.request(
+            "POST",
+            f"/api/v1/trades/{trade_id}/reject",
+            token=seller_token,
+            json_body={"reason": "M6 验收：先拒绝再重发"},
+            headers={"Idempotency-Key": idempotency_key(args.tag, "reject")},
+        ),
+        200,
+        "seller reject trade",
+    )["data"]
+    if rejected.get("status") != "CANCELLED":
+        raise RuntimeError("rejected trade did not enter CANCELLED")
+
+    recreated_trade = expect(
+        client.request(
+            "POST",
+            f"/api/v1/products/{product_id}/trades",
+            token=buyer_token,
+        ),
+        201,
+        "recreate trade after rejection",
+    )["data"]
+    if recreated_trade["id"] == trade_id or recreated_trade.get("status") != "PENDING":
+        raise RuntimeError("re-created trade must be a new PENDING intent")
+    trade_id = recreated_trade["id"]
+
     expect(
         client.request(
             "POST",
@@ -641,6 +669,7 @@ def run(args):
             "marketplace_and_favorite_projection": "passed",
             "conversation_and_message_idempotency": "passed",
             "trade_create_or_get_and_lifecycle": "passed",
+            "trade_cancel_and_recreate": "passed",
             "trade_buyer_review_and_public_listing": "passed",
             "user_comments_on_visible_products": "passed",
             "observer_visibility_and_role_authorization": "passed",

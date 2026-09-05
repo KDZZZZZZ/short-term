@@ -3,7 +3,7 @@
   "info": {
     "title": "校园二手交易平台 API",
     "version": "1.0.0",
-    "description": "校园二手交易平台 MVP 的唯一公开 HTTP API 契约。\n\n用户没有固定买家或卖家角色。用户在自己发布的商品中是卖家，\n在自己发起的交易中是买家。推荐算法和邮件通知不在 MVP 范围内。\n\n公开商品列表只展示在售商品，但已认证用户可查看任意状态商品详情。同一买家对\n同一商品只有一个 Trade 购买意向，重复创建请求返回既有意向而不生成第二笔。\n\n跨资源状态变化及并发约束见 `docs/state-machines.md`。\n",
+    "description": "校园二手交易平台 MVP 的唯一公开 HTTP API 契约。\n\n用户没有固定买家或卖家角色。用户在自己发布的商品中是卖家，\n在自己发起的交易中是买家。推荐算法和邮件通知不在 MVP 范围内。\n\n公开商品列表只展示在售商品，但已认证用户可查看任意状态商品详情。同一买家对\n同一商品同时最多只有一笔进行中的 Trade 购买意向；取消或被拒后可再次发起\n（生成新 Trade），重复创建命中进行中意向时返回既有意向而不生成第二笔。\n\n跨资源状态变化及并发约束见 `docs/state-machines.md`。\n",
     "contact": {
       "name": "short-term maintainers",
       "url": "https://github.com/KDZZZZZZ/short-term"
@@ -1249,7 +1249,7 @@
         ],
         "summary": "创建或获取商品购买意向",
         "operationId": "createTrade",
-        "description": "当前用户成为买家，商品发布者成为卖家。一个 `(product_id, buyer_id)` 在商品\n整个生命周期内只对应一个 Trade 购买意向，数据库必须以该组合唯一约束并在\n并发请求中执行 create-or-get：首次创建返回 `201`；已经存在时不创建、不改变\n状态，返回该意向当前表示和 `200`，即使旧意向已经 `CANCELLED` 或 `COMPLETED`。\n更换 `Idempotency-Key` 不能创建第二个意向；使用同一 key 重试仍按幂等规则重放\n首次成功的 HTTP 状态与响应体。首次创建时价格快照由服务端读取商品价格，状态为\n`PENDING`，商品保持 `ON_SALE`。用户不能购买自己的商品，该情况返回\n`409 / SELF_ACTION_NOT_ALLOWED`。请求携带 `conversation_id` 时必须验证会话商品\n与买卖双方完全一致；已有 Trade 时，显式提供的值还必须与已存绑定完全相同\n（`null` 也视为显式值）。任一不匹配返回 `409 / CONVERSATION_MISMATCH`，省略该\n字段则只返回既有意向而不修改绑定。\n",
+        "description": "当前用户成为买家，商品发布者成为卖家。同一 `(product_id, buyer_id)` 同时最多\n只有一笔进行中（`PENDING` 或 `ACCEPTED`）的购买意向，数据库以部分唯一约束\n保证；被拒绝或取消的意向不占名额，买家可再次发起新的购买意向（生成新 Trade，\n历史记录保留）。并发请求按 create-or-get 处理：首次创建返回 `201`；存在进行中\n意向时不创建、不改变状态，返回其当前表示和 `200`。同一 `Idempotency-Key` 重试\n仍按幂等规则重放首次成功的 HTTP 状态与响应体。首次创建时价格快照由服务端读取\n商品价格，状态为 `PENDING`，商品保持 `ON_SALE`。用户不能购买自己的商品，该情况\n返回 `409 / SELF_ACTION_NOT_ALLOWED`。请求携带 `conversation_id` 时必须验证会话\n商品与买卖双方完全一致；存在进行中意向时，显式提供的值还必须与已存绑定完全\n相同（`null` 也视为显式值）。任一不匹配返回 `409 / CONVERSATION_MISMATCH`，\n省略该字段则只返回既有意向而不修改绑定。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -1267,7 +1267,7 @@
         },
         "responses": {
           "200": {
-            "description": "已存在的同一购买意向；未创建新记录，也未改变其当前状态。",
+            "description": "已存在的进行中购买意向；未创建新记录，也未改变其当前状态。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1450,7 +1450,7 @@
         ],
         "summary": "卖家拒绝待处理交易",
         "operationId": "rejectTrade",
-        "description": "仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。该 Trade 是该买家对商品\n的唯一购买意向，拒绝后再次调用创建意向接口只返回同一 `CANCELLED` Trade，\n不产生新意向或新通知。非参与者与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`；\n交易买家调用此卖家专用动作返回 `403 / FORBIDDEN`。\n",
+        "description": "仅卖家可执行 `PENDING -> CANCELLED`，商品状态不变。被拒绝的意向进入终态后\n不再占用名额，买家可再次发起新的购买意向（生成新 Trade，历史保留）。非参与者\n与不存在的交易返回 `404 / RESOURCE_NOT_FOUND`；交易买家调用此卖家专用动作\n返回 `403 / FORBIDDEN`。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -3220,7 +3220,7 @@
       "Trade": {
         "type": "object",
         "additionalProperties": false,
-        "description": "一个商品与一个买家的唯一购买意向。同一 `(product.id, buyer.id)` 在商品整个\n生命周期内只对应一个 Trade；状态变化或终止后也不会创建第二个 Trade。\n",
+        "description": "一个商品与一个买家的购买意向。同一 `(product.id, buyer.id)` 同时最多只有一笔\n进行中（`PENDING` 或 `ACCEPTED`）的意向；`CANCELLED` 或 `COMPLETED` 的历史\nTrade 保留，买家在取消后可再次发起新的购买意向。\n",
         "required": [
           "id",
           "product",

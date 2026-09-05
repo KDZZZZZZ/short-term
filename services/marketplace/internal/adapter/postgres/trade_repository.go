@@ -19,7 +19,7 @@ import (
 // 交易规则依赖的唯一索引。它们的名称属于行为契约：代码会将每种冲突转换为特定的领域结果。
 const (
 	acceptedTradeIndex = "trades_one_accepted_per_product_idx"
-	intentTradeIndex   = "trades_one_intent_per_buyer_idx"
+	activeIntentIndex  = "trades_one_active_intent_per_buyer_idx"
 	idempotencyPK      = "idempotency_records_pkey"
 )
 
@@ -249,12 +249,13 @@ func (t *tradeTx) LockPendingTrades(ctx context.Context, productID, exceptID str
 	return trades, nil
 }
 
-// TradeByBuyer 读取同一商品和买家的终生唯一购买意向。调用方已经持有 Product 锁，
-// 因此不存在记录时，另一个创建请求不能在当前事务提交前插入同商品意向。
+// TradeByBuyer 读取同一商品和买家进行中（PENDING/ACCEPTED）的购买意向；
+// 已取消的历史意向不算。调用方已经持有 Product 锁，因此不存在进行中记录时，
+// 另一个创建请求不能在当前事务提交前插入同商品意向（进行中唯一索引兜底）。
 func (t *tradeTx) TradeByBuyer(ctx context.Context, productID, buyerID string) (*domain.Trade, error) {
 	const query = `SELECT ` + tradeColumns + `
 		FROM trades
-		WHERE product_id = $1 AND buyer_id = $2
+		WHERE product_id = $1 AND buyer_id = $2 AND status IN ('PENDING', 'ACCEPTED')
 		FOR UPDATE`
 
 	trade, err := scanTrade(t.tx.QueryRow(ctx, query, productID, buyerID))
@@ -276,7 +277,7 @@ func (t *tradeTx) InsertTrade(ctx context.Context, trade *domain.Trade) error {
 		trade.CancelReason, trade.CreatedAt, trade.AcceptedAt, trade.CompletedAt, trade.CancelledAt, trade.UpdatedAt,
 	)
 	switch {
-	case pg.IsUniqueViolation(err, intentTradeIndex):
+	case pg.IsUniqueViolation(err, activeIntentIndex):
 		return application.ErrTradeIntentExists
 	case pg.IsUniqueViolation(err, acceptedTradeIndex):
 		return application.ErrTradeAlreadyAccepted
@@ -303,7 +304,7 @@ func (t *tradeTx) UpdateTrade(ctx context.Context, trade *domain.Trade) error {
 	switch {
 	case pg.IsUniqueViolation(err, acceptedTradeIndex):
 		return application.ErrTradeAlreadyAccepted
-	case pg.IsUniqueViolation(err, intentTradeIndex):
+	case pg.IsUniqueViolation(err, activeIntentIndex):
 		return application.ErrTradeIntentExists
 	case err != nil:
 		return fmt.Errorf("postgres: update trade: %w", err)

@@ -42,8 +42,9 @@ func NewTradeService(trades TradeRepository, products ProductRepository, convers
 	}, nil
 }
 
-// Create 创建或读取买家针对该商品的终生唯一购买意向。首次创建保持商品 ON_SALE；
-// 后续调用返回同一 Trade 的当前表示，不改变状态、价格或会话绑定。
+// Create 创建或读取买家针对该商品的进行中购买意向。首次创建保持商品 ON_SALE；
+// 存在进行中意向时返回同一 Trade 的当前表示，不改变状态、价格或会话绑定；
+// 已取消的意向不占名额，再次调用会创建新的 Trade。
 func (s *TradeService) Create(ctx context.Context, cmd CreateTradeCommand) (TradeResult, error) {
 	if cmd.ActorID == "" {
 		return TradeResult{}, errs.New(errs.CodeUnauthorized, "请先登录")
@@ -519,7 +520,7 @@ func createError(err error) error {
 	}
 }
 
-// insertTradeError 映射数据库写入失败。创建路径持有 Product 锁并在插入前读取终生唯一
+// insertTradeError 映射数据库写入失败。创建路径持有 Product 锁并在插入前读取进行中
 // 意向，因此正常并发不会走到唯一冲突；命中该分支表示存储不变量被绕过。
 func insertTradeError(err error) error {
 	if errors.Is(err, ErrTradeIntentExists) {

@@ -98,7 +98,8 @@ type TradeTx interface {
 	LockTradeWithProduct(ctx context.Context, tradeID string) (*domain.Product, *domain.Trade, error)
 	// LockPendingTrades 读取并锁定商品的所有待处理交易，但排除 exceptID 指定的交易。
 	LockPendingTrades(ctx context.Context, productID, exceptID string) ([]*domain.Trade, error)
-	// TradeByBuyer 在 Product 锁持有期间读取该买家的终生唯一购买意向。
+	// TradeByBuyer 在 Product 锁持有期间读取该买家的进行中购买意向
+	//（PENDING/ACCEPTED）；已取消的历史意向不算。
 	TradeByBuyer(ctx context.Context, productID, buyerID string) (*domain.Trade, error)
 	// InsertTrade 写入新交易。
 	InsertTrade(ctx context.Context, trade *domain.Trade) error

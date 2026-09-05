@@ -713,7 +713,7 @@ func TestListTradesCarriesTheCurrentProductStatus(t *testing.T) {
 	}
 }
 
-func TestCreateTradeReturnsTheLifetimeUniqueIntentWithoutReopeningIt(t *testing.T) {
+func TestCreateOrGetHitsOnlyAnActiveIntentAndAllowsRecreationAfterCancel(t *testing.T) {
 	t.Parallel()
 
 	h := newHarness(t)
@@ -749,29 +749,35 @@ func TestCreateTradeReturnsTheLifetimeUniqueIntentWithoutReopeningIt(t *testing.
 			replayedExisting.GetCreated(), replayedExisting.GetReplayed())
 	}
 
-	// A terminal intent remains the one business intent for this buyer/product.
+	// 已取消的意向不占名额：买家可以再次发起新的购买意向。
 	if _, err := h.client.CancelTrade(t.Context(), &marketplacev1.CancelTradeRequest{
 		ActorId: buyerA, TradeId: first.GetTrade().GetId(), Reason: "换一个",
 	}); err != nil {
 		t.Fatalf("CancelTrade: %v", err)
 	}
 
-	terminal, err := h.client.CreateTrade(t.Context(), &marketplacev1.CreateTradeRequest{
+	recreated, err := h.client.CreateTrade(t.Context(), &marketplacev1.CreateTradeRequest{
 		ActorId: buyerA, ProductId: product.GetId(), IdempotencyKey: key("after-cancel"),
 	})
 	if err != nil {
 		t.Fatalf("CreateTrade after cancellation: %v", err)
 	}
-	if terminal.GetCreated() || terminal.GetTrade().GetId() != first.GetTrade().GetId() ||
-		terminal.GetTrade().GetStatus() != marketplacev1.TradeStatus_TRADE_STATUS_CANCELLED {
-		t.Fatalf("terminal create-or-get = %+v", terminal)
+	if !recreated.GetCreated() {
+		t.Fatal("re-creating after cancellation must create a new intent")
+	}
+	if recreated.GetTrade().GetId() == first.GetTrade().GetId() {
+		t.Fatalf("recreated trade = %q, want a new row distinct from the cancelled %q",
+			recreated.GetTrade().GetId(), first.GetTrade().GetId())
+	}
+	if recreated.GetTrade().GetStatus() != marketplacev1.TradeStatus_TRADE_STATUS_PENDING {
+		t.Fatalf("recreated status = %s, want PENDING", recreated.GetTrade().GetStatus())
 	}
 
-	h.assertTradeCounts(t, product.GetId(), map[string]int{"CANCELLED": 1})
-	h.assertOutboxCount(t, application.EventTradeCreated, 1)
+	h.assertTradeCounts(t, product.GetId(), map[string]int{"CANCELLED": 1, "PENDING": 1})
+	h.assertOutboxCount(t, application.EventTradeCreated, 2)
 }
 
-func TestConcurrentCreateTradeCallsCreateOneLifetimeIntent(t *testing.T) {
+func TestConcurrentCreateTradeCallsCreateOneActiveIntent(t *testing.T) {
 	t.Parallel()
 
 	h := newHarness(t)
@@ -963,14 +969,16 @@ func TestCreateTradeIdempotentReplayPrecedesConversationRevalidation(t *testing.
 		t.Fatalf("replayed first creation = %+v", replayed)
 	}
 
+	// 取消后进行中意向不复存在：不带 key 的再次创建会新建一笔 PENDING 意向。
 	current, err := h.client.CreateTrade(t.Context(), &marketplacev1.CreateTradeRequest{
 		ActorId: buyerA, ProductId: product.GetId(),
 	})
 	if err != nil {
 		t.Fatalf("fresh create-or-get: %v", err)
 	}
-	if current.GetCreated() || current.GetTrade().GetStatus() != marketplacev1.TradeStatus_TRADE_STATUS_CANCELLED {
-		t.Fatalf("fresh create-or-get = %+v", current)
+	if !current.GetCreated() || current.GetTrade().GetStatus() != marketplacev1.TradeStatus_TRADE_STATUS_PENDING ||
+		current.GetTrade().GetId() == first.GetTrade().GetId() {
+		t.Fatalf("fresh create after cancellation = %+v", current)
 	}
 }
 
