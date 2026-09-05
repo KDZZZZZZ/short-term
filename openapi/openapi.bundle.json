@@ -46,8 +46,8 @@
       "description": "购买意向和受控的交易状态动作。"
     },
     {
-      "name": "Reviews",
-      "description": "买家对已完成交易的商品的文字评论。"
+      "name": "Comments",
+      "description": "用户对商品的文字评论，不要求购买。"
     }
   ],
   "paths": {
@@ -693,7 +693,7 @@
         }
       }
     },
-    "/products/{productId}/reviews": {
+    "/products/{productId}/comments": {
       "parameters": [
         {
           "$ref": "#/components/parameters/ProductId"
@@ -701,11 +701,11 @@
       ],
       "get": {
         "tags": [
-          "Reviews"
+          "Comments"
         ],
-        "summary": "查看商品的买家评论",
-        "operationId": "listProductReviews",
-        "description": "返回该商品收到的全部买家评论，固定按 `created_at DESC, id DESC` 排列。\n评论与商品状态无关，`OFF_SHELF`、`RESERVED` 和 `SOLD` 商品的评论同样可见；\n`404` 只表示商品不存在。页码分页不提供跨请求快照，并发发布可能导致\n后续页面漂移。\n",
+        "summary": "查看商品的用户评论",
+        "operationId": "listProductComments",
+        "description": "返回该商品收到的全部用户评论，固定按 `created_at DESC, id DESC` 排列。\n评论与商品状态无关，`OFF_SHELF`、`RESERVED` 和 `SOLD` 商品的评论同样可见；\n`404` 只表示商品不存在。页码分页不提供跨请求快照，并发评论可能导致\n后续页面漂移。\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -716,11 +716,11 @@
         ],
         "responses": {
           "200": {
-            "description": "商品买家评论分页列表。",
+            "description": "商品用户评论分页列表。",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReviewPageSuccess"
+                  "$ref": "#/components/schemas/CommentPageSuccess"
                 }
               }
             }
@@ -738,17 +738,17 @@
       },
       "post": {
         "tags": [
-          "Reviews"
+          "Comments"
         ],
-        "summary": "发布买家评论",
-        "operationId": "createProductReview",
-        "description": "当前用户必须是该商品一笔 `COMPLETED` 交易的买家，每个买家对每个商品\n只能发布一条评论；评论发布后不可修改、不可删除，也不接受作者撤销。\n评论发布不改变商品或交易状态。当前用户没有对应已完成交易（包括不是\n买家、交易仍在进行或已取消）时返回 `403 / FORBIDDEN`；重复发布返回\n`409 / REVIEW_ALREADY_EXISTS`，并发重复提交时只有一个请求成功。\n",
+        "summary": "发布用户评论",
+        "operationId": "createProductComment",
+        "description": "任何已认证用户都可以对任何现存商品发布评论：不要求购买过该商品，不限\n商品状态，用户也可以评论自己发布的商品。每个用户对同一商品可以发布\n多条评论。评论发布后不可修改、不可删除。评论发布不改变商品或交易状态。\n商品不存在返回 `404 / RESOURCE_NOT_FOUND`。\n",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewCreateRequest"
+                "$ref": "#/components/schemas/CommentCreateRequest"
               }
             }
           }
@@ -759,7 +759,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReviewSuccess"
+                  "$ref": "#/components/schemas/CommentSuccess"
                 }
               }
             }
@@ -770,14 +770,8 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -1738,7 +1732,7 @@
       },
       "ErrorCode": {
         "type": "string",
-        "description": "稳定业务错误码及其 HTTP 绑定：请求格式或字段值无效使用\n`400 / VALIDATION_ERROR`；资料缺少发布商品所需联系方式使用\n`400 / CONTACT_REQUIRED`；上传数量超过三张使用\n`400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；\n已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或\n对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、\n商品或交易状态冲突使用 `409` 及对应业务码；重复发布买家评论使用\n`409 / REVIEW_ALREADY_EXISTS`；请求过于频繁使用\n`429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。\n",
+        "description": "稳定业务错误码及其 HTTP 绑定：请求格式或字段值无效使用\n`400 / VALIDATION_ERROR`；资料缺少发布商品所需联系方式使用\n`400 / CONTACT_REQUIRED`；上传数量超过三张使用\n`400 / IMAGE_LIMIT_EXCEEDED`；未认证使用 `401 / UNAUTHORIZED`；\n已认证参与者角色不允许执行动作使用 `403 / FORBIDDEN`；资源不存在或\n对当前用户不可见使用 `404 / RESOURCE_NOT_FOUND`；唯一性、自我操作、\n商品或交易状态冲突使用 `409` 及对应业务码；请求过于频繁使用\n`429 / RATE_LIMITED`；未预期错误使用 `500 / INTERNAL_ERROR`。\n",
         "enum": [
           "VALIDATION_ERROR",
           "CONTACT_REQUIRED",
@@ -1753,7 +1747,6 @@
           "PRODUCT_STATE_CONFLICT",
           "CONVERSATION_MISMATCH",
           "SELF_ACTION_NOT_ALLOWED",
-          "REVIEW_ALREADY_EXISTS",
           "RATE_LIMITED",
           "INTERNAL_ERROR"
         ]
@@ -2269,20 +2262,20 @@
           }
         ]
       },
-      "ReviewComment": {
+      "CommentContent": {
         "type": "string",
         "minLength": 1,
         "maxLength": 500,
-        "description": "买家评论正文，1 至 500 个字符。"
+        "description": "用户评论正文，1 至 500 个字符。"
       },
-      "Review": {
+      "Comment": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "id",
           "product_id",
-          "buyer",
-          "comment",
+          "user",
+          "content",
           "created_at"
         ],
         "properties": {
@@ -2292,11 +2285,11 @@
           "product_id": {
             "$ref": "#/components/schemas/Identifier"
           },
-          "buyer": {
+          "user": {
             "$ref": "#/components/schemas/UserPublic"
           },
-          "comment": {
-            "$ref": "#/components/schemas/ReviewComment"
+          "content": {
+            "$ref": "#/components/schemas/CommentContent"
           },
           "created_at": {
             "type": "string",
@@ -2304,7 +2297,7 @@
           }
         }
       },
-      "ReviewPage": {
+      "CommentPage": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -2317,7 +2310,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Review"
+              "$ref": "#/components/schemas/Comment"
             }
           },
           "page": {
@@ -2335,7 +2328,7 @@
           }
         }
       },
-      "ReviewPageSuccess": {
+      "CommentPageSuccess": {
         "allOf": [
           {
             "$ref": "#/components/schemas/SuccessBase"
@@ -2344,25 +2337,25 @@
             "type": "object",
             "properties": {
               "data": {
-                "$ref": "#/components/schemas/ReviewPage"
+                "$ref": "#/components/schemas/CommentPage"
               }
             }
           }
         ]
       },
-      "ReviewCreateRequest": {
+      "CommentCreateRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "comment"
+          "content"
         ],
         "properties": {
-          "comment": {
-            "$ref": "#/components/schemas/ReviewComment"
+          "content": {
+            "$ref": "#/components/schemas/CommentContent"
           }
         }
       },
-      "ReviewSuccess": {
+      "CommentSuccess": {
         "allOf": [
           {
             "$ref": "#/components/schemas/SuccessBase"
@@ -2371,7 +2364,7 @@
             "type": "object",
             "properties": {
               "data": {
-                "$ref": "#/components/schemas/Review"
+                "$ref": "#/components/schemas/Comment"
               }
             }
           }
