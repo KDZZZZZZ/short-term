@@ -106,7 +106,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	reviews, err := application.NewReviewService(postgres.NewReviewRepository(pool), ids, clock)
+	comments, err := application.NewCommentService(postgres.NewCommentRepository(pool), ids, clock)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func run() error {
 		HandlerTimeout: cfg.HandlerTimeout,
 	})
 	grpcx.RegisterHealthServer(server, pool.Ping)
-	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades, reviews))
+	marketplacev1.RegisterMarketplaceServiceServer(server, grpcadapter.NewServer(products, trades, comments))
 
 	logger.Info("media store ready", slog.String("root", objects.Root()), slog.String("public_url", cfg.MediaPublicURL))
 	return grpcx.Serve(ctx, server, cfg.GRPCAddr, logger)

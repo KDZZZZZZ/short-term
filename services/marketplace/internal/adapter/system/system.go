@@ -31,8 +31,8 @@ func (i *IDs) NewImageID() string { return i.generator.New(id.PrefixProductImage
 // NewTradeID 返回新的不透明交易标识。
 func (i *IDs) NewTradeID() string { return i.generator.New(id.PrefixTrade) }
 
-// NewReviewID 返回新的不透明评论标识。
-func (i *IDs) NewReviewID() string { return i.generator.New(id.PrefixReview) }
+// NewCommentID 返回新的不透明评论标识。
+func (i *IDs) NewCommentID() string { return i.generator.New(id.PrefixComment) }
 
 // NewEventID 返回新的不透明 Outbox 事件标识。
 func (i *IDs) NewEventID() string { return i.generator.New(id.PrefixEvent) }

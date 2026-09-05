@@ -188,5 +188,5 @@ type collidingEventIDs struct {
 func (c collidingEventIDs) NewProductID() string { return c.inner.NewProductID() }
 func (c collidingEventIDs) NewImageID() string   { return c.inner.NewImageID() }
 func (c collidingEventIDs) NewTradeID() string   { return c.inner.NewTradeID() }
-func (c collidingEventIDs) NewReviewID() string  { return c.inner.NewReviewID() }
+func (c collidingEventIDs) NewCommentID() string { return c.inner.NewCommentID() }
 func (c collidingEventIDs) NewEventID() string   { return "evt_" + string(id.PrefixEvent) + "_fixed" }

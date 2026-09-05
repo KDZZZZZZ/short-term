@@ -28,8 +28,8 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 
 	accounts := &stubAccounts{}
 	marketplace := &stubMarketplace{
-		createReviewResp: &marketplacev1.CreateReviewResponse{Review: &marketplacev1.Review{
-			Id: "rv_route", ProductId: testProductID, BuyerId: testActor, Comment: "不错",
+		createCommentResp: &marketplacev1.CreateProductCommentResponse{Comment: &marketplacev1.ProductComment{
+			Id: "cm_route", ProductId: testProductID, UserId: testActor, Content: "不错",
 			CreatedAt: timestamppb.New(time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)),
 		}},
 	}
@@ -48,8 +48,8 @@ func TestFavoriteAndMessagingRoutesAreWired(t *testing.T) {
 		{name: "list favorites", method: http.MethodGet, path: basePath + "/favorites", wantStatus: http.StatusOK},
 		{name: "add favorite", method: http.MethodPut, path: basePath + "/favorites/" + testProductID, wantStatus: http.StatusOK},
 		{name: "remove favorite", method: http.MethodDelete, path: basePath + "/favorites/" + testProductID, wantStatus: http.StatusOK},
-		{name: "list reviews", method: http.MethodGet, path: basePath + "/products/" + testProductID + "/reviews", wantStatus: http.StatusOK},
-		{name: "create review", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/reviews", body: `{"comment":"不错"}`, wantStatus: http.StatusCreated},
+		{name: "list comments", method: http.MethodGet, path: basePath + "/products/" + testProductID + "/comments", wantStatus: http.StatusOK},
+		{name: "create comment", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/comments", body: `{"content":"不错"}`, wantStatus: http.StatusCreated},
 		{name: "get or create conversation", method: http.MethodPost, path: basePath + "/products/" + testProductID + "/conversations", wantStatus: http.StatusOK},
 		{name: "list conversations", method: http.MethodGet, path: basePath + "/conversations", wantStatus: http.StatusOK},
 		{name: "unread count", method: http.MethodGet, path: basePath + "/conversations/unread-count", wantStatus: http.StatusOK},
@@ -103,7 +103,7 @@ func newMilestoneServer(
 		Users:        handler.NewUsers(accounts, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
-		Reviews:      handler.NewReviews(marketplace, aggregator, responder),
+		Comments:     handler.NewComments(marketplace, aggregator, responder),
 		Favorites:    handler.NewFavorites(favorites, aggregator, responder),
 		Messaging:    handler.NewMessaging(messaging, aggregator, responder),
 	})
