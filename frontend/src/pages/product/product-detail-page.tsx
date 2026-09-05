@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertDialog, Button, Card, Separator, Spinner, toast } from '@heroui/react'
@@ -23,6 +24,7 @@ import { isApiError } from '@/lib/http'
 import { categoryLabel, formatDateTime, formatPrice, formatRelativeTime, nicknameInitial } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
 import { AnimatedDigits } from '@/components/animated-digits'
+import { ProductImageLightbox } from '@/components/product-image-lightbox'
 import { ProductComments } from '@/components/product-comments'
 import { ProductStatusChip } from '@/components/status-chip'
 
@@ -33,6 +35,7 @@ export function ProductDetailPage() {
   const me = useAuthStore((state) => state.user)
 
   const [activeImage, setActiveImage] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   const { data: product, isPending, error } = useQuery({
     queryKey: ['product', productId],
@@ -164,7 +167,14 @@ export function ProductDetailPage() {
             </div>
           ) : null}
 
-          <div className="relative min-h-72 flex-1 overflow-hidden rounded-xl border border-border-secondary bg-surface-secondary">
+          <div
+            aria-label="放大查看商品图片"
+            className={`relative min-h-72 flex-1 cursor-zoom-in overflow-hidden rounded-xl border border-border-secondary bg-surface-secondary transition-transform duration-200 hover:scale-[1.01]`}
+            onClick={() => {
+              if (active) setLightboxOpen(true)
+            }}
+            role="button"
+          >
             {active ? (
               <img
                 alt={product.title}
@@ -383,6 +393,13 @@ export function ProductDetailPage() {
       <Card className="p-4 text-xs text-muted">
         商品信息由卖家发布，请通过站内会话沟通确认商品成色、价格与交易地点后再发起购买意向。
       </Card>
+
+      {/* 图片灯箱：放大居中的卡片堆 */}
+      <AnimatePresence>
+        {lightboxOpen && urls.length > 0 ? (
+          <ProductImageLightbox initialIndex={activeImage} urls={urls} onClose={() => setLightboxOpen(false)} />
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
