@@ -1,0 +1,67 @@
+collection:
+  parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+  get:
+    tags:
+      - Reviews
+    summary: 查看商品的买家评论
+    operationId: listProductReviews
+    description: |
+      返回该商品收到的全部买家评论，固定按 `created_at DESC, id DESC` 排列。
+      评论与商品状态无关，`OFF_SHELF`、`RESERVED` 和 `SOLD` 商品的评论同样可见；
+      `404` 只表示商品不存在。页码分页不提供跨请求快照，并发发布可能导致
+      后续页面漂移。
+    parameters:
+      - $ref: ../components/parameters.yaml#/Page
+      - $ref: ../components/parameters.yaml#/PageSize
+    responses:
+      '200':
+        description: 商品买家评论分页列表。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ReviewPageSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
+  post:
+    tags:
+      - Reviews
+    summary: 发布买家评论
+    operationId: createProductReview
+    description: |
+      当前用户必须是该商品一笔 `COMPLETED` 交易的买家，每个买家对每个商品
+      只能发布一条评论；评论发布后不可修改、不可删除，也不接受作者撤销。
+      评论发布不改变商品或交易状态。当前用户没有对应已完成交易（包括不是
+      买家、交易仍在进行或已取消）时返回 `403 / FORBIDDEN`；重复发布返回
+      `409 / REVIEW_ALREADY_EXISTS`，并发重复提交时只有一个请求成功。
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas.yaml#/ReviewCreateRequest
+    responses:
+      '201':
+        description: 评论已发布。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/ReviewSuccess
+      '400':
+        $ref: ../components/responses.yaml#/BadRequest
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '403':
+        $ref: ../components/responses.yaml#/Forbidden
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '409':
+        $ref: ../components/responses.yaml#/Conflict
+      '429':
+        $ref: ../components/responses.yaml#/TooManyRequests
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
