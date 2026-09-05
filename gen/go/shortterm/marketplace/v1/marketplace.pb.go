@@ -2752,33 +2752,33 @@ func (x *ConfirmTradeResponse) GetReplayed() bool {
 	return false
 }
 
-// Review 是买家在交易完成后发布的不可变文字评论。每个买家对每个商品
-// 最多一条；公开契约只暴露 buyer_id，昵称由 Gateway 批量补全。
-type Review struct {
+// ProductComment 是用户就商品发布的不可变文字评论。任何用户可以对任何
+// 现存商品发布任意多条评论；公开契约只暴露 user_id，昵称由 Gateway 批量补全。
+type ProductComment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	BuyerId       string                 `protobuf:"bytes,3,opt,name=buyer_id,json=buyerId,proto3" json:"buyer_id,omitempty"`
-	Comment       string                 `protobuf:"bytes,4,opt,name=comment,proto3" json:"comment,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Review) Reset() {
-	*x = Review{}
+func (x *ProductComment) Reset() {
+	*x = ProductComment{}
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Review) String() string {
+func (x *ProductComment) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Review) ProtoMessage() {}
+func (*ProductComment) ProtoMessage() {}
 
-func (x *Review) ProtoReflect() protoreflect.Message {
+func (x *ProductComment) ProtoReflect() protoreflect.Message {
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2790,49 +2790,49 @@ func (x *Review) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Review.ProtoReflect.Descriptor instead.
-func (*Review) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProductComment.ProtoReflect.Descriptor instead.
+func (*ProductComment) Descriptor() ([]byte, []int) {
 	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{42}
 }
 
-func (x *Review) GetId() string {
+func (x *ProductComment) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *Review) GetProductId() string {
+func (x *ProductComment) GetProductId() string {
 	if x != nil {
 		return x.ProductId
 	}
 	return ""
 }
 
-func (x *Review) GetBuyerId() string {
+func (x *ProductComment) GetUserId() string {
 	if x != nil {
-		return x.BuyerId
+		return x.UserId
 	}
 	return ""
 }
 
-func (x *Review) GetComment() string {
+func (x *ProductComment) GetContent() string {
 	if x != nil {
-		return x.Comment
+		return x.Content
 	}
 	return ""
 }
 
-func (x *Review) GetCreatedAt() *timestamppb.Timestamp {
+func (x *ProductComment) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-type ReviewPage struct {
+type ProductCommentPage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*Review              `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Items         []*ProductComment      `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	Total         int64                  `protobuf:"varint,4,opt,name=total,proto3" json:"total,omitempty"`
@@ -2840,20 +2840,20 @@ type ReviewPage struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ReviewPage) Reset() {
-	*x = ReviewPage{}
+func (x *ProductCommentPage) Reset() {
+	*x = ProductCommentPage{}
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ReviewPage) String() string {
+func (x *ProductCommentPage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ReviewPage) ProtoMessage() {}
+func (*ProductCommentPage) ProtoMessage() {}
 
-func (x *ReviewPage) ProtoReflect() protoreflect.Message {
+func (x *ProductCommentPage) ProtoReflect() protoreflect.Message {
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2865,62 +2865,62 @@ func (x *ReviewPage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReviewPage.ProtoReflect.Descriptor instead.
-func (*ReviewPage) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProductCommentPage.ProtoReflect.Descriptor instead.
+func (*ProductCommentPage) Descriptor() ([]byte, []int) {
 	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{43}
 }
 
-func (x *ReviewPage) GetItems() []*Review {
+func (x *ProductCommentPage) GetItems() []*ProductComment {
 	if x != nil {
 		return x.Items
 	}
 	return nil
 }
 
-func (x *ReviewPage) GetPage() int32 {
+func (x *ProductCommentPage) GetPage() int32 {
 	if x != nil {
 		return x.Page
 	}
 	return 0
 }
 
-func (x *ReviewPage) GetPageSize() int32 {
+func (x *ProductCommentPage) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
 	return 0
 }
 
-func (x *ReviewPage) GetTotal() int64 {
+func (x *ProductCommentPage) GetTotal() int64 {
 	if x != nil {
 		return x.Total
 	}
 	return 0
 }
 
-type CreateReviewRequest struct {
+type CreateProductCommentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ActorId       string                 `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
 	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	Comment       string                 `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateReviewRequest) Reset() {
-	*x = CreateReviewRequest{}
+func (x *CreateProductCommentRequest) Reset() {
+	*x = CreateProductCommentRequest{}
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateReviewRequest) String() string {
+func (x *CreateProductCommentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateReviewRequest) ProtoMessage() {}
+func (*CreateProductCommentRequest) ProtoMessage() {}
 
-func (x *CreateReviewRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateProductCommentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2932,53 +2932,53 @@ func (x *CreateReviewRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateReviewRequest.ProtoReflect.Descriptor instead.
-func (*CreateReviewRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateProductCommentRequest.ProtoReflect.Descriptor instead.
+func (*CreateProductCommentRequest) Descriptor() ([]byte, []int) {
 	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{44}
 }
 
-func (x *CreateReviewRequest) GetActorId() string {
+func (x *CreateProductCommentRequest) GetActorId() string {
 	if x != nil {
 		return x.ActorId
 	}
 	return ""
 }
 
-func (x *CreateReviewRequest) GetProductId() string {
+func (x *CreateProductCommentRequest) GetProductId() string {
 	if x != nil {
 		return x.ProductId
 	}
 	return ""
 }
 
-func (x *CreateReviewRequest) GetComment() string {
+func (x *CreateProductCommentRequest) GetContent() string {
 	if x != nil {
-		return x.Comment
+		return x.Content
 	}
 	return ""
 }
 
-type CreateReviewResponse struct {
+type CreateProductCommentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Review        *Review                `protobuf:"bytes,1,opt,name=review,proto3" json:"review,omitempty"`
+	Comment       *ProductComment        `protobuf:"bytes,1,opt,name=comment,proto3" json:"comment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateReviewResponse) Reset() {
-	*x = CreateReviewResponse{}
+func (x *CreateProductCommentResponse) Reset() {
+	*x = CreateProductCommentResponse{}
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateReviewResponse) String() string {
+func (x *CreateProductCommentResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateReviewResponse) ProtoMessage() {}
+func (*CreateProductCommentResponse) ProtoMessage() {}
 
-func (x *CreateReviewResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateProductCommentResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2990,19 +2990,19 @@ func (x *CreateReviewResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateReviewResponse.ProtoReflect.Descriptor instead.
-func (*CreateReviewResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateProductCommentResponse.ProtoReflect.Descriptor instead.
+func (*CreateProductCommentResponse) Descriptor() ([]byte, []int) {
 	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{45}
 }
 
-func (x *CreateReviewResponse) GetReview() *Review {
+func (x *CreateProductCommentResponse) GetComment() *ProductComment {
 	if x != nil {
-		return x.Review
+		return x.Comment
 	}
 	return nil
 }
 
-type ListProductReviewsRequest struct {
+type ListProductCommentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
@@ -3011,20 +3011,20 @@ type ListProductReviewsRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListProductReviewsRequest) Reset() {
-	*x = ListProductReviewsRequest{}
+func (x *ListProductCommentsRequest) Reset() {
+	*x = ListProductCommentsRequest{}
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListProductReviewsRequest) String() string {
+func (x *ListProductCommentsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListProductReviewsRequest) ProtoMessage() {}
+func (*ListProductCommentsRequest) ProtoMessage() {}
 
-func (x *ListProductReviewsRequest) ProtoReflect() protoreflect.Message {
+func (x *ListProductCommentsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -3036,53 +3036,53 @@ func (x *ListProductReviewsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListProductReviewsRequest.ProtoReflect.Descriptor instead.
-func (*ListProductReviewsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListProductCommentsRequest.ProtoReflect.Descriptor instead.
+func (*ListProductCommentsRequest) Descriptor() ([]byte, []int) {
 	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{46}
 }
 
-func (x *ListProductReviewsRequest) GetProductId() string {
+func (x *ListProductCommentsRequest) GetProductId() string {
 	if x != nil {
 		return x.ProductId
 	}
 	return ""
 }
 
-func (x *ListProductReviewsRequest) GetPage() int32 {
+func (x *ListProductCommentsRequest) GetPage() int32 {
 	if x != nil {
 		return x.Page
 	}
 	return 0
 }
 
-func (x *ListProductReviewsRequest) GetPageSize() int32 {
+func (x *ListProductCommentsRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
 	return 0
 }
 
-type ListProductReviewsResponse struct {
+type ListProductCommentsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          *ReviewPage            `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	Page          *ProductCommentPage    `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListProductReviewsResponse) Reset() {
-	*x = ListProductReviewsResponse{}
+func (x *ListProductCommentsResponse) Reset() {
+	*x = ListProductCommentsResponse{}
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListProductReviewsResponse) String() string {
+func (x *ListProductCommentsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListProductReviewsResponse) ProtoMessage() {}
+func (*ListProductCommentsResponse) ProtoMessage() {}
 
-func (x *ListProductReviewsResponse) ProtoReflect() protoreflect.Message {
+func (x *ListProductCommentsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_shortterm_marketplace_v1_marketplace_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -3094,12 +3094,12 @@ func (x *ListProductReviewsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListProductReviewsResponse.ProtoReflect.Descriptor instead.
-func (*ListProductReviewsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListProductCommentsResponse.ProtoReflect.Descriptor instead.
+func (*ListProductCommentsResponse) Descriptor() ([]byte, []int) {
 	return file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{47}
 }
 
-func (x *ListProductReviewsResponse) GetPage() *ReviewPage {
+func (x *ListProductCommentsResponse) GetPage() *ProductCommentPage {
 	if x != nil {
 		return x.Page
 	}
@@ -3332,35 +3332,34 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x10_idempotency_key\"i\n" +
 	"\x14ConfirmTradeResponse\x125\n" +
 	"\x05trade\x18\x01 \x01(\v2\x1f.shortterm.marketplace.v1.TradeR\x05trade\x12\x1a\n" +
-	"\breplayed\x18\x02 \x01(\bR\breplayed\"\xa7\x01\n" +
-	"\x06Review\x12\x0e\n" +
+	"\breplayed\x18\x02 \x01(\bR\breplayed\"\xad\x01\n" +
+	"\x0eProductComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"product_id\x18\x02 \x01(\tR\tproductId\x12\x19\n" +
-	"\bbuyer_id\x18\x03 \x01(\tR\abuyerId\x12\x18\n" +
-	"\acomment\x18\x04 \x01(\tR\acomment\x129\n" +
+	"product_id\x18\x02 \x01(\tR\tproductId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x129\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x8b\x01\n" +
-	"\n" +
-	"ReviewPage\x126\n" +
-	"\x05items\x18\x01 \x03(\v2 .shortterm.marketplace.v1.ReviewR\x05items\x12\x12\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x9b\x01\n" +
+	"\x12ProductCommentPage\x12>\n" +
+	"\x05items\x18\x01 \x03(\v2(.shortterm.marketplace.v1.ProductCommentR\x05items\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x14\n" +
-	"\x05total\x18\x04 \x01(\x03R\x05total\"i\n" +
-	"\x13CreateReviewRequest\x12\x19\n" +
+	"\x05total\x18\x04 \x01(\x03R\x05total\"q\n" +
+	"\x1bCreateProductCommentRequest\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x02 \x01(\tR\tproductId\x12\x18\n" +
-	"\acomment\x18\x03 \x01(\tR\acomment\"P\n" +
-	"\x14CreateReviewResponse\x128\n" +
-	"\x06review\x18\x01 \x01(\v2 .shortterm.marketplace.v1.ReviewR\x06review\"k\n" +
-	"\x19ListProductReviewsRequest\x12\x1d\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"b\n" +
+	"\x1cCreateProductCommentResponse\x12B\n" +
+	"\acomment\x18\x01 \x01(\v2(.shortterm.marketplace.v1.ProductCommentR\acomment\"l\n" +
+	"\x1aListProductCommentsRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"V\n" +
-	"\x1aListProductReviewsResponse\x128\n" +
-	"\x04page\x18\x01 \x01(\v2$.shortterm.marketplace.v1.ReviewPageR\x04page*\x9f\x01\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"_\n" +
+	"\x1bListProductCommentsResponse\x12@\n" +
+	"\x04page\x18\x01 \x01(\v2,.shortterm.marketplace.v1.ProductCommentPageR\x04page*\x9f\x01\n" +
 	"\rProductStatus\x12\x1e\n" +
 	"\x1aPRODUCT_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16PRODUCT_STATUS_ON_SALE\x10\x01\x12\x1b\n" +
@@ -3378,7 +3377,7 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x19PRODUCT_CATEGORY_TEXTBOOK\x10\x01\x12\x1c\n" +
 	"\x18PRODUCT_CATEGORY_DIGITAL\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_CATEGORY_LIFE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_CATEGORY_OTHER\x10\x042\x87\x11\n" +
+	"\x16PRODUCT_CATEGORY_OTHER\x10\x042\xa4\x11\n" +
 	"\x12MarketplaceService\x12p\n" +
 	"\rCreateProduct\x12..shortterm.marketplace.v1.CreateProductRequest\x1a/.shortterm.marketplace.v1.CreateProductResponse\x12g\n" +
 	"\n" +
@@ -3398,9 +3397,9 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\vAcceptTrade\x12,.shortterm.marketplace.v1.AcceptTradeRequest\x1a-.shortterm.marketplace.v1.AcceptTradeResponse\x12j\n" +
 	"\vRejectTrade\x12,.shortterm.marketplace.v1.RejectTradeRequest\x1a-.shortterm.marketplace.v1.RejectTradeResponse\x12j\n" +
 	"\vCancelTrade\x12,.shortterm.marketplace.v1.CancelTradeRequest\x1a-.shortterm.marketplace.v1.CancelTradeResponse\x12m\n" +
-	"\fConfirmTrade\x12-.shortterm.marketplace.v1.ConfirmTradeRequest\x1a..shortterm.marketplace.v1.ConfirmTradeResponse\x12m\n" +
-	"\fCreateReview\x12-.shortterm.marketplace.v1.CreateReviewRequest\x1a..shortterm.marketplace.v1.CreateReviewResponse\x12\x7f\n" +
-	"\x12ListProductReviews\x123.shortterm.marketplace.v1.ListProductReviewsRequest\x1a4.shortterm.marketplace.v1.ListProductReviewsResponseBNZLgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1b\x06proto3"
+	"\fConfirmTrade\x12-.shortterm.marketplace.v1.ConfirmTradeRequest\x1a..shortterm.marketplace.v1.ConfirmTradeResponse\x12\x85\x01\n" +
+	"\x14CreateProductComment\x125.shortterm.marketplace.v1.CreateProductCommentRequest\x1a6.shortterm.marketplace.v1.CreateProductCommentResponse\x12\x82\x01\n" +
+	"\x13ListProductComments\x124.shortterm.marketplace.v1.ListProductCommentsRequest\x1a5.shortterm.marketplace.v1.ListProductCommentsResponseBNZLgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1b\x06proto3"
 
 var (
 	file_shortterm_marketplace_v1_marketplace_proto_rawDescOnce sync.Once
@@ -3417,59 +3416,59 @@ func file_shortterm_marketplace_v1_marketplace_proto_rawDescGZIP() []byte {
 var file_shortterm_marketplace_v1_marketplace_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_shortterm_marketplace_v1_marketplace_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_shortterm_marketplace_v1_marketplace_proto_goTypes = []any{
-	(ProductStatus)(0),                 // 0: shortterm.marketplace.v1.ProductStatus
-	(TradeStatus)(0),                   // 1: shortterm.marketplace.v1.TradeStatus
-	(ProductCategory)(0),               // 2: shortterm.marketplace.v1.ProductCategory
-	(*ImageUpload)(nil),                // 3: shortterm.marketplace.v1.ImageUpload
-	(*ProductImage)(nil),               // 4: shortterm.marketplace.v1.ProductImage
-	(*ProductSummary)(nil),             // 5: shortterm.marketplace.v1.ProductSummary
-	(*ProductDetail)(nil),              // 6: shortterm.marketplace.v1.ProductDetail
-	(*ProductPage)(nil),                // 7: shortterm.marketplace.v1.ProductPage
-	(*TradeProduct)(nil),               // 8: shortterm.marketplace.v1.TradeProduct
-	(*Trade)(nil),                      // 9: shortterm.marketplace.v1.Trade
-	(*TradePage)(nil),                  // 10: shortterm.marketplace.v1.TradePage
-	(*CreateProductRequest)(nil),       // 11: shortterm.marketplace.v1.CreateProductRequest
-	(*CreateProductResponse)(nil),      // 12: shortterm.marketplace.v1.CreateProductResponse
-	(*GetProductRequest)(nil),          // 13: shortterm.marketplace.v1.GetProductRequest
-	(*GetProductResponse)(nil),         // 14: shortterm.marketplace.v1.GetProductResponse
-	(*ListProductsRequest)(nil),        // 15: shortterm.marketplace.v1.ListProductsRequest
-	(*ListUserProductsRequest)(nil),    // 16: shortterm.marketplace.v1.ListUserProductsRequest
-	(*ListProductsResponse)(nil),       // 17: shortterm.marketplace.v1.ListProductsResponse
-	(*ListUserProductsResponse)(nil),   // 18: shortterm.marketplace.v1.ListUserProductsResponse
-	(*BatchGetProductsRequest)(nil),    // 19: shortterm.marketplace.v1.BatchGetProductsRequest
-	(*BatchGetProductsResponse)(nil),   // 20: shortterm.marketplace.v1.BatchGetProductsResponse
-	(*UpdateProductRequest)(nil),       // 21: shortterm.marketplace.v1.UpdateProductRequest
-	(*UpdateProductResponse)(nil),      // 22: shortterm.marketplace.v1.UpdateProductResponse
-	(*AddProductImagesRequest)(nil),    // 23: shortterm.marketplace.v1.AddProductImagesRequest
-	(*AddProductImagesResponse)(nil),   // 24: shortterm.marketplace.v1.AddProductImagesResponse
-	(*DeleteProductImageRequest)(nil),  // 25: shortterm.marketplace.v1.DeleteProductImageRequest
-	(*DeleteProductImageResponse)(nil), // 26: shortterm.marketplace.v1.DeleteProductImageResponse
-	(*OffShelfProductRequest)(nil),     // 27: shortterm.marketplace.v1.OffShelfProductRequest
-	(*OffShelfProductResponse)(nil),    // 28: shortterm.marketplace.v1.OffShelfProductResponse
-	(*RelistProductRequest)(nil),       // 29: shortterm.marketplace.v1.RelistProductRequest
-	(*RelistProductResponse)(nil),      // 30: shortterm.marketplace.v1.RelistProductResponse
-	(*CreateTradeRequest)(nil),         // 31: shortterm.marketplace.v1.CreateTradeRequest
-	(*CreateTradeResponse)(nil),        // 32: shortterm.marketplace.v1.CreateTradeResponse
-	(*ListTradesRequest)(nil),          // 33: shortterm.marketplace.v1.ListTradesRequest
-	(*ListTradesResponse)(nil),         // 34: shortterm.marketplace.v1.ListTradesResponse
-	(*GetTradeRequest)(nil),            // 35: shortterm.marketplace.v1.GetTradeRequest
-	(*GetTradeResponse)(nil),           // 36: shortterm.marketplace.v1.GetTradeResponse
-	(*AcceptTradeRequest)(nil),         // 37: shortterm.marketplace.v1.AcceptTradeRequest
-	(*AcceptTradeResponse)(nil),        // 38: shortterm.marketplace.v1.AcceptTradeResponse
-	(*RejectTradeRequest)(nil),         // 39: shortterm.marketplace.v1.RejectTradeRequest
-	(*RejectTradeResponse)(nil),        // 40: shortterm.marketplace.v1.RejectTradeResponse
-	(*CancelTradeRequest)(nil),         // 41: shortterm.marketplace.v1.CancelTradeRequest
-	(*CancelTradeResponse)(nil),        // 42: shortterm.marketplace.v1.CancelTradeResponse
-	(*ConfirmTradeRequest)(nil),        // 43: shortterm.marketplace.v1.ConfirmTradeRequest
-	(*ConfirmTradeResponse)(nil),       // 44: shortterm.marketplace.v1.ConfirmTradeResponse
-	(*Review)(nil),                     // 45: shortterm.marketplace.v1.Review
-	(*ReviewPage)(nil),                 // 46: shortterm.marketplace.v1.ReviewPage
-	(*CreateReviewRequest)(nil),        // 47: shortterm.marketplace.v1.CreateReviewRequest
-	(*CreateReviewResponse)(nil),       // 48: shortterm.marketplace.v1.CreateReviewResponse
-	(*ListProductReviewsRequest)(nil),  // 49: shortterm.marketplace.v1.ListProductReviewsRequest
-	(*ListProductReviewsResponse)(nil), // 50: shortterm.marketplace.v1.ListProductReviewsResponse
-	nil,                                // 51: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry
-	(*timestamppb.Timestamp)(nil),      // 52: google.protobuf.Timestamp
+	(ProductStatus)(0),                   // 0: shortterm.marketplace.v1.ProductStatus
+	(TradeStatus)(0),                     // 1: shortterm.marketplace.v1.TradeStatus
+	(ProductCategory)(0),                 // 2: shortterm.marketplace.v1.ProductCategory
+	(*ImageUpload)(nil),                  // 3: shortterm.marketplace.v1.ImageUpload
+	(*ProductImage)(nil),                 // 4: shortterm.marketplace.v1.ProductImage
+	(*ProductSummary)(nil),               // 5: shortterm.marketplace.v1.ProductSummary
+	(*ProductDetail)(nil),                // 6: shortterm.marketplace.v1.ProductDetail
+	(*ProductPage)(nil),                  // 7: shortterm.marketplace.v1.ProductPage
+	(*TradeProduct)(nil),                 // 8: shortterm.marketplace.v1.TradeProduct
+	(*Trade)(nil),                        // 9: shortterm.marketplace.v1.Trade
+	(*TradePage)(nil),                    // 10: shortterm.marketplace.v1.TradePage
+	(*CreateProductRequest)(nil),         // 11: shortterm.marketplace.v1.CreateProductRequest
+	(*CreateProductResponse)(nil),        // 12: shortterm.marketplace.v1.CreateProductResponse
+	(*GetProductRequest)(nil),            // 13: shortterm.marketplace.v1.GetProductRequest
+	(*GetProductResponse)(nil),           // 14: shortterm.marketplace.v1.GetProductResponse
+	(*ListProductsRequest)(nil),          // 15: shortterm.marketplace.v1.ListProductsRequest
+	(*ListUserProductsRequest)(nil),      // 16: shortterm.marketplace.v1.ListUserProductsRequest
+	(*ListProductsResponse)(nil),         // 17: shortterm.marketplace.v1.ListProductsResponse
+	(*ListUserProductsResponse)(nil),     // 18: shortterm.marketplace.v1.ListUserProductsResponse
+	(*BatchGetProductsRequest)(nil),      // 19: shortterm.marketplace.v1.BatchGetProductsRequest
+	(*BatchGetProductsResponse)(nil),     // 20: shortterm.marketplace.v1.BatchGetProductsResponse
+	(*UpdateProductRequest)(nil),         // 21: shortterm.marketplace.v1.UpdateProductRequest
+	(*UpdateProductResponse)(nil),        // 22: shortterm.marketplace.v1.UpdateProductResponse
+	(*AddProductImagesRequest)(nil),      // 23: shortterm.marketplace.v1.AddProductImagesRequest
+	(*AddProductImagesResponse)(nil),     // 24: shortterm.marketplace.v1.AddProductImagesResponse
+	(*DeleteProductImageRequest)(nil),    // 25: shortterm.marketplace.v1.DeleteProductImageRequest
+	(*DeleteProductImageResponse)(nil),   // 26: shortterm.marketplace.v1.DeleteProductImageResponse
+	(*OffShelfProductRequest)(nil),       // 27: shortterm.marketplace.v1.OffShelfProductRequest
+	(*OffShelfProductResponse)(nil),      // 28: shortterm.marketplace.v1.OffShelfProductResponse
+	(*RelistProductRequest)(nil),         // 29: shortterm.marketplace.v1.RelistProductRequest
+	(*RelistProductResponse)(nil),        // 30: shortterm.marketplace.v1.RelistProductResponse
+	(*CreateTradeRequest)(nil),           // 31: shortterm.marketplace.v1.CreateTradeRequest
+	(*CreateTradeResponse)(nil),          // 32: shortterm.marketplace.v1.CreateTradeResponse
+	(*ListTradesRequest)(nil),            // 33: shortterm.marketplace.v1.ListTradesRequest
+	(*ListTradesResponse)(nil),           // 34: shortterm.marketplace.v1.ListTradesResponse
+	(*GetTradeRequest)(nil),              // 35: shortterm.marketplace.v1.GetTradeRequest
+	(*GetTradeResponse)(nil),             // 36: shortterm.marketplace.v1.GetTradeResponse
+	(*AcceptTradeRequest)(nil),           // 37: shortterm.marketplace.v1.AcceptTradeRequest
+	(*AcceptTradeResponse)(nil),          // 38: shortterm.marketplace.v1.AcceptTradeResponse
+	(*RejectTradeRequest)(nil),           // 39: shortterm.marketplace.v1.RejectTradeRequest
+	(*RejectTradeResponse)(nil),          // 40: shortterm.marketplace.v1.RejectTradeResponse
+	(*CancelTradeRequest)(nil),           // 41: shortterm.marketplace.v1.CancelTradeRequest
+	(*CancelTradeResponse)(nil),          // 42: shortterm.marketplace.v1.CancelTradeResponse
+	(*ConfirmTradeRequest)(nil),          // 43: shortterm.marketplace.v1.ConfirmTradeRequest
+	(*ConfirmTradeResponse)(nil),         // 44: shortterm.marketplace.v1.ConfirmTradeResponse
+	(*ProductComment)(nil),               // 45: shortterm.marketplace.v1.ProductComment
+	(*ProductCommentPage)(nil),           // 46: shortterm.marketplace.v1.ProductCommentPage
+	(*CreateProductCommentRequest)(nil),  // 47: shortterm.marketplace.v1.CreateProductCommentRequest
+	(*CreateProductCommentResponse)(nil), // 48: shortterm.marketplace.v1.CreateProductCommentResponse
+	(*ListProductCommentsRequest)(nil),   // 49: shortterm.marketplace.v1.ListProductCommentsRequest
+	(*ListProductCommentsResponse)(nil),  // 50: shortterm.marketplace.v1.ListProductCommentsResponse
+	nil,                                  // 51: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry
+	(*timestamppb.Timestamp)(nil),        // 52: google.protobuf.Timestamp
 }
 var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	52, // 0: shortterm.marketplace.v1.ProductImage.created_at:type_name -> google.protobuf.Timestamp
@@ -3514,10 +3513,10 @@ var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	9,  // 39: shortterm.marketplace.v1.RejectTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
 	9,  // 40: shortterm.marketplace.v1.CancelTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
 	9,  // 41: shortterm.marketplace.v1.ConfirmTradeResponse.trade:type_name -> shortterm.marketplace.v1.Trade
-	52, // 42: shortterm.marketplace.v1.Review.created_at:type_name -> google.protobuf.Timestamp
-	45, // 43: shortterm.marketplace.v1.ReviewPage.items:type_name -> shortterm.marketplace.v1.Review
-	45, // 44: shortterm.marketplace.v1.CreateReviewResponse.review:type_name -> shortterm.marketplace.v1.Review
-	46, // 45: shortterm.marketplace.v1.ListProductReviewsResponse.page:type_name -> shortterm.marketplace.v1.ReviewPage
+	52, // 42: shortterm.marketplace.v1.ProductComment.created_at:type_name -> google.protobuf.Timestamp
+	45, // 43: shortterm.marketplace.v1.ProductCommentPage.items:type_name -> shortterm.marketplace.v1.ProductComment
+	45, // 44: shortterm.marketplace.v1.CreateProductCommentResponse.comment:type_name -> shortterm.marketplace.v1.ProductComment
+	46, // 45: shortterm.marketplace.v1.ListProductCommentsResponse.page:type_name -> shortterm.marketplace.v1.ProductCommentPage
 	5,  // 46: shortterm.marketplace.v1.BatchGetProductsResponse.ProductsEntry.value:type_name -> shortterm.marketplace.v1.ProductSummary
 	11, // 47: shortterm.marketplace.v1.MarketplaceService.CreateProduct:input_type -> shortterm.marketplace.v1.CreateProductRequest
 	13, // 48: shortterm.marketplace.v1.MarketplaceService.GetProduct:input_type -> shortterm.marketplace.v1.GetProductRequest
@@ -3536,8 +3535,8 @@ var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	39, // 61: shortterm.marketplace.v1.MarketplaceService.RejectTrade:input_type -> shortterm.marketplace.v1.RejectTradeRequest
 	41, // 62: shortterm.marketplace.v1.MarketplaceService.CancelTrade:input_type -> shortterm.marketplace.v1.CancelTradeRequest
 	43, // 63: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:input_type -> shortterm.marketplace.v1.ConfirmTradeRequest
-	47, // 64: shortterm.marketplace.v1.MarketplaceService.CreateReview:input_type -> shortterm.marketplace.v1.CreateReviewRequest
-	49, // 65: shortterm.marketplace.v1.MarketplaceService.ListProductReviews:input_type -> shortterm.marketplace.v1.ListProductReviewsRequest
+	47, // 64: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:input_type -> shortterm.marketplace.v1.CreateProductCommentRequest
+	49, // 65: shortterm.marketplace.v1.MarketplaceService.ListProductComments:input_type -> shortterm.marketplace.v1.ListProductCommentsRequest
 	12, // 66: shortterm.marketplace.v1.MarketplaceService.CreateProduct:output_type -> shortterm.marketplace.v1.CreateProductResponse
 	14, // 67: shortterm.marketplace.v1.MarketplaceService.GetProduct:output_type -> shortterm.marketplace.v1.GetProductResponse
 	17, // 68: shortterm.marketplace.v1.MarketplaceService.ListProducts:output_type -> shortterm.marketplace.v1.ListProductsResponse
@@ -3555,8 +3554,8 @@ var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	40, // 80: shortterm.marketplace.v1.MarketplaceService.RejectTrade:output_type -> shortterm.marketplace.v1.RejectTradeResponse
 	42, // 81: shortterm.marketplace.v1.MarketplaceService.CancelTrade:output_type -> shortterm.marketplace.v1.CancelTradeResponse
 	44, // 82: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:output_type -> shortterm.marketplace.v1.ConfirmTradeResponse
-	48, // 83: shortterm.marketplace.v1.MarketplaceService.CreateReview:output_type -> shortterm.marketplace.v1.CreateReviewResponse
-	50, // 84: shortterm.marketplace.v1.MarketplaceService.ListProductReviews:output_type -> shortterm.marketplace.v1.ListProductReviewsResponse
+	48, // 83: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:output_type -> shortterm.marketplace.v1.CreateProductCommentResponse
+	50, // 84: shortterm.marketplace.v1.MarketplaceService.ListProductComments:output_type -> shortterm.marketplace.v1.ListProductCommentsResponse
 	66, // [66:85] is the sub-list for method output_type
 	47, // [47:66] is the sub-list for method input_type
 	47, // [47:47] is the sub-list for extension type_name

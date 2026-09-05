@@ -4,6 +4,13 @@ modules:
 lint:
   use:
     - STANDARD
+# 内部 gRPC 契约只有同仓库的 gateway 一个消费者，且与全部服务在同一 commit
+# 中一起构建、一起部署。RPC 与消息按产品语义演进时允许删除和重命名
+# （例如买家评论改为开放的用户评论），其余兼容性检查（字段编号与类型、
+# 枚举值、文件与包结构等）保持不变。
 breaking:
   use:
     - FILE
+  except:
+    - RPC_NO_DELETE
+    - MESSAGE_NO_DELETE
