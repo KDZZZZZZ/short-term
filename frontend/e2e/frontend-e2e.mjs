@@ -270,6 +270,7 @@ async function run() {
     await buyer.getByRole('button', { name: '我买到的' }).click()
     await buyer.getByText(`微信 wx_${SELLER.student_no}`).first().waitFor({ timeout: 8_000 })
     console.log('✓ 交易卡展示对方联系方式与主页链接')
+    await buyer.goto(productUrl)
     await buyer.getByPlaceholder('1-500 字，任何人都可以评论').fill('这本单词书确实不错，推荐！')
     await buyer.getByRole('button', { name: '发布评论' }).click()
     await buyer.getByText('这本单词书确实不错，推荐！').waitFor({ timeout: 8_000 })
