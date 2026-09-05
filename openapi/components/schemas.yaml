@@ -889,6 +889,27 @@ TradeProduct:
     status:
       $ref: '#/ProductStatus'
 
+TradeParty:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - nickname
+    - wechat
+    - qq
+  properties:
+    id:
+      $ref: '#/Identifier'
+    nickname:
+      $ref: '#/Nickname'
+    wechat:
+      $ref: '#/Wechat'
+    qq:
+      $ref: '#/QQ'
+  description: |
+    交易一方的身份与联系方式，仅交易双方可见：买家和卖家需要彼此的微信或 QQ
+    完成线下交易。买家可能未填写联系方式，此时对应字段为 `null`。
+
 Trade:
   type: object
   additionalProperties: false
@@ -917,9 +938,9 @@ Trade:
     product:
       $ref: '#/TradeProduct'
     buyer:
-      $ref: '#/UserPublic'
+      $ref: '#/TradeParty'
     seller:
-      $ref: '#/UserPublic'
+      $ref: '#/TradeParty'
     conversation_id:
       oneOf:
         - $ref: '#/Identifier'
@@ -1245,3 +1266,27 @@ MyProductPageSuccess:
       properties:
         data:
           $ref: '#/MyProductPage'
+
+UserProfile:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - nickname
+    - average_score
+  properties:
+    id:
+      $ref: '#/Identifier'
+    nickname:
+      $ref: '#/Nickname'
+    average_score:
+      $ref: '#/AverageScore'
+  description: 公开用户资料：只有昵称与卖家平均分，不含学号和联系方式。
+
+UserProfileSuccess:
+  allOf:
+    - $ref: '#/SuccessBase'
+    - type: object
+      properties:
+        data:
+          $ref: '#/UserProfile'

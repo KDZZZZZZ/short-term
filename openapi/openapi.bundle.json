@@ -236,6 +236,42 @@
         }
       }
     },
+    "/users/{userId}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "获取其他用户的公开资料",
+        "operationId": "getUserProfile",
+        "description": "返回该用户的公开资料：昵称与其作为卖家收到的买家评分平均值。\n资料不包含学号和联系方式。用户不存在返回 `404 / RESOURCE_NOT_FOUND`。\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "公开用户资料。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/users/me/password": {
       "put": {
         "tags": [
@@ -1979,6 +2015,42 @@
           }
         }
       },
+      "UserProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "nickname",
+          "average_score"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          },
+          "average_score": {
+            "$ref": "#/components/schemas/AverageScore"
+          }
+        },
+        "description": "公开用户资料：只有昵称与卖家平均分，不含学号和联系方式。"
+      },
+      "UserProfileSuccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            }
+          }
+        ]
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -3099,6 +3171,31 @@
           }
         }
       },
+      "TradeParty": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "nickname",
+          "wechat",
+          "qq"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "nickname": {
+            "$ref": "#/components/schemas/Nickname"
+          },
+          "wechat": {
+            "$ref": "#/components/schemas/Wechat"
+          },
+          "qq": {
+            "$ref": "#/components/schemas/QQ"
+          }
+        },
+        "description": "交易一方的身份与联系方式，仅交易双方可见：买家和卖家需要彼此的微信或 QQ\n完成线下交易。买家可能未填写联系方式，此时对应字段为 `null`。\n"
+      },
       "TradeStatus": {
         "type": "string",
         "enum": [
@@ -3137,10 +3234,10 @@
             "$ref": "#/components/schemas/TradeProduct"
           },
           "buyer": {
-            "$ref": "#/components/schemas/UserPublic"
+            "$ref": "#/components/schemas/TradeParty"
           },
           "seller": {
-            "$ref": "#/components/schemas/UserPublic"
+            "$ref": "#/components/schemas/TradeParty"
           },
           "conversation_id": {
             "oneOf": [
@@ -3506,6 +3603,15 @@
       }
     },
     "parameters": {
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "不透明用户标识。",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
       "ProductStatus": {
         "name": "status",
         "in": "query",
@@ -3533,15 +3639,6 @@
           "minimum": 1,
           "maximum": 100,
           "default": 20
-        }
-      },
-      "UserId": {
-        "name": "userId",
-        "in": "path",
-        "required": true,
-        "description": "不透明用户标识。",
-        "schema": {
-          "$ref": "#/components/schemas/Identifier"
         }
       },
       "Keyword": {

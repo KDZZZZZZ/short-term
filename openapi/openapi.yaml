@@ -52,6 +52,8 @@ paths:
 
   /users/me:
     $ref: ./paths/users.yaml#/me
+  /users/{userId}:
+    $ref: ./paths/users.yaml#/profile
   /users/me/password:
     $ref: ./paths/users.yaml#/password
   /users/me/products:
