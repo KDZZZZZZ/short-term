@@ -444,6 +444,8 @@ export function TradesPage() {
       }),
     placeholderData: keepPreviousData,
     refetchInterval: 8_000,
+    // 交易状态由对方操作推进,切回页面必须拉新,不吃缓存
+    staleTime: 0,
   })
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1
