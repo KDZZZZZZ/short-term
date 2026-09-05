@@ -302,6 +302,33 @@ def run(args):
     if existing_trade.get("id") != trade_id:
         raise RuntimeError("create-or-get returned a different trade for the same buyer and product")
 
+    buyer_trades = expect(
+        client.request("GET", "/api/v1/trades?as=buyer", token=buyer_token),
+        200,
+        "list buyer trades",
+    )["data"]
+    buyer_trade_item = next(
+        (item for item in buyer_trades["items"] if item["id"] == trade_id), None
+    )
+    if not buyer_trade_item or buyer_trade_item["seller"].get("wechat") != f"m6seller_{suffix}":
+        raise RuntimeError("buyer trade view did not expose the seller contact")
+
+    seller_trades = expect(
+        client.request("GET", "/api/v1/trades?as=seller", token=seller_token),
+        200,
+        "list seller trades",
+    )["data"]
+    seller_trade_item = next(
+        (item for item in seller_trades["items"] if item["id"] == trade_id), None
+    )
+    if not seller_trade_item or seller_trade_item["buyer"].get("wechat") is not None:
+        raise RuntimeError("a buyer without contacts must render null wechat")
+    assert_no_student_numbers(
+        buyer_trades,
+        (student_seller, student_buyer, student_observer),
+        "buyer trades page",
+    )
+
     expect_error(
         client.request("GET", f"/api/v1/trades/{trade_id}", token=observer_token),
         404,
@@ -569,6 +596,21 @@ def run(args):
     )["data"]
     if buyer_me.get("average_score") is not None:
         raise RuntimeError("a user without reviews must have a null average score")
+
+    seller_profile = expect(
+        client.request("GET", f"/api/v1/users/{seller_auth['user']['id']}", token=buyer_token),
+        200,
+        "get seller public profile",
+    )["data"]
+    if seller_profile.get("average_score") != "5.00" or not seller_profile.get("nickname"):
+        raise RuntimeError("public profile did not expose the average score")
+    if "student_no" in json.dumps(seller_profile, ensure_ascii=False) or "wechat" in json.dumps(seller_profile, ensure_ascii=False):
+        raise RuntimeError("public profile leaked private fields")
+    assert_no_student_numbers(
+        seller_profile,
+        (student_seller, student_buyer, student_observer),
+        "public profile",
+    )
 
     latencies = []
     for _ in range(args.baseline_samples):
