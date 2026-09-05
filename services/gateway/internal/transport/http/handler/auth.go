@@ -7,19 +7,21 @@ import (
 
 	accountv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1"
 	"github.com/KDZZZZZZ/short-term/platform/errs"
+	"github.com/KDZZZZZZ/short-term/services/gateway/internal/application/aggregation"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/dto"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/mapper"
 )
 
 // Auth 提供 /auth/register、/auth/login 和 /auth/logout。
 type Auth struct {
-	accounts  accountv1.AccountServiceClient
-	responder Responder
+	accounts   accountv1.AccountServiceClient
+	aggregator *aggregation.Aggregator
+	responder  Responder
 }
 
 // NewAuth 构造认证处理器。
-func NewAuth(accounts accountv1.AccountServiceClient, responder Responder) *Auth {
-	return &Auth{accounts: accounts, responder: responder}
+func NewAuth(accounts accountv1.AccountServiceClient, aggregator *aggregation.Aggregator, responder Responder) *Auth {
+	return &Auth{accounts: accounts, aggregator: aggregator, responder: responder}
 }
 
 // Register 处理 POST /auth/register。
@@ -41,7 +43,13 @@ func (h *Auth) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.responder.Created(w, r, mapper.AuthData(resp.GetAuth()))
+	average, err := aggregatedAverageScore(r.Context(), h.aggregator, resp.GetAuth().GetUser().GetId())
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.Created(w, r, mapper.AuthData(resp.GetAuth(), average))
 }
 
 // Login 处理 POST /auth/login。
@@ -60,7 +68,13 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.responder.OK(w, r, mapper.AuthData(resp.GetAuth()))
+	average, err := aggregatedAverageScore(r.Context(), h.aggregator, resp.GetAuth().GetUser().GetId())
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.OK(w, r, mapper.AuthData(resp.GetAuth(), average))
 }
 
 // Logout 处理 POST /auth/logout。

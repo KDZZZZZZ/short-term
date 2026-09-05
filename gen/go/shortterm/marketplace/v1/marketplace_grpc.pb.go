@@ -40,6 +40,7 @@ const (
 	MarketplaceService_ListProductComments_FullMethodName         = "/shortterm.marketplace.v1.MarketplaceService/ListProductComments"
 	MarketplaceService_CreateTradeReview_FullMethodName           = "/shortterm.marketplace.v1.MarketplaceService/CreateTradeReview"
 	MarketplaceService_BatchGetProductTradeReviews_FullMethodName = "/shortterm.marketplace.v1.MarketplaceService/BatchGetProductTradeReviews"
+	MarketplaceService_BatchGetUserAverageScores_FullMethodName   = "/shortterm.marketplace.v1.MarketplaceService/BatchGetUserAverageScores"
 )
 
 // MarketplaceServiceClient is the client API for MarketplaceService service.
@@ -71,6 +72,7 @@ type MarketplaceServiceClient interface {
 	ListProductComments(ctx context.Context, in *ListProductCommentsRequest, opts ...grpc.CallOption) (*ListProductCommentsResponse, error)
 	CreateTradeReview(ctx context.Context, in *CreateTradeReviewRequest, opts ...grpc.CallOption) (*CreateTradeReviewResponse, error)
 	BatchGetProductTradeReviews(ctx context.Context, in *BatchGetProductTradeReviewsRequest, opts ...grpc.CallOption) (*BatchGetProductTradeReviewsResponse, error)
+	BatchGetUserAverageScores(ctx context.Context, in *BatchGetUserAverageScoresRequest, opts ...grpc.CallOption) (*BatchGetUserAverageScoresResponse, error)
 }
 
 type marketplaceServiceClient struct {
@@ -291,6 +293,16 @@ func (c *marketplaceServiceClient) BatchGetProductTradeReviews(ctx context.Conte
 	return out, nil
 }
 
+func (c *marketplaceServiceClient) BatchGetUserAverageScores(ctx context.Context, in *BatchGetUserAverageScoresRequest, opts ...grpc.CallOption) (*BatchGetUserAverageScoresResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUserAverageScoresResponse)
+	err := c.cc.Invoke(ctx, MarketplaceService_BatchGetUserAverageScores_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MarketplaceServiceServer is the server API for MarketplaceService service.
 // All implementations should embed UnimplementedMarketplaceServiceServer
 // for forward compatibility.
@@ -320,6 +332,7 @@ type MarketplaceServiceServer interface {
 	ListProductComments(context.Context, *ListProductCommentsRequest) (*ListProductCommentsResponse, error)
 	CreateTradeReview(context.Context, *CreateTradeReviewRequest) (*CreateTradeReviewResponse, error)
 	BatchGetProductTradeReviews(context.Context, *BatchGetProductTradeReviewsRequest) (*BatchGetProductTradeReviewsResponse, error)
+	BatchGetUserAverageScores(context.Context, *BatchGetUserAverageScoresRequest) (*BatchGetUserAverageScoresResponse, error)
 }
 
 // UnimplementedMarketplaceServiceServer should be embedded to have
@@ -391,6 +404,9 @@ func (UnimplementedMarketplaceServiceServer) CreateTradeReview(context.Context, 
 }
 func (UnimplementedMarketplaceServiceServer) BatchGetProductTradeReviews(context.Context, *BatchGetProductTradeReviewsRequest) (*BatchGetProductTradeReviewsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetProductTradeReviews not implemented")
+}
+func (UnimplementedMarketplaceServiceServer) BatchGetUserAverageScores(context.Context, *BatchGetUserAverageScoresRequest) (*BatchGetUserAverageScoresResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUserAverageScores not implemented")
 }
 func (UnimplementedMarketplaceServiceServer) testEmbeddedByValue() {}
 
@@ -790,6 +806,24 @@ func _MarketplaceService_BatchGetProductTradeReviews_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MarketplaceService_BatchGetUserAverageScores_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUserAverageScoresRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MarketplaceServiceServer).BatchGetUserAverageScores(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MarketplaceService_BatchGetUserAverageScores_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MarketplaceServiceServer).BatchGetUserAverageScores(ctx, req.(*BatchGetUserAverageScoresRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MarketplaceService_ServiceDesc is the grpc.ServiceDesc for MarketplaceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -880,6 +914,10 @@ var MarketplaceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchGetProductTradeReviews",
 			Handler:    _MarketplaceService_BatchGetProductTradeReviews_Handler,
+		},
+		{
+			MethodName: "BatchGetUserAverageScores",
+			Handler:    _MarketplaceService_BatchGetUserAverageScores_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

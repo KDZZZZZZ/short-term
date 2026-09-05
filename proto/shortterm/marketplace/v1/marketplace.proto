@@ -31,6 +31,7 @@ service MarketplaceService {
   rpc ListProductComments(ListProductCommentsRequest) returns (ListProductCommentsResponse);
   rpc CreateTradeReview(CreateTradeReviewRequest) returns (CreateTradeReviewResponse);
   rpc BatchGetProductTradeReviews(BatchGetProductTradeReviewsRequest) returns (BatchGetProductTradeReviewsResponse);
+  rpc BatchGetUserAverageScores(BatchGetUserAverageScoresRequest) returns (BatchGetUserAverageScoresResponse);
 }
 
 enum ProductStatus {

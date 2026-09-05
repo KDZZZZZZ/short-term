@@ -24,12 +24,13 @@ func tradeReviewFixture() *marketplacev1.TradeReview {
 		ProductId: testProductID,
 		BuyerId:   testActor,
 		Content:   "交易愉快，卖家很耐心",
+		Score:     5,
 		CreatedAt: timestamppb.New(time.Date(2026, 9, 5, 8, 0, 0, 0, time.UTC)),
 	}
 }
 
-// CreateTradeReview 和 BatchGetProductTradeReviews 的桩方法放在评价测试
-// 文件中，使评价相关行为与商品桩的其他部分保持独立。
+// CreateTradeReview、BatchGetProductTradeReviews 和 BatchGetUserAverageScores
+// 的桩方法放在评价测试文件中，使评价相关行为与商品桩的其他部分保持独立。
 func (s *stubMarketplace) CreateTradeReview(_ context.Context, req *marketplacev1.CreateTradeReviewRequest, _ ...grpc.CallOption) (*marketplacev1.CreateTradeReviewResponse, error) {
 	s.lastCreateReview = req
 	if s.createReviewErr != nil {
@@ -50,6 +51,18 @@ func (s *stubMarketplace) BatchGetProductTradeReviews(_ context.Context, req *ma
 	return &marketplacev1.BatchGetProductTradeReviewsResponse{Reviews: reviews}, nil
 }
 
+func (s *stubMarketplace) BatchGetUserAverageScores(_ context.Context, req *marketplacev1.BatchGetUserAverageScoresRequest, _ ...grpc.CallOption) (*marketplacev1.BatchGetUserAverageScoresResponse, error) {
+	s.lastBatchScores = req
+	if s.batchScoresErr != nil {
+		return nil, s.batchScoresErr
+	}
+	scores := make(map[string]string, len(s.averageScores))
+	for id, score := range s.averageScores {
+		scores[id] = score
+	}
+	return &marketplacev1.BatchGetUserAverageScoresResponse{AverageScores: scores}, nil
+}
+
 func TestCreateTradeReviewReturns201WithTheContractShape(t *testing.T) {
 	t.Parallel()
 
@@ -57,20 +70,20 @@ func TestCreateTradeReviewReturns201WithTheContractShape(t *testing.T) {
 	server, token := newProductServer(t, &stubAccounts{}, marketplace)
 
 	status, body := request(t, server, http.MethodPost,
-		basePath+"/trades/"+testTradeID+"/review", token, `{"content":"交易愉快，卖家很耐心"}`)
+		basePath+"/trades/"+testTradeID+"/review", token, `{"score":5,"content":"交易愉快，卖家很耐心"}`)
 	if status != http.StatusCreated {
 		t.Fatalf("status = %d, want 201: %s", status, body)
 	}
 
 	var envelope struct {
 		Data struct {
-			ID        string `json:"id"`
-			TradeID   string `json:"trade_id"`
-			ProductID string `json:"product_id"`
-			Buyer     struct {
+			ID      string `json:"id"`
+			TradeID string `json:"trade_id"`
+			Buyer   struct {
 				ID       string `json:"id"`
 				Nickname string `json:"nickname"`
 			} `json:"buyer"`
+			Score     int32  `json:"score"`
 			Content   string `json:"content"`
 			CreatedAt string `json:"created_at"`
 		} `json:"data"`
@@ -83,25 +96,55 @@ func TestCreateTradeReviewReturns201WithTheContractShape(t *testing.T) {
 	if envelope.Data.Buyer.Nickname == "" {
 		t.Fatalf("the buyer identity was not completed: %s", body)
 	}
+	if envelope.Data.Score != 5 || envelope.Data.Content != "交易愉快，卖家很耐心" {
+		t.Fatalf("score/content missing: %s", body)
+	}
 	if marketplace.lastCreateReview.GetActorId() != testActor {
 		t.Fatalf("actor_id = %q, want the token subject", marketplace.lastCreateReview.GetActorId())
 	}
 	if marketplace.lastCreateReview.GetTradeId() != testTradeID {
 		t.Fatalf("trade_id = %q, want the path trade", marketplace.lastCreateReview.GetTradeId())
 	}
+	if marketplace.lastCreateReview.GetScore() != 5 || marketplace.lastCreateReview.GetContent() != "交易愉快，卖家很耐心" {
+		t.Fatalf("score/content not forwarded: %+v", marketplace.lastCreateReview)
+	}
 }
 
-func TestCreateTradeReviewValidatesTheContentBody(t *testing.T) {
+func TestCreateTradeReviewAcceptsAnEmptyContent(t *testing.T) {
+	t.Parallel()
+
+	contentless := tradeReviewFixture()
+	contentless.Score = 4
+	contentless.Content = ""
+	marketplace := &stubMarketplace{createReviewResp: &marketplacev1.CreateTradeReviewResponse{Review: contentless}}
+	server, token := newProductServer(t, &stubAccounts{}, marketplace)
+
+	status, body := request(t, server, http.MethodPost,
+		basePath+"/trades/"+testTradeID+"/review", token, `{"score":4}`)
+	if status != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", status, body)
+	}
+	if !strings.Contains(body, `"content":null`) {
+		t.Fatalf("omitted content must render as null: %s", body)
+	}
+	if marketplace.lastCreateReview.GetContent() != "" {
+		t.Fatalf("omitted content forwarded = %q, want empty", marketplace.lastCreateReview.GetContent())
+	}
+}
+
+func TestCreateTradeReviewValidatesTheBody(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
 		body string
 	}{
-		{name: "empty content", body: `{"content":""}`},
-		{name: "too long content", body: `{"content":"` + strings.Repeat("好", 501) + `"}`},
-		{name: "missing content", body: `{}`},
-		{name: "unknown field", body: `{"content":"不错","rating":5}`},
+		{name: "missing score", body: `{}`},
+		{name: "score too low", body: `{"score":0}`},
+		{name: "score too high", body: `{"score":6}`},
+		{name: "empty text", body: `{"score":5,"content":""}`},
+		{name: "too long text", body: `{"score":5,"content":"` + strings.Repeat("好", 501) + `"}`},
+		{name: "unknown field", body: `{"score":5,"rating":"好"}`},
 	}
 
 	for _, tt := range tests {
@@ -161,7 +204,7 @@ func TestCreateTradeReviewMapsDownstreamErrors(t *testing.T) {
 			marketplace := &stubMarketplace{createReviewErr: tt.downstream}
 			server, token := newProductServer(t, &stubAccounts{}, marketplace)
 			status, body := request(t, server, http.MethodPost,
-				basePath+"/trades/"+testTradeID+"/review", token, `{"content":"不错"}`)
+				basePath+"/trades/"+testTradeID+"/review", token, `{"score":5,"content":"不错"}`)
 			if status != tt.wantStatus {
 				t.Fatalf("status = %d, want %d: %s", status, tt.wantStatus, body)
 			}
@@ -176,8 +219,9 @@ func TestProductDetailIncludesBuyerReviewForSoldProducts(t *testing.T) {
 	t.Parallel()
 
 	marketplace := &stubMarketplace{
-		sold:         true,
-		tradeReviews: map[string]*marketplacev1.TradeReview{testProductID: tradeReviewFixture()},
+		sold:          true,
+		tradeReviews:  map[string]*marketplacev1.TradeReview{testProductID: tradeReviewFixture()},
+		averageScores: map[string]string{testActor: "4.50"},
 	}
 	server, token := newProductServer(t, &stubAccounts{}, marketplace)
 
@@ -191,11 +235,15 @@ func TestProductDetailIncludesBuyerReviewForSoldProducts(t *testing.T) {
 			Status      string `json:"status"`
 			BuyerReview *struct {
 				ID    string `json:"id"`
+				Score int32  `json:"score"`
 				Buyer struct {
 					Nickname string `json:"nickname"`
 				} `json:"buyer"`
 				Content string `json:"content"`
 			} `json:"buyer_review"`
+			Seller struct {
+				AverageScore *string `json:"average_score"`
+			} `json:"seller"`
 		} `json:"data"`
 	}
 	decode(t, body, &envelope)
@@ -206,12 +254,15 @@ func TestProductDetailIncludesBuyerReviewForSoldProducts(t *testing.T) {
 	if envelope.Data.BuyerReview == nil || envelope.Data.BuyerReview.ID != testTradeReviewID {
 		t.Fatalf("buyer_review missing: %s", body)
 	}
-	if envelope.Data.BuyerReview.Buyer.Nickname == "" || envelope.Data.BuyerReview.Content == "" {
+	if envelope.Data.BuyerReview.Score != 5 || envelope.Data.BuyerReview.Content == "" || envelope.Data.BuyerReview.Buyer.Nickname == "" {
 		t.Fatalf("buyer_review is incomplete: %s", body)
+	}
+	if envelope.Data.Seller.AverageScore == nil || *envelope.Data.Seller.AverageScore != "4.50" {
+		t.Fatalf("seller average_score missing: %s", body)
 	}
 }
 
-func TestProductDetailExposesNullBuyerReviewWithoutOne(t *testing.T) {
+func TestProductDetailExposesNullReviewAndAverageWithoutData(t *testing.T) {
 	t.Parallel()
 
 	marketplace := &stubMarketplace{sold: true}
@@ -223,6 +274,9 @@ func TestProductDetailExposesNullBuyerReviewWithoutOne(t *testing.T) {
 	}
 	if !strings.Contains(body, `"buyer_review":null`) {
 		t.Fatalf("buyer_review must be present as null: %s", body)
+	}
+	if !strings.Contains(body, `"average_score":null`) {
+		t.Fatalf("average_score must be present as null: %s", body)
 	}
 }
 
@@ -245,6 +299,7 @@ func TestListMyProductsEmbedsBuyerReviews(t *testing.T) {
 				ID          string `json:"id"`
 				BuyerReview *struct {
 					ID    string `json:"id"`
+					Score int32  `json:"score"`
 					Buyer struct {
 						Nickname string `json:"nickname"`
 					} `json:"buyer"`
@@ -261,7 +316,7 @@ func TestListMyProductsEmbedsBuyerReviews(t *testing.T) {
 	if item.ID != testProductID {
 		t.Fatalf("item id = %q, want %q", item.ID, testProductID)
 	}
-	if item.BuyerReview == nil || item.BuyerReview.ID != testTradeReviewID || item.BuyerReview.Buyer.Nickname == "" {
+	if item.BuyerReview == nil || item.BuyerReview.ID != testTradeReviewID || item.BuyerReview.Score != 5 || item.BuyerReview.Buyer.Nickname == "" {
 		t.Fatalf("buyer_review is missing or incomplete: %s", body)
 	}
 	if got := marketplace.lastBatchReviews.GetProductIds(); len(got) != 1 || got[0] != testProductID {

@@ -3804,7 +3804,7 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x19PRODUCT_CATEGORY_TEXTBOOK\x10\x01\x12\x1c\n" +
 	"\x18PRODUCT_CATEGORY_DIGITAL\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_CATEGORY_LIFE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_CATEGORY_OTHER\x10\x042\xbf\x13\n" +
+	"\x16PRODUCT_CATEGORY_OTHER\x10\x042\xd6\x14\n" +
 	"\x12MarketplaceService\x12p\n" +
 	"\rCreateProduct\x12..shortterm.marketplace.v1.CreateProductRequest\x1a/.shortterm.marketplace.v1.CreateProductResponse\x12g\n" +
 	"\n" +
@@ -3828,7 +3828,8 @@ const file_shortterm_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x14CreateProductComment\x125.shortterm.marketplace.v1.CreateProductCommentRequest\x1a6.shortterm.marketplace.v1.CreateProductCommentResponse\x12\x82\x01\n" +
 	"\x13ListProductComments\x124.shortterm.marketplace.v1.ListProductCommentsRequest\x1a5.shortterm.marketplace.v1.ListProductCommentsResponse\x12|\n" +
 	"\x11CreateTradeReview\x122.shortterm.marketplace.v1.CreateTradeReviewRequest\x1a3.shortterm.marketplace.v1.CreateTradeReviewResponse\x12\x9a\x01\n" +
-	"\x1bBatchGetProductTradeReviews\x12<.shortterm.marketplace.v1.BatchGetProductTradeReviewsRequest\x1a=.shortterm.marketplace.v1.BatchGetProductTradeReviewsResponseBNZLgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1b\x06proto3"
+	"\x1bBatchGetProductTradeReviews\x12<.shortterm.marketplace.v1.BatchGetProductTradeReviewsRequest\x1a=.shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse\x12\x94\x01\n" +
+	"\x19BatchGetUserAverageScores\x12:.shortterm.marketplace.v1.BatchGetUserAverageScoresRequest\x1a;.shortterm.marketplace.v1.BatchGetUserAverageScoresResponseBNZLgithub.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1;marketplacev1b\x06proto3"
 
 var (
 	file_shortterm_marketplace_v1_marketplace_proto_rawDescOnce sync.Once
@@ -3983,29 +3984,31 @@ var file_shortterm_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	49, // 71: shortterm.marketplace.v1.MarketplaceService.ListProductComments:input_type -> shortterm.marketplace.v1.ListProductCommentsRequest
 	52, // 72: shortterm.marketplace.v1.MarketplaceService.CreateTradeReview:input_type -> shortterm.marketplace.v1.CreateTradeReviewRequest
 	54, // 73: shortterm.marketplace.v1.MarketplaceService.BatchGetProductTradeReviews:input_type -> shortterm.marketplace.v1.BatchGetProductTradeReviewsRequest
-	12, // 74: shortterm.marketplace.v1.MarketplaceService.CreateProduct:output_type -> shortterm.marketplace.v1.CreateProductResponse
-	14, // 75: shortterm.marketplace.v1.MarketplaceService.GetProduct:output_type -> shortterm.marketplace.v1.GetProductResponse
-	17, // 76: shortterm.marketplace.v1.MarketplaceService.ListProducts:output_type -> shortterm.marketplace.v1.ListProductsResponse
-	18, // 77: shortterm.marketplace.v1.MarketplaceService.ListUserProducts:output_type -> shortterm.marketplace.v1.ListUserProductsResponse
-	20, // 78: shortterm.marketplace.v1.MarketplaceService.BatchGetProducts:output_type -> shortterm.marketplace.v1.BatchGetProductsResponse
-	22, // 79: shortterm.marketplace.v1.MarketplaceService.UpdateProduct:output_type -> shortterm.marketplace.v1.UpdateProductResponse
-	24, // 80: shortterm.marketplace.v1.MarketplaceService.AddProductImages:output_type -> shortterm.marketplace.v1.AddProductImagesResponse
-	26, // 81: shortterm.marketplace.v1.MarketplaceService.DeleteProductImage:output_type -> shortterm.marketplace.v1.DeleteProductImageResponse
-	28, // 82: shortterm.marketplace.v1.MarketplaceService.OffShelfProduct:output_type -> shortterm.marketplace.v1.OffShelfProductResponse
-	30, // 83: shortterm.marketplace.v1.MarketplaceService.RelistProduct:output_type -> shortterm.marketplace.v1.RelistProductResponse
-	32, // 84: shortterm.marketplace.v1.MarketplaceService.CreateTrade:output_type -> shortterm.marketplace.v1.CreateTradeResponse
-	34, // 85: shortterm.marketplace.v1.MarketplaceService.ListTrades:output_type -> shortterm.marketplace.v1.ListTradesResponse
-	36, // 86: shortterm.marketplace.v1.MarketplaceService.GetTrade:output_type -> shortterm.marketplace.v1.GetTradeResponse
-	38, // 87: shortterm.marketplace.v1.MarketplaceService.AcceptTrade:output_type -> shortterm.marketplace.v1.AcceptTradeResponse
-	40, // 88: shortterm.marketplace.v1.MarketplaceService.RejectTrade:output_type -> shortterm.marketplace.v1.RejectTradeResponse
-	42, // 89: shortterm.marketplace.v1.MarketplaceService.CancelTrade:output_type -> shortterm.marketplace.v1.CancelTradeResponse
-	44, // 90: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:output_type -> shortterm.marketplace.v1.ConfirmTradeResponse
-	48, // 91: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:output_type -> shortterm.marketplace.v1.CreateProductCommentResponse
-	50, // 92: shortterm.marketplace.v1.MarketplaceService.ListProductComments:output_type -> shortterm.marketplace.v1.ListProductCommentsResponse
-	53, // 93: shortterm.marketplace.v1.MarketplaceService.CreateTradeReview:output_type -> shortterm.marketplace.v1.CreateTradeReviewResponse
-	55, // 94: shortterm.marketplace.v1.MarketplaceService.BatchGetProductTradeReviews:output_type -> shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse
-	74, // [74:95] is the sub-list for method output_type
-	53, // [53:74] is the sub-list for method input_type
+	56, // 74: shortterm.marketplace.v1.MarketplaceService.BatchGetUserAverageScores:input_type -> shortterm.marketplace.v1.BatchGetUserAverageScoresRequest
+	12, // 75: shortterm.marketplace.v1.MarketplaceService.CreateProduct:output_type -> shortterm.marketplace.v1.CreateProductResponse
+	14, // 76: shortterm.marketplace.v1.MarketplaceService.GetProduct:output_type -> shortterm.marketplace.v1.GetProductResponse
+	17, // 77: shortterm.marketplace.v1.MarketplaceService.ListProducts:output_type -> shortterm.marketplace.v1.ListProductsResponse
+	18, // 78: shortterm.marketplace.v1.MarketplaceService.ListUserProducts:output_type -> shortterm.marketplace.v1.ListUserProductsResponse
+	20, // 79: shortterm.marketplace.v1.MarketplaceService.BatchGetProducts:output_type -> shortterm.marketplace.v1.BatchGetProductsResponse
+	22, // 80: shortterm.marketplace.v1.MarketplaceService.UpdateProduct:output_type -> shortterm.marketplace.v1.UpdateProductResponse
+	24, // 81: shortterm.marketplace.v1.MarketplaceService.AddProductImages:output_type -> shortterm.marketplace.v1.AddProductImagesResponse
+	26, // 82: shortterm.marketplace.v1.MarketplaceService.DeleteProductImage:output_type -> shortterm.marketplace.v1.DeleteProductImageResponse
+	28, // 83: shortterm.marketplace.v1.MarketplaceService.OffShelfProduct:output_type -> shortterm.marketplace.v1.OffShelfProductResponse
+	30, // 84: shortterm.marketplace.v1.MarketplaceService.RelistProduct:output_type -> shortterm.marketplace.v1.RelistProductResponse
+	32, // 85: shortterm.marketplace.v1.MarketplaceService.CreateTrade:output_type -> shortterm.marketplace.v1.CreateTradeResponse
+	34, // 86: shortterm.marketplace.v1.MarketplaceService.ListTrades:output_type -> shortterm.marketplace.v1.ListTradesResponse
+	36, // 87: shortterm.marketplace.v1.MarketplaceService.GetTrade:output_type -> shortterm.marketplace.v1.GetTradeResponse
+	38, // 88: shortterm.marketplace.v1.MarketplaceService.AcceptTrade:output_type -> shortterm.marketplace.v1.AcceptTradeResponse
+	40, // 89: shortterm.marketplace.v1.MarketplaceService.RejectTrade:output_type -> shortterm.marketplace.v1.RejectTradeResponse
+	42, // 90: shortterm.marketplace.v1.MarketplaceService.CancelTrade:output_type -> shortterm.marketplace.v1.CancelTradeResponse
+	44, // 91: shortterm.marketplace.v1.MarketplaceService.ConfirmTrade:output_type -> shortterm.marketplace.v1.ConfirmTradeResponse
+	48, // 92: shortterm.marketplace.v1.MarketplaceService.CreateProductComment:output_type -> shortterm.marketplace.v1.CreateProductCommentResponse
+	50, // 93: shortterm.marketplace.v1.MarketplaceService.ListProductComments:output_type -> shortterm.marketplace.v1.ListProductCommentsResponse
+	53, // 94: shortterm.marketplace.v1.MarketplaceService.CreateTradeReview:output_type -> shortterm.marketplace.v1.CreateTradeReviewResponse
+	55, // 95: shortterm.marketplace.v1.MarketplaceService.BatchGetProductTradeReviews:output_type -> shortterm.marketplace.v1.BatchGetProductTradeReviewsResponse
+	57, // 96: shortterm.marketplace.v1.MarketplaceService.BatchGetUserAverageScores:output_type -> shortterm.marketplace.v1.BatchGetUserAverageScoresResponse
+	75, // [75:97] is the sub-list for method output_type
+	53, // [53:75] is the sub-list for method input_type
 	53, // [53:53] is the sub-list for extension type_name
 	53, // [53:53] is the sub-list for extension extendee
 	0,  // [0:53] is the sub-list for field type_name

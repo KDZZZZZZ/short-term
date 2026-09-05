@@ -34,8 +34,11 @@ func (s *TradeReviewService) Create(ctx context.Context, cmd CreateTradeReviewCo
 	if cmd.ActorID == "" {
 		return nil, errs.New(errs.CodeUnauthorized, "请先登录")
 	}
+	if err := domain.ValidateTradeReviewScore(cmd.Score); err != nil {
+		return nil, errs.Wrap(errs.CodeValidation, "评分必须为 1 至 5 的整数", err)
+	}
 	if err := domain.ValidateTradeReviewContent(cmd.Content); err != nil {
-		return nil, errs.Wrap(errs.CodeValidation, "评价长度必须为 1 至 500 个字符", err)
+		return nil, errs.Wrap(errs.CodeValidation, "评价文字长度必须为 0 至 500 个字符", err)
 	}
 
 	trade, err := s.trades.ByID(ctx, cmd.TradeID)
@@ -52,7 +55,7 @@ func (s *TradeReviewService) Create(ctx context.Context, cmd CreateTradeReviewCo
 		return nil, errs.New(errs.CodeForbidden, "交易完成后才能发布评价")
 	}
 
-	review, err := domain.NewTradeReview(s.ids.NewTradeReviewID(), trade, cmd.Content, s.clock.Now())
+	review, err := domain.NewTradeReview(s.ids.NewTradeReviewID(), trade, cmd.Score, cmd.Content, s.clock.Now())
 	if err != nil {
 		return nil, errs.Wrap(errs.CodeInternal, "评价初始化失败", err)
 	}
@@ -70,6 +73,16 @@ func (s *TradeReviewService) ByProductIDs(ctx context.Context, productIDs []stri
 		return nil, errs.Wrap(errs.CodeInternal, "服务暂时不可用", err)
 	}
 	return reviews, nil
+}
+
+// AverageScoresByUserIDs 一次计算多个用户作为卖家收到的评分平均值。
+// 平均值是展示投影，公开于卖家信息和本人资料中。
+func (s *TradeReviewService) AverageScoresByUserIDs(ctx context.Context, userIDs []string) (map[string]string, error) {
+	scores, err := s.reviews.AverageScoresByUserIDs(ctx, userIDs)
+	if err != nil {
+		return nil, errs.Wrap(errs.CodeInternal, "服务暂时不可用", err)
+	}
+	return scores, nil
 }
 
 // notFound 将仓储未找到结果映射为 RESOURCE_NOT_FOUND。

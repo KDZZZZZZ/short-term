@@ -376,6 +376,12 @@ func (h *Products) respondWithDetail(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
+	sellerAverage, err := aggregatedAverageScore(r.Context(), h.aggregator, product.GetSellerId())
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
 	var review *marketplacev1.TradeReview
 	var reviewers map[string]*accountv1.UserPublic
 	if product.GetStatus() == marketplacev1.ProductStatus_PRODUCT_STATUS_SOLD {
@@ -396,7 +402,7 @@ func (h *Products) respondWithDetail(w http.ResponseWriter, r *http.Request, pro
 		}
 	}
 
-	h.responder.Success(w, r, status, mapper.ProductDetail(product, mapper.SellerContact(contact), favorited, review, reviewers))
+	h.responder.Success(w, r, status, mapper.ProductDetail(product, mapper.SellerContact(contact, sellerAverage), favorited, review, reviewers))
 }
 
 // hasContact 判断当前用户是否填写了微信或 QQ 联系方式。

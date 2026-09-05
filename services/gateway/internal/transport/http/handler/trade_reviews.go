@@ -39,15 +39,24 @@ func (h *TradeReviews) Create(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, h.responder, &body) {
 		return
 	}
-	if length := utf8.RuneCountInString(body.Content); length < 1 || length > maxTradeReviewContentLength {
-		h.responder.Fail(w, r, errs.CodeValidation, "评价长度必须为 1 至 500 个字符")
+	if body.Score < 1 || body.Score > 5 {
+		h.responder.Fail(w, r, errs.CodeValidation, "评分必须为 1 至 5 的整数")
 		return
+	}
+	content := ""
+	if body.Content != nil {
+		content = *body.Content
+		if length := utf8.RuneCountInString(content); length < 1 || length > maxTradeReviewContentLength {
+			h.responder.Fail(w, r, errs.CodeValidation, "评价文字长度必须为 1 至 500 个字符")
+			return
+		}
 	}
 
 	review, err := h.marketplace.CreateTradeReview(h.downstream(r), &marketplacev1.CreateTradeReviewRequest{
 		ActorId: middleware.ActorID(r.Context()),
 		TradeId: r.PathValue("tradeId"),
-		Content: body.Content,
+		Score:   body.Score,
+		Content: content,
 	})
 	if err != nil {
 		h.responder.Error(w, r, err)

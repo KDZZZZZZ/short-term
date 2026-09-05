@@ -59,8 +59,8 @@ func newProductServer(t *testing.T, accounts *stubAccounts, marketplace *stubMar
 		MaxBodyBytes: 1 << 20,
 		Logger:       logger,
 		Ready:        func(context.Context) error { return nil },
-		Auth:         handler.NewAuth(accounts, responder),
-		Users:        handler.NewUsers(accounts, responder),
+		Auth:         handler.NewAuth(accounts, aggregator, responder),
+		Users:        handler.NewUsers(accounts, aggregator, responder),
 		Products:     handler.NewProducts(marketplace, accounts, aggregator, responder),
 		Trades:       handler.NewTrades(marketplace, aggregator, responder),
 		TradeReviews: handler.NewTradeReviews(marketplace, aggregator, responder),
@@ -625,6 +625,10 @@ type stubMarketplace struct {
 	createReviewResp *marketplacev1.CreateTradeReviewResponse
 	createReviewErr  error
 	lastCreateReview *marketplacev1.CreateTradeReviewRequest
+
+	averageScores   map[string]string
+	batchScoresErr  error
+	lastBatchScores *marketplacev1.BatchGetUserAverageScoresRequest
 }
 
 func (s *stubMarketplace) summary(id, sellerID string) *marketplacev1.ProductSummary {

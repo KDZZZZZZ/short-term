@@ -6,24 +6,26 @@ type UserPublic struct {
 	Nickname string `json:"nickname"`
 }
 
-// SellerContact 是 SellerContact schema。它包含卖家的微信和 QQ，但有意不包含学号字段：
-// 已批准契约禁止公开学号（openapi/paths/products.yaml，getProduct）。
+// SellerContact 是 SellerContact schema。它包含卖家的微信、QQ 和公开平均分，
+// 但有意不包含学号字段：已批准契约禁止公开学号（openapi/paths/products.yaml，getProduct）。
 type SellerContact struct {
-	ID       string  `json:"id"`
-	Nickname string  `json:"nickname"`
-	Wechat   *string `json:"wechat"`
-	QQ       *string `json:"qq"`
+	ID           string  `json:"id"`
+	Nickname     string  `json:"nickname"`
+	Wechat       *string `json:"wechat"`
+	QQ           *string `json:"qq"`
+	AverageScore *string `json:"average_score"`
 }
 
 // UserMe 是 UserMe schema，只返回给通过认证的所有者。
 type UserMe struct {
-	ID        string  `json:"id"`
-	StudentNo string  `json:"student_no"`
-	Nickname  string  `json:"nickname"`
-	Wechat    *string `json:"wechat"`
-	QQ        *string `json:"qq"`
-	CreatedAt string  `json:"created_at"`
-	UpdatedAt string  `json:"updated_at"`
+	ID           string  `json:"id"`
+	StudentNo    string  `json:"student_no"`
+	Nickname     string  `json:"nickname"`
+	Wechat       *string `json:"wechat"`
+	QQ           *string `json:"qq"`
+	AverageScore *string `json:"average_score"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
 }
 
 // AuthData 是注册和登录返回的 AuthData schema。

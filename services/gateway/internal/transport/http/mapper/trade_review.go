@@ -7,14 +7,20 @@ import (
 )
 
 // TradeReview maps one trade review, completing the buyer identity from the
-// batch profile lookup the caller performed.
+// batch profile lookup the caller performed. 空文字映射为 null（买家未填写）。
 func TradeReview(src *marketplacev1.TradeReview, users map[string]*accountv1.UserPublic) dto.TradeReview {
+	var content *string
+	if src.GetContent() != "" {
+		value := src.GetContent()
+		content = &value
+	}
 	return dto.TradeReview{
 		ID:        src.GetId(),
 		TradeID:   src.GetTradeId(),
 		ProductID: src.GetProductId(),
 		Buyer:     UserPublic(src.GetBuyerId(), users[src.GetBuyerId()]),
-		Content:   src.GetContent(),
+		Score:     src.GetScore(),
+		Content:   content,
 		CreatedAt: Timestamp(src.GetCreatedAt()),
 	}
 }
