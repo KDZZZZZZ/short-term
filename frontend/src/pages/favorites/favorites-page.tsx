@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Button, Card, Pagination, Spinner, toast } from '@heroui/react'
+import { Button, Card, Pagination, toast } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import { HeartOff, Store, HeartCrack } from 'lucide-react'
 import { listFavorites, removeFavorite } from '@/lib/api/favorites'
 import { isApiError } from '@/lib/http'
@@ -42,7 +43,7 @@ export function FavoritesPage() {
 
       {isPending ? (
         <div className="flex h-40 items-center justify-center">
-          <Spinner size="lg" />
+          <LissajousLoader className="size-28 text-foreground" />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState

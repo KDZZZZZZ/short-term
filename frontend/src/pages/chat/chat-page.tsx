@@ -9,6 +9,7 @@ import {
   Send,
 } from 'lucide-react'
 import { Avatar, Button, Card, Spinner, TextArea, toast } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import {
   listConversationMessages,
   markConversationRead,
@@ -174,7 +175,7 @@ export function ChatPage() {
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
           {messagesQuery.isPending ? (
             <div className="flex h-full items-center justify-center">
-              <Spinner size="lg" />
+              <LissajousLoader className="size-28 text-foreground" />
             </div>
           ) : chronological.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-muted">

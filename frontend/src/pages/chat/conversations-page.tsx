@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Avatar, Badge, Card, Spinner } from '@heroui/react'
+import { Avatar, Badge, Card } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import { Store } from 'lucide-react'
 import { SpeechBubbleAlertIcon } from '@/components/icons/koboyo'
 import { listConversations } from '@/lib/api/conversations'
@@ -27,7 +28,7 @@ export function ConversationsPage() {
 
       {isPending ? (
         <div className="flex h-40 items-center justify-center">
-          <Spinner size="lg" />
+          <LissajousLoader className="size-28 text-foreground" />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState

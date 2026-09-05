@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertDialog, Button, Card, Separator, Spinner, toast } from '@heroui/react'
+import { AlertDialog, Button, Card, Separator, toast } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import {
   ChevronRight,
   Heart,
@@ -111,7 +112,7 @@ export function ProductDetailPage() {
   if (isPending) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Spinner size="lg" />
+        <LissajousLoader className="size-28 text-foreground" />
       </div>
     )
   }

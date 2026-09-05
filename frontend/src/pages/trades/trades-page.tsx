@@ -11,11 +11,11 @@ import {
   ListBox,
   Pagination,
   Select,
-  Spinner,
   TextArea,
   TextField,
   toast,
 } from '@heroui/react'
+import { LissajousLoader } from '@/components/lissajous-loader'
 import {
   Check,
   CheckCheck,
@@ -507,7 +507,7 @@ export function TradesPage() {
 
       {isPending ? (
         <div className="flex h-40 items-center justify-center">
-          <Spinner size="lg" />
+          <LissajousLoader className="size-28 text-foreground" />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState
