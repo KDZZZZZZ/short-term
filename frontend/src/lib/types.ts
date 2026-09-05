@@ -50,6 +50,21 @@ export interface UserPublic {
   nickname: string
 }
 
+/** 交易一方的身份与联系方式，仅交易双方可见；未填写为 null。 */
+export interface TradeParty {
+  id: Identifier
+  nickname: string
+  wechat: string | null
+  qq: string | null
+}
+
+/** 公开用户资料：只有昵称与卖家平均分，不含学号和联系方式。 */
+export interface UserProfile {
+  id: Identifier
+  nickname: string
+  average_score: string | null
+}
+
 export interface SellerContact {
   id: Identifier
   nickname: string
@@ -222,8 +237,8 @@ export interface TradeProduct {
 export interface Trade {
   id: Identifier
   product: TradeProduct
-  buyer: UserPublic
-  seller: UserPublic
+  buyer: TradeParty
+  seller: TradeParty
   conversation_id: Identifier | null
   price_snapshot: Price
   status: TradeStatus

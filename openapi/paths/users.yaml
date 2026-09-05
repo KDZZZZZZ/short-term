@@ -42,6 +42,31 @@ me:
         $ref: ../components/responses.yaml#/Unauthorized
       '500':
         $ref: ../components/responses.yaml#/InternalServerError
+
+profile:
+  get:
+    tags:
+      - Users
+    summary: 获取其他用户的公开资料
+    operationId: getUserProfile
+    description: |
+      返回该用户的公开资料：昵称与其作为卖家收到的买家评分平均值。
+      资料不包含学号和联系方式。用户不存在返回 `404 / RESOURCE_NOT_FOUND`。
+    parameters:
+      - $ref: ../components/parameters.yaml#/UserId
+    responses:
+      '200':
+        description: 公开用户资料。
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas.yaml#/UserProfileSuccess
+      '401':
+        $ref: ../components/responses.yaml#/Unauthorized
+      '404':
+        $ref: ../components/responses.yaml#/NotFound
+      '500':
+        $ref: ../components/responses.yaml#/InternalServerError
 password:
   put:
     tags:

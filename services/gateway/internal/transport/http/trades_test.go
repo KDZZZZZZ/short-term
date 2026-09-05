@@ -39,11 +39,13 @@ func TestCreateTradeReturns201WithTheContractShape(t *testing.T) {
 				Status string `json:"status"`
 			} `json:"product"`
 			Buyer struct {
-				ID       string `json:"id"`
-				Nickname string `json:"nickname"`
+				ID       string  `json:"id"`
+				Nickname string  `json:"nickname"`
+				Wechat   *string `json:"wechat"`
 			} `json:"buyer"`
 			Seller struct {
-				ID string `json:"id"`
+				ID     string  `json:"id"`
+				Wechat *string `json:"wechat"`
 			} `json:"seller"`
 		} `json:"data"`
 	}
@@ -57,6 +59,9 @@ func TestCreateTradeReturns201WithTheContractShape(t *testing.T) {
 	}
 	if envelope.Data.Buyer.Nickname == "" || envelope.Data.Seller.ID == "" {
 		t.Fatalf("the trade parties were not completed: %s", body)
+	}
+	if envelope.Data.Buyer.Wechat == nil || envelope.Data.Seller.Wechat == nil {
+		t.Fatalf("the trade parties' contacts were not completed: %s", body)
 	}
 	// Nullable fields must be present as null, not omitted.
 	for _, field := range []string{"cancel_reason", "accepted_at", "completed_at", "cancelled_at", "conversation_id"} {
@@ -341,8 +346,8 @@ func TestListTradesForwardsTheRoleAndCompletesPartiesInOneCall(t *testing.T) {
 	if marketplace.lastListTrades.GetStatus() != marketplacev1.TradeStatus_TRADE_STATUS_ACCEPTED {
 		t.Fatalf("status filter = %s", marketplace.lastListTrades.GetStatus())
 	}
-	if accounts.batchCalls != 1 {
-		t.Fatalf("BatchGetUsers was called %d times, want exactly 1 for the page", accounts.batchCalls)
+	if accounts.contactBatchCalls != 1 {
+		t.Fatalf("BatchGetUserContacts was called %d times, want exactly 1 for the page", accounts.contactBatchCalls)
 	}
 }
 

@@ -18,6 +18,9 @@ service AccountService {
   // GetUser 无法返回学号。
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
   rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
+  // BatchGetUserContacts 供 Gateway 在交易双方之间补全联系方式；
+  // 交易读取端点本就只对交易方开放。
+  rpc BatchGetUserContacts(BatchGetUserContactsRequest) returns (BatchGetUserContactsResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 }
@@ -96,6 +99,15 @@ message BatchGetUsersRequest {
 message BatchGetUsersResponse {
   // 批量聚合只需要公开资料。联系方式被有意排除，使列表查询保持最小权限的数据形状。
   map<string, UserPublic> users = 1;
+}
+
+message BatchGetUserContactsRequest {
+  repeated string user_ids = 1;
+}
+
+// 批量返回请求标识中存在的联系方式资料；缺失的用户不出现在结果中。
+message BatchGetUserContactsResponse {
+  map<string, UserContact> users = 1;
 }
 
 // NullableStringPatch 保留 PATCH 字段的线路兼容性：字段不存在表示不变，

@@ -69,6 +69,7 @@ func NewRouter(opts RouterOptions) http.Handler {
 	api.HandleFunc("GET /users/me", opts.Users.Me)
 	api.HandleFunc("PATCH /users/me", opts.Users.UpdateMe)
 	api.HandleFunc("PUT /users/me/password", opts.Users.ChangePassword)
+	api.HandleFunc("GET /users/{userId}", opts.Users.Profile)
 	api.HandleFunc("GET /users/me/products", opts.Products.ListMine)
 	api.HandleFunc("GET /users/{userId}/products", opts.Products.ListByUser)
 

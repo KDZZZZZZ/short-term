@@ -100,6 +100,30 @@ func (s *Server) BatchGetUsers(ctx context.Context, req *accountv1.BatchGetUsers
 	return &accountv1.BatchGetUsersResponse{Users: users}, nil
 }
 
+// BatchGetUserContacts 返回请求标识中存在的联系方式资料；缺失的用户缺席。
+// Gateway 仅用它补全交易双方的联系方式，交易读取端点只对交易方开放。
+func (s *Server) BatchGetUserContacts(ctx context.Context, req *accountv1.BatchGetUserContactsRequest) (*accountv1.BatchGetUserContactsResponse, error) {
+	if len(req.GetUserIds()) > maxBatchUsers {
+		return nil, errs.Newf(errs.CodeValidation, "单次最多查询 %d 个用户", maxBatchUsers)
+	}
+
+	accounts, err := s.app.BatchGetUsers(ctx, req.GetUserIds())
+	if err != nil {
+		return nil, err
+	}
+
+	users := make(map[string]*accountv1.UserContact, len(accounts))
+	for id, account := range accounts {
+		users[id] = &accountv1.UserContact{
+			Id:       account.ID,
+			Nickname: account.Nickname,
+			Wechat:   account.Wechat,
+			Qq:       account.QQ,
+		}
+	}
+	return &accountv1.BatchGetUserContactsResponse{Users: users}, nil
+}
+
 // UpdateProfile 修改调用方自己的资料。
 func (s *Server) UpdateProfile(ctx context.Context, req *accountv1.UpdateProfileRequest) (*accountv1.UpdateProfileResponse, error) {
 	if err := requireActor(ctx, req.GetUserId()); err != nil {

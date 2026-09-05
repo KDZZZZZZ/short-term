@@ -19,13 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AccountService_Register_FullMethodName       = "/shortterm.account.v1.AccountService/Register"
-	AccountService_Login_FullMethodName          = "/shortterm.account.v1.AccountService/Login"
-	AccountService_GetUser_FullMethodName        = "/shortterm.account.v1.AccountService/GetUser"
-	AccountService_GetProfile_FullMethodName     = "/shortterm.account.v1.AccountService/GetProfile"
-	AccountService_BatchGetUsers_FullMethodName  = "/shortterm.account.v1.AccountService/BatchGetUsers"
-	AccountService_UpdateProfile_FullMethodName  = "/shortterm.account.v1.AccountService/UpdateProfile"
-	AccountService_ChangePassword_FullMethodName = "/shortterm.account.v1.AccountService/ChangePassword"
+	AccountService_Register_FullMethodName             = "/shortterm.account.v1.AccountService/Register"
+	AccountService_Login_FullMethodName                = "/shortterm.account.v1.AccountService/Login"
+	AccountService_GetUser_FullMethodName              = "/shortterm.account.v1.AccountService/GetUser"
+	AccountService_GetProfile_FullMethodName           = "/shortterm.account.v1.AccountService/GetProfile"
+	AccountService_BatchGetUsers_FullMethodName        = "/shortterm.account.v1.AccountService/BatchGetUsers"
+	AccountService_BatchGetUserContacts_FullMethodName = "/shortterm.account.v1.AccountService/BatchGetUserContacts"
+	AccountService_UpdateProfile_FullMethodName        = "/shortterm.account.v1.AccountService/UpdateProfile"
+	AccountService_ChangePassword_FullMethodName       = "/shortterm.account.v1.AccountService/ChangePassword"
 )
 
 // AccountServiceClient is the client API for AccountService service.
@@ -43,6 +44,9 @@ type AccountServiceClient interface {
 	// GetUser 无法返回学号。
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 	BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error)
+	// BatchGetUserContacts 供 Gateway 在交易双方之间补全联系方式；
+	// 交易读取端点本就只对交易方开放。
+	BatchGetUserContacts(ctx context.Context, in *BatchGetUserContactsRequest, opts ...grpc.CallOption) (*BatchGetUserContactsResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 }
@@ -105,6 +109,16 @@ func (c *accountServiceClient) BatchGetUsers(ctx context.Context, in *BatchGetUs
 	return out, nil
 }
 
+func (c *accountServiceClient) BatchGetUserContacts(ctx context.Context, in *BatchGetUserContactsRequest, opts ...grpc.CallOption) (*BatchGetUserContactsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUserContactsResponse)
+	err := c.cc.Invoke(ctx, AccountService_BatchGetUserContacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *accountServiceClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateProfileResponse)
@@ -140,6 +154,9 @@ type AccountServiceServer interface {
 	// GetUser 无法返回学号。
 	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
 	BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error)
+	// BatchGetUserContacts 供 Gateway 在交易双方之间补全联系方式；
+	// 交易读取端点本就只对交易方开放。
+	BatchGetUserContacts(context.Context, *BatchGetUserContactsRequest) (*BatchGetUserContactsResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 }
@@ -165,6 +182,9 @@ func (UnimplementedAccountServiceServer) GetProfile(context.Context, *GetProfile
 }
 func (UnimplementedAccountServiceServer) BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUsers not implemented")
+}
+func (UnimplementedAccountServiceServer) BatchGetUserContacts(context.Context, *BatchGetUserContactsRequest) (*BatchGetUserContactsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUserContacts not implemented")
 }
 func (UnimplementedAccountServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateProfile not implemented")
@@ -282,6 +302,24 @@ func _AccountService_BatchGetUsers_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_BatchGetUserContacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUserContactsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).BatchGetUserContacts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_BatchGetUserContacts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).BatchGetUserContacts(ctx, req.(*BatchGetUserContactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AccountService_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateProfileRequest)
 	if err := dec(in); err != nil {
@@ -344,6 +382,10 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchGetUsers",
 			Handler:    _AccountService_BatchGetUsers_Handler,
+		},
+		{
+			MethodName: "BatchGetUserContacts",
+			Handler:    _AccountService_BatchGetUserContacts_Handler,
 		},
 		{
 			MethodName: "UpdateProfile",

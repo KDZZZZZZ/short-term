@@ -116,7 +116,7 @@ func (h *Trades) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := h.aggregator.Users(h.downstream(r), mapper.TradeParticipantIDs(resp.GetPage()))
+	users, err := h.aggregator.UserContacts(h.downstream(r), mapper.TradeParticipantIDs(resp.GetPage()))
 	if err != nil {
 		h.responder.Error(w, r, err)
 		return
@@ -223,15 +223,16 @@ func (h *Trades) Confirm(w http.ResponseWriter, r *http.Request) {
 
 // --- shared steps -----------------------------------------------------------
 
-// respondWithTrade completes the two party identities and writes the trade.
+// respondWithTrade completes the two parties' identities and contacts and
+// writes the trade. 交易双方的联系方式仅在此处（对交易方）公开。
 func (h *Trades) respondWithTrade(w http.ResponseWriter, r *http.Request, trade *marketplacev1.Trade, status int) {
-	users, err := h.aggregator.Users(h.downstream(r), []string{trade.GetBuyerId(), trade.GetSellerId()})
+	contacts, err := h.aggregator.UserContacts(h.downstream(r), []string{trade.GetBuyerId(), trade.GetSellerId()})
 	if err != nil {
 		h.responder.Error(w, r, err)
 		return
 	}
 
-	h.responder.Success(w, r, status, mapper.Trade(trade, users))
+	h.responder.Success(w, r, status, mapper.Trade(trade, contacts))
 }
 
 // reasonRequest reads the required reason body and the optional key.

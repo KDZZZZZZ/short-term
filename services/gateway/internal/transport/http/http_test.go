@@ -558,6 +558,7 @@ type stubAccounts struct {
 	missingUser       bool
 	lastUpdate        *accountv1.UpdateProfileRequest
 	batchCalls        int
+	contactBatchCalls int
 	lastBatchSize     int
 }
 
@@ -604,6 +605,16 @@ func (s *stubAccounts) GetUser(_ context.Context, req *accountv1.GetUserRequest,
 
 func (s *stubAccounts) GetProfile(_ context.Context, _ *accountv1.GetProfileRequest, _ ...grpc.CallOption) (*accountv1.GetProfileResponse, error) {
 	return &accountv1.GetProfileResponse{User: s.userMe()}, nil
+}
+
+func (s *stubAccounts) BatchGetUserContacts(_ context.Context, req *accountv1.BatchGetUserContactsRequest, _ ...grpc.CallOption) (*accountv1.BatchGetUserContactsResponse, error) {
+	s.contactBatchCalls++
+	wechat := "wx_xiaoming"
+	users := make(map[string]*accountv1.UserContact, len(req.GetUserIds()))
+	for _, id := range req.GetUserIds() {
+		users[id] = &accountv1.UserContact{Id: id, Nickname: "小明", Wechat: &wechat}
+	}
+	return &accountv1.BatchGetUserContactsResponse{Users: users}, nil
 }
 
 func (s *stubAccounts) BatchGetUsers(_ context.Context, req *accountv1.BatchGetUsersRequest, _ ...grpc.CallOption) (*accountv1.BatchGetUsersResponse, error) {

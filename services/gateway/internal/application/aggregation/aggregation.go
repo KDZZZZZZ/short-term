@@ -46,6 +46,21 @@ func (a *Aggregator) Users(ctx context.Context, ids []string) (map[string]*accou
 	return resp.GetUsers(), nil
 }
 
+// UserContacts 一次返回指定标识的昵称与联系方式。缺失的标识从结果中省略。
+// 仅用于交易双方：交易读取端点只对交易方开放。
+func (a *Aggregator) UserContacts(ctx context.Context, ids []string) (map[string]*accountv1.UserContact, error) {
+	unique := dedupe(ids)
+	if len(unique) == 0 {
+		return map[string]*accountv1.UserContact{}, nil
+	}
+
+	resp, err := a.accounts.BatchGetUserContacts(ctx, &accountv1.BatchGetUserContactsRequest{UserIds: unique})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetUsers(), nil
+}
+
 // Products 在一次调用中返回每个商品的当前摘要。
 func (a *Aggregator) Products(ctx context.Context, ids []string) (map[string]*marketplacev1.ProductSummary, error) {
 	unique := dedupe(ids)

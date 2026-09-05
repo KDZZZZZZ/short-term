@@ -27,9 +27,9 @@ func ParseTradeStatus(value string) (marketplacev1.TradeStatus, bool) {
 	return marketplacev1.TradeStatus_TRADE_STATUS_UNSPECIFIED, false
 }
 
-// Trade maps one trade, completing the two party identities from the batch
-// profile lookup the caller performed.
-func Trade(src *marketplacev1.Trade, users map[string]*accountv1.UserPublic) dto.Trade {
+// Trade maps one trade, completing the two parties' identities and contacts
+// from the batch contact lookup the caller performed.
+func Trade(src *marketplacev1.Trade, contacts map[string]*accountv1.UserContact) dto.Trade {
 	return dto.Trade{
 		ID: src.GetId(),
 		Product: dto.TradeProduct{
@@ -38,8 +38,8 @@ func Trade(src *marketplacev1.Trade, users map[string]*accountv1.UserPublic) dto
 			CoverURL: src.GetProduct().CoverUrl,
 			Status:   ProductStatus(src.GetProduct().GetStatus()),
 		},
-		Buyer:           UserPublic(src.GetBuyerId(), users[src.GetBuyerId()]),
-		Seller:          UserPublic(src.GetSellerId(), users[src.GetSellerId()]),
+		Buyer:           TradeParty(src.GetBuyerId(), contacts[src.GetBuyerId()]),
+		Seller:          TradeParty(src.GetSellerId(), contacts[src.GetSellerId()]),
 		ConversationID:  src.ConversationId,
 		PriceSnapshot:   FormatPrice(src.GetPriceSnapshotMinor()),
 		Status:          TradeStatus(src.GetStatus()),
@@ -55,10 +55,10 @@ func Trade(src *marketplacev1.Trade, users map[string]*accountv1.UserPublic) dto
 }
 
 // TradePage maps a page of trades.
-func TradePage(src *marketplacev1.TradePage, users map[string]*accountv1.UserPublic) dto.TradePage {
+func TradePage(src *marketplacev1.TradePage, contacts map[string]*accountv1.UserContact) dto.TradePage {
 	items := make([]dto.Trade, 0, len(src.GetItems()))
 	for _, item := range src.GetItems() {
-		items = append(items, Trade(item, users))
+		items = append(items, Trade(item, contacts))
 	}
 	return dto.TradePage{
 		Items:    items,
