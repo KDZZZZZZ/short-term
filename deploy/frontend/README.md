@@ -50,9 +50,22 @@ nginx 提供静态托管,并把 `/api/v1` 与 `/media` 反向代理到同机的 
 journalctl --user -u short-term-frontend.service -n 100
 ```
 
+## 公网 HTTPS 边缘入口
+
+宿主机上有一个 root 权限的系统 nginx(与 rootless 业务栈分离)作为边缘入口,与
+intellex/me/sub2api 站点同一套 nginx + certbot 惯例:
+
+- 入口:`https://market.oopsbox.cn`(HTTP 80 强制 301 到 HTTPS;证书为 Let's Encrypt
+  `/etc/letsencrypt/live/market.oopsbox.cn/`,由 certbot 定时自动续期)。
+- 配置:`/etc/nginx/conf.d/market-oopsbox.conf`,443 终止 TLS 后反代到
+  `127.0.0.1:18084`(本目录部署的前端容器),`/api/v1` 与 `/media` 再由内层 nginx
+  转发到 Gateway(18083)。安全组需放行 TCP/80 与 TCP/443。
+- DNS:`oopsbox.cn` 的 NS 在阿里云 DNS(`dns29/30.hichina.com`)管理;`market` A 记录
+  指向主机公网 IP。此前 NS 曾短暂指向 Cloudflare(2026-08-24),已切回。
+- 仍存在的限制:内层 18083/18084 依旧可直接访问(明文);边缘层为唯一推荐入口。
+
 ## 当前限制
 
-- 与后端一致:单节点、明文 HTTP、以 IP 访问。接入真实用户或长期凭据前,应配置域名与
-  可信 TLS 终止层,并按后端 README 的既定方向收敛公网直连端口。
+- 与后端一致:单节点。接入真实用户或长期凭据前,应按后端 README 的既定方向收敛公网直连端口。
 - 前端发版与后端发版相互独立;`current` 链由 podman 在容器启动时解析,因此每次发版都会重启
   nginx 容器(秒级)。
