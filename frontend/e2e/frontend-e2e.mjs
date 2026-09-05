@@ -162,6 +162,14 @@ async function run() {
     console.log('✓ 买家查看详情，卖家微信可见（不暴露学号）')
     await shot(buyerContext, 'buyer-product-detail')
 
+    // ---------- 4.5 商品图片灯箱（卡片堆） ----------
+    await buyer.getByRole('button', { name: '放大查看商品图片' }).click()
+    await buyer.getByText('左右拖动查看其他图片').waitFor({ timeout: 8_000 })
+    await shot(buyerContext, 'product-image-lightbox')
+    await buyer.keyboard.press('Escape')
+    await buyer.getByText('左右拖动查看其他图片').waitFor({ state: 'hidden', timeout: 8_000 })
+    console.log('✓ 图片灯箱打开并关闭')
+
     // ---------- 5. 买家收藏 ----------
     await buyer.getByRole('button', { name: /收藏/ }).click()
     await buyer.getByText('已收藏').waitFor({ timeout: 5_000 })

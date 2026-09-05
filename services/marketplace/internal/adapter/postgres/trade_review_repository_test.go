@@ -205,3 +205,37 @@ func TestTradeReviewArbitratesConcurrentDuplicates(t *testing.T) {
 		t.Fatalf("succeeded = %d, duplicated = %d, want exactly one success", succeeded, duplicated)
 	}
 }
+
+// TestTradeReviewBatchSkipsLegacyRowsWithoutScore 回归：000006 迁移之前的
+// 历史评价行 score 为 NULL，批量读取必须跳过它们而不是把扫描错误冒泡成 500。
+func TestTradeReviewBatchSkipsLegacyRowsWithoutScore(t *testing.T) {
+	t.Parallel()
+
+	repo, pool := newTradeReviewRepository(t)
+	seedTradeReview(t, pool, "t_legacy", "p_legacy", "u_buyer", "u_seller")
+	const legacy = `INSERT INTO trade_reviews (id, trade_id, product_id, buyer_id, content, score, created_at)
+		VALUES ('tr_legacy', 't_legacy', 'p_legacy', 'u_buyer', '旧版纯文字评价', NULL, $1)`
+	if _, err := pool.Exec(t.Context(), legacy, created); err != nil {
+		t.Fatalf("seed legacy review: %v", err)
+	}
+
+	seedTradeReview(t, pool, "t_scored", "p_scored", "u_buyer", "u_seller")
+	scored, err := domain.NewTradeReview("tr_scored", &domain.Trade{ID: "t_scored", ProductID: "p_scored", BuyerID: "u_buyer"}, 4, "新评分", created)
+	if err != nil {
+		t.Fatalf("NewTradeReview: %v", err)
+	}
+	if err := repo.Insert(t.Context(), scored); err != nil {
+		t.Fatalf("Insert: %v", err)
+	}
+
+	reviews, err := repo.ByProductIDs(t.Context(), []string{"p_legacy", "p_scored", "p_missing"})
+	if err != nil {
+		t.Fatalf("ByProductIDs with legacy row: %v", err)
+	}
+	if _, ok := reviews["p_legacy"]; ok {
+		t.Fatalf("legacy row without score must be skipped, got %v", reviews["p_legacy"])
+	}
+	if reviews["p_scored"] == nil || reviews["p_scored"].Score != 4 {
+		t.Fatalf("scored review missing or wrong score: %v", reviews["p_scored"])
+	}
+}

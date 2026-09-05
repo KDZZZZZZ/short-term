@@ -52,7 +52,9 @@ func (r *TradeReviewRepository) Insert(ctx context.Context, review *domain.Trade
 	return nil
 }
 
-// ByProductIDs 一次读取多个商品各自的买家评价。缺失的商品不会出现在结果中。
+// ByProductIDs 一次读取多个商品各自的买家评价。缺失的商品不会出现在结果中；
+// 000006 迁移之前的历史行没有评分，公开契约要求 score 必填，因此同样跳过
+// （与平均值聚合忽略无评分历史行的口径一致）。
 func (r *TradeReviewRepository) ByProductIDs(ctx context.Context, productIDs []string) (map[string]*domain.TradeReview, error) {
 	if len(productIDs) == 0 {
 		return map[string]*domain.TradeReview{}, nil
@@ -68,9 +70,14 @@ func (r *TradeReviewRepository) ByProductIDs(ctx context.Context, productIDs []s
 	reviews := make(map[string]*domain.TradeReview, len(productIDs))
 	for rows.Next() {
 		var review domain.TradeReview
-		if err := rows.Scan(&review.ID, &review.TradeID, &review.ProductID, &review.BuyerID, &review.Content, &review.Score, &review.CreatedAt); err != nil {
+		var score *int32
+		if err := rows.Scan(&review.ID, &review.TradeID, &review.ProductID, &review.BuyerID, &review.Content, &score, &review.CreatedAt); err != nil {
 			return nil, fmt.Errorf("postgres: scan trade review: %w", err)
 		}
+		if score == nil {
+			continue
+		}
+		review.Score = *score
 		reviews[review.ProductID] = &review
 	}
 	if err := rows.Err(); err != nil {
