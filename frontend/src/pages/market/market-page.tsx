@@ -89,7 +89,7 @@ export function MarketPage() {
       </div>
 
       {isPending ? (
-        <div className="grid grid-cols-2 gap-4 min-[480px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-6 min-[480px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {Array.from({ length: 10 }, (_, i) => (
             <ProductCardSkeleton key={i} />
           ))}
@@ -105,7 +105,7 @@ export function MarketPage() {
       ) : (
         <>
           <div
-            className={`grid grid-cols-2 gap-4 transition-opacity min-[480px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 ${
+            className={`grid grid-cols-2 gap-6 transition-opacity min-[480px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 ${
               isFetching ? 'opacity-60' : ''
             }`}
           >
