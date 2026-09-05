@@ -44,21 +44,21 @@ export function ProductCard({ product, animate = true }: ProductCardProps) {
         ) : null}
       </button>
 
-      <div className="flex flex-1 flex-col items-center gap-1 px-4 pb-4 pt-3 text-center">
+      <div className="flex flex-1 flex-col items-center gap-0.5 px-3 pb-3 pt-2 text-center">
         <button
-          className="line-clamp-1 cursor-pointer text-base font-semibold text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent"
+          className="line-clamp-1 cursor-pointer text-sm font-semibold text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent"
           onClick={open}
           type="button"
         >
           {product.title}
         </button>
         <p className="text-xs text-muted">{categoryLabel(product.category)}</p>
-        <p className="tabular-nums text-lg font-bold text-foreground">{formatPrice(product.price)}</p>
+        <p className="tabular-nums text-base font-bold text-foreground">{formatPrice(product.price)}</p>
         <p className="text-xs text-muted">
           {product.seller.nickname} · {formatRelativeTime(product.created_at)}
         </p>
         <Button
-          className="mt-2 w-full"
+          className="mt-1.5 w-full"
           size="sm"
           variant="outline"
           onPress={open}
@@ -87,11 +87,11 @@ export function ProductCardSkeleton() {
   return (
     <Card className="flex h-full w-full flex-col gap-0 overflow-hidden p-0">
       <div className="aspect-[3/4] w-full animate-pulse bg-surface-secondary" />
-      <div className="flex flex-col items-center gap-2 px-4 pb-4 pt-3">
+      <div className="flex flex-col items-center gap-2 px-3 pb-3 pt-2">
         <div className="h-4 w-3/4 animate-pulse rounded bg-surface-secondary" />
         <div className="h-3 w-1/3 animate-pulse rounded bg-surface-secondary" />
-        <div className="h-6 w-1/2 animate-pulse rounded bg-surface-secondary" />
-        <div className="mt-2 h-9 w-full animate-pulse rounded-lg bg-surface-secondary" />
+        <div className="h-5 w-1/2 animate-pulse rounded bg-surface-secondary" />
+        <div className="mt-1.5 h-9 w-full animate-pulse rounded-lg bg-surface-secondary" />
       </div>
     </Card>
   )

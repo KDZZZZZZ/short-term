@@ -13,7 +13,7 @@ const PAGE_SIZE = 12
 export function MarketPage() {
   const [input, setInput] = useState('')
   const [keyword, setKeyword] = useState('')
-  const [category, setCategory] = useState<CategoryFilter | null>(null)
+  const [category, setCategory] = useState<CategoryFilter | 'ALL'>('ALL')
   const [page, setPage] = useState(1)
 
   const { data, isPending, isFetching } = useQuery({
@@ -21,7 +21,7 @@ export function MarketPage() {
     queryFn: () =>
       listProducts({
         keyword: keyword || undefined,
-        category: category ?? undefined,
+        category: category === 'ALL' ? undefined : category,
         page,
         page_size: PAGE_SIZE,
       }),
@@ -61,10 +61,9 @@ export function MarketPage() {
 
         <Select
           className="w-full sm:w-44"
-          placeholder="全部分类"
           value={category}
           onChange={(key) => {
-            setCategory((key as CategoryFilter | null) ?? null)
+            setCategory(key as CategoryFilter | 'ALL')
             setPage(1)
           }}
         >
@@ -74,6 +73,10 @@ export function MarketPage() {
           </Select.Trigger>
           <Select.Popover>
             <ListBox>
+              <ListBox.Item id="ALL" textValue="全部">
+                全部
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
               {CATEGORY_OPTIONS.map((option) => (
                 <ListBox.Item id={option.value} key={option.value} textValue={option.label}>
                   {option.label}
@@ -86,8 +89,8 @@ export function MarketPage() {
       </div>
 
       {isPending ? (
-        <div className="grid grid-cols-1 gap-5 min-[480px]:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 8 }, (_, i) => (
+        <div className="grid grid-cols-2 gap-4 min-[480px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 10 }, (_, i) => (
             <ProductCardSkeleton key={i} />
           ))}
         </div>
@@ -102,7 +105,7 @@ export function MarketPage() {
       ) : (
         <>
           <div
-            className={`grid grid-cols-1 gap-5 transition-opacity min-[480px]:grid-cols-2 lg:grid-cols-3 ${
+            className={`grid grid-cols-2 gap-4 transition-opacity min-[480px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 ${
               isFetching ? 'opacity-60' : ''
             }`}
           >

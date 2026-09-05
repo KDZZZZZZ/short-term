@@ -22,7 +22,7 @@
  * 亮色主题（Human Design 配色）：
  * #1D4533 森林绿 / #F7EAE0 米白底 / #F9D2BA 蜜桃 / #5E3122 深棕
  * 深棕正文 + 米白底保证可读；卡片用更浅的暖白面 + 棕调 ring 描边浮出底色；
- * 顶栏为森林绿横条，导航悬停透光、选中为蜜桃 pill（与底色强对比）。
+ * 顶栏为纯黑横条，导航悬停透光、选中为蜜桃 pill（与底色强对比）。
  */
 :root:not(.dark) {
   color-scheme: light;
@@ -98,8 +98,8 @@
   --danger-soft: #f6ddd5;
   --danger-soft-foreground: #7a2a20;
 
-  /* 顶栏：森林绿横条；悬停透光、选中为蜜桃 pill */
-  --header-background: #1d4533;
+  /* 顶栏：纯黑横条；悬停透光、选中为蜜桃 pill */
+  --header-background: #000000;
   --header-foreground: #f7eae0;
   --header-hover: rgb(247 234 224 / 14%);
   --header-active: #f9d2ba;
