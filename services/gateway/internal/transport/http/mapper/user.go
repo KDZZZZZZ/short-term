@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	accountv1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/account/v1"
+	marketplacev1 "github.com/KDZZZZZZ/short-term/gen/go/shortterm/marketplace/v1"
 	"github.com/KDZZZZZZ/short-term/services/gateway/internal/transport/http/dto"
 )
 
@@ -65,9 +66,15 @@ func TradeParty(id string, src *accountv1.UserContact) dto.TradeParty {
 	return dto.TradeParty{ID: src.GetId(), Nickname: src.GetNickname(), Wechat: src.Wechat, QQ: src.Qq}
 }
 
-// UserProfile 映射公开用户资料：昵称与卖家平均分，不含学号和联系方式。
-func UserProfile(id, nickname string, averageScore *string) dto.UserProfile {
-	return dto.UserProfile{ID: id, Nickname: nickname, AverageScore: averageScore}
+// UserProfile 映射公开用户资料：昵称、卖家平均分与公开统计，不含学号和联系方式。
+func UserProfile(id, nickname string, averageScore *string, stats *marketplacev1.GetUserStatsResponse) dto.UserProfile {
+	return dto.UserProfile{
+		ID:                   id,
+		Nickname:             nickname,
+		AverageScore:         averageScore,
+		CompletedTradesCount: stats.GetCompletedTrades(),
+		OnSaleProductsCount:  stats.GetOnSaleProducts(),
+	}
 }
 
 // deletedUserNickname 代表已不存在的账户。

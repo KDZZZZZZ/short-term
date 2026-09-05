@@ -60,6 +60,18 @@ func (s *Server) BatchGetUserAverageScores(ctx context.Context, req *marketplace
 	return &marketplacev1.BatchGetUserAverageScoresResponse{AverageScores: scores}, nil
 }
 
+// GetUserStats 返回用户作为卖家的公开统计：已完成交易数与在售商品数。
+func (s *Server) GetUserStats(ctx context.Context, req *marketplacev1.GetUserStatsRequest) (*marketplacev1.GetUserStatsResponse, error) {
+	completed, onSale, err := s.trades.UserStats(ctx, req.GetUserId())
+	if err != nil {
+		return nil, err
+	}
+	return &marketplacev1.GetUserStatsResponse{
+		CompletedTrades: completed,
+		OnSaleProducts:  onSale,
+	}, nil
+}
+
 func tradeReviewProto(review *domain.TradeReview) *marketplacev1.TradeReview {
 	return &marketplacev1.TradeReview{
 		Id:        review.ID,
