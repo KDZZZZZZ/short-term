@@ -359,7 +359,7 @@ def run(args):
             "POST",
             f"/api/v1/trades/{trade_id}/review",
             token=observer_token,
-            json_body={"content": "M6 旁观者评价"},
+            json_body={"score": 5, "content": "M6 旁观者评价"},
         ),
         404,
         "RESOURCE_NOT_FOUND",
@@ -370,7 +370,7 @@ def run(args):
             "POST",
             f"/api/v1/trades/{trade_id}/review",
             token=seller_token,
-            json_body={"content": "M6 卖家评价"},
+            json_body={"score": 4, "content": "M6 卖家评价"},
         ),
         403,
         "FORBIDDEN",
@@ -381,13 +381,15 @@ def run(args):
             "POST",
             f"/api/v1/trades/{trade_id}/review",
             token=buyer_token,
-            json_body={"content": "M6 买家评价：交易顺利完成"},
+            json_body={"score": 5, "content": "M6 买家评价：交易顺利完成"},
         ),
         201,
         "buyer create trade review",
     )["data"]
     if not trade_review.get("id") or trade_review.get("buyer", {}).get("id") != buyer_auth["user"]["id"]:
         raise RuntimeError("trade review response did not expose the review and buyer identities")
+    if trade_review.get("score") != 5:
+        raise RuntimeError("trade review response did not expose the score")
     if not trade_review.get("buyer", {}).get("nickname"):
         raise RuntimeError("trade review response did not complete the buyer nickname")
     expect_error(
@@ -395,7 +397,7 @@ def run(args):
             "POST",
             f"/api/v1/trades/{trade_id}/review",
             token=buyer_token,
-            json_body={"content": "M6 重复评价"},
+            json_body={"score": 5, "content": "M6 重复评价"},
         ),
         409,
         "TRADE_REVIEW_ALREADY_EXISTS",
@@ -487,8 +489,12 @@ def run(args):
     detail_review = detail.get("buyer_review")
     if not isinstance(detail_review, dict) or detail_review.get("id") != trade_review.get("id"):
         raise RuntimeError("sold product detail did not expose the buyer review")
+    if detail_review.get("score") != 5:
+        raise RuntimeError("buyer review on product detail did not expose the score")
     if not detail_review.get("buyer", {}).get("nickname") or not detail_review.get("content"):
         raise RuntimeError("buyer review on product detail is incomplete")
+    if detail.get("seller", {}).get("average_score") != "5.00":
+        raise RuntimeError("product detail did not expose the seller average score")
     if "student_no" in json.dumps(detail.get("seller", {}), ensure_ascii=False):
         raise RuntimeError("product detail leaked seller student_no")
     assert_no_student_numbers(
@@ -525,8 +531,8 @@ def run(args):
     my_item = next((item for item in my_products["items"] if item["id"] == product_id), None)
     if not my_item or my_item.get("buyer_review", {}) is None:
         raise RuntimeError("my products page did not embed the buyer review")
-    if my_item["buyer_review"].get("id") != trade_review.get("id"):
-        raise RuntimeError("my products page embedded a different buyer review")
+    if my_item["buyer_review"].get("id") != trade_review.get("id") or my_item["buyer_review"].get("score") != 5:
+        raise RuntimeError("my products page embedded an inconsistent buyer review")
     assert_no_student_numbers(
         my_products,
         (student_seller, student_buyer, student_observer),
@@ -548,6 +554,21 @@ def run(args):
         (student_seller, student_buyer, student_observer),
         "seller products page",
     )
+
+    seller_me = expect(
+        client.request("GET", "/api/v1/users/me", token=seller_token),
+        200,
+        "get seller profile with average",
+    )["data"]
+    if seller_me.get("average_score") != "5.00":
+        raise RuntimeError("seller profile did not expose the public average score")
+    buyer_me = expect(
+        client.request("GET", "/api/v1/users/me", token=buyer_token),
+        200,
+        "get buyer profile with average",
+    )["data"]
+    if buyer_me.get("average_score") is not None:
+        raise RuntimeError("a user without reviews must have a null average score")
 
     latencies = []
     for _ in range(args.baseline_samples):
