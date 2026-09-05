@@ -9,12 +9,21 @@ type TradeProduct struct {
 	Status   string  `json:"status"`
 }
 
+// TradeParty is the TradeParty schema: a trade party's identity and contacts,
+// visible only to the two trade parties.
+type TradeParty struct {
+	ID       string  `json:"id"`
+	Nickname string  `json:"nickname"`
+	Wechat   *string `json:"wechat"`
+	QQ       *string `json:"qq"`
+}
+
 // Trade is the Trade schema.
 type Trade struct {
 	ID              string       `json:"id"`
 	Product         TradeProduct `json:"product"`
-	Buyer           UserPublic   `json:"buyer"`
-	Seller          UserPublic   `json:"seller"`
+	Buyer           TradeParty   `json:"buyer"`
+	Seller          TradeParty   `json:"seller"`
 	ConversationID  *string      `json:"conversation_id"`
 	PriceSnapshot   string       `json:"price_snapshot"`
 	Status          string       `json:"status"`

@@ -57,6 +57,19 @@ func UserPublic(id string, src *accountv1.UserPublic) dto.UserPublic {
 	return dto.UserPublic{ID: src.GetId(), Nickname: src.GetNickname()}
 }
 
+// TradeParty 映射交易一方的身份与联系方式。账户缺失时仍返回格式正确的对象。
+func TradeParty(id string, src *accountv1.UserContact) dto.TradeParty {
+	if src == nil {
+		return dto.TradeParty{ID: id, Nickname: deletedUserNickname}
+	}
+	return dto.TradeParty{ID: src.GetId(), Nickname: src.GetNickname(), Wechat: src.Wechat, QQ: src.Qq}
+}
+
+// UserProfile 映射公开用户资料：昵称与卖家平均分，不含学号和联系方式。
+func UserProfile(id, nickname string, averageScore *string) dto.UserProfile {
+	return dto.UserProfile{ID: id, Nickname: nickname, AverageScore: averageScore}
+}
+
 // deletedUserNickname 代表已不存在的账户。
 const deletedUserNickname = "已注销用户"
 

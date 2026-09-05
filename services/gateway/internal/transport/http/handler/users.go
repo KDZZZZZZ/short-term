@@ -99,6 +99,28 @@ func (h *Users) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	h.responder.OK(w, r, mapper.UserMe(resp.GetUser(), average))
 }
 
+// Profile 处理 GET /users/{userId}。
+//
+// 公开资料只包含昵称与卖家平均分；GetUser 的响应类型不包含学号，
+// 这里也不会读取其联系方式字段。
+func (h *Users) Profile(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("userId")
+
+	resp, err := h.accounts.GetUser(grpcx.WithActor(r.Context(), middleware.ActorID(r.Context())), &accountv1.GetUserRequest{UserId: userID})
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	average, err := aggregatedAverageScore(r.Context(), h.aggregator, userID)
+	if err != nil {
+		h.responder.Error(w, r, err)
+		return
+	}
+
+	h.responder.OK(w, r, mapper.UserProfile(resp.GetUser().GetId(), resp.GetUser().GetNickname(), average))
+}
+
 // ChangePassword 处理 PUT /users/me/password。
 func (h *Users) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var body dto.ChangePasswordRequest
