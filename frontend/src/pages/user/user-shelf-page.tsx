@@ -62,13 +62,17 @@ export function UserShelfPage() {
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{user.nickname}</h1>
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-            <Star className="size-3.5 text-highlight" />
-            {user.average_score != null ? (
-              <span className="tabular-nums">卖家评分 {user.average_score}</span>
-            ) : (
-              <span>暂无买家评分</span>
-            )}
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+            <span className="flex items-center gap-1.5">
+              <Star className="size-3.5 text-highlight" />
+              {user.average_score != null ? (
+                <span className="tabular-nums">卖家评分 {user.average_score}</span>
+              ) : (
+                <span>暂无买家评分</span>
+              )}
+            </span>
+            <span className="tabular-nums">已完成交易 {user.completed_trades_count}</span>
+            <span className="tabular-nums">在售商品 {user.on_sale_products_count}</span>
           </p>
         </div>
       </section>

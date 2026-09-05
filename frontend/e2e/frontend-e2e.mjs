@@ -255,6 +255,9 @@ async function run() {
     await buyer.getByText(/买家评价 5 分 · /).waitFor({ timeout: 8_000 })
     await buyer.getByText(/评分 5\.00 · /).waitFor({ timeout: 8_000 })
 
+    await buyer.getByRole('link', { name: '收藏' }).waitFor({ timeout: 8_000 })
+    console.log('✓ 顶部栏展示收藏标签')
+
     await buyer.goto(`${BASE}/trades`)
     await buyer.getByRole('button', { name: '我买到的' }).click()
     await buyer.getByText(`微信 wx_${SELLER.student_no}`).first().waitFor({ timeout: 8_000 })
@@ -273,8 +276,10 @@ async function run() {
     await buyer.getByRole('link', { name: SELLER.nickname }).first().click()
     await buyer.waitForURL(/\/users\/[^/]+$/, { timeout: 8_000 })
     await buyer.getByText(/卖家评分 5\.00/).waitFor({ timeout: 8_000 })
+    await buyer.getByText(/已完成交易 1/).waitFor({ timeout: 8_000 })
+    await buyer.getByText(/在售商品 0/).waitFor({ timeout: 8_000 })
     await buyer.getByText(PRODUCT_TITLE).first().waitFor({ timeout: 8_000 })
-    console.log('✓ 卖家公开主页展示平均分与商品')
+    console.log('✓ 卖家公开主页展示平均分、统计与商品')
     await shot(buyerContext, 'seller-shelf')
 
     // ---------- 11. 卖家修改资料（改昵称） ----------
