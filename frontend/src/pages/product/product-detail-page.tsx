@@ -12,6 +12,7 @@ import {
   Package,
   Pencil,
   ShoppingCart,
+  Star,
   Store,
 } from 'lucide-react'
 import { addFavorite, removeFavorite } from '@/lib/api/favorites'
@@ -19,9 +20,10 @@ import { getOrCreateProductConversation } from '@/lib/api/conversations'
 import { getProduct, offShelfProduct, relistProduct } from '@/lib/api/products'
 import { createTrade } from '@/lib/api/trades'
 import { isApiError } from '@/lib/http'
-import { categoryLabel, formatDateTime, formatPrice, nicknameInitial } from '@/lib/format'
+import { categoryLabel, formatDateTime, formatPrice, formatRelativeTime, nicknameInitial } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
 import { AnimatedDigits } from '@/components/animated-digits'
+import { ProductComments } from '@/components/product-comments'
 import { ProductStatusChip } from '@/components/status-chip'
 
 export function ProductDetailPage() {
@@ -207,12 +209,29 @@ export function ProductDetailPage() {
               {nicknameInitial(product.seller.nickname)}
             </div>
             <div className="min-w-0 flex-1 text-sm">
-              <p className="font-medium text-foreground">{product.seller.nickname}</p>
+              <Link
+                className="w-fit font-medium text-foreground underline-offset-4 hover:text-accent hover:underline"
+                to={`/users/${product.seller.id}`}
+              >
+                {product.seller.nickname}
+              </Link>
               <p className="text-xs text-muted">
                 微信 {product.seller.wechat ?? '未填写'} · QQ {product.seller.qq ?? '未填写'}
               </p>
             </div>
           </div>
+
+          {/* 已售出商品展示买家评价 */}
+          {product.buyer_review ? (
+            <div className="mt-5 rounded-xl border border-border-secondary bg-surface-tertiary p-3">
+              <p className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-foreground">
+                <Star className="size-3.5 text-highlight" />
+                买家评价 · {product.buyer_review.buyer.nickname} ·{' '}
+                {formatRelativeTime(product.buyer_review.created_at)}
+              </p>
+              <p className="mt-1.5 leading-6 text-foreground/90">{product.buyer_review.content}</p>
+            </div>
+          ) : null}
 
           {/* 操作按钮（买家） */}
           {isMine ? (
@@ -353,6 +372,9 @@ export function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {/* 公开用户评论 */}
+      <ProductComments productId={product.id} />
 
       {/* 底部占位，避免右列超高时贴底 */}
       <Card className="p-4 text-xs text-muted">

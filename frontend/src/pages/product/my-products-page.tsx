@@ -139,6 +139,11 @@ export function MyProductsPage() {
                     <ProductStatusChip status={product.status} />
                     <span className="text-xs text-muted">{formatDateTime(product.created_at)}</span>
                   </div>
+                  {product.buyer_review ? (
+                    <p className="mt-0.5 line-clamp-1 text-xs text-muted">
+                      买家评价：{product.buyer_review.content}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">

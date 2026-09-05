@@ -26,6 +26,7 @@ export type ErrorCode =
   | 'STUDENT_NO_EXISTS'
   | 'PRODUCT_NOT_AVAILABLE'
   | 'TRADE_STATE_CONFLICT'
+  | 'TRADE_REVIEW_ALREADY_EXISTS'
   | 'PRODUCT_STATE_CONFLICT'
   | 'CONVERSATION_MISMATCH'
   | 'SELF_ACTION_NOT_ALLOWED'
@@ -125,6 +126,7 @@ export interface ProductDetail {
   images: ProductImage[]
   seller: SellerContact
   is_favorited: boolean
+  buyer_review: TradeReview | null
   created_at: string
   updated_at: string
 }
@@ -139,6 +141,12 @@ export interface PageData<T> {
 export type ProductPage = PageData<ProductSummary>
 export type ProductSuccess = SuccessBase<ProductDetail>
 export type ProductPageSuccess = SuccessBase<ProductPage>
+
+/** 已售出商品收到的买家评价；尚无已完成交易的买家发布时为 null。 */
+export interface MyProductSummary extends ProductSummary {
+  buyer_review: TradeReview | null
+}
+export type MyProductPage = PageData<MyProductSummary>
 
 export interface FavoriteItem {
   product: ProductSummary
@@ -226,6 +234,36 @@ export interface Trade {
 }
 
 export type TradePage = PageData<Trade>
+
+export interface TradeReview {
+  id: Identifier
+  trade_id: Identifier
+  product_id: Identifier
+  buyer: UserPublic
+  /** 买家评价正文，1 至 500 个字符。 */
+  content: string
+  created_at: string
+}
+
+export interface TradeReviewCreateRequest {
+  content: string
+}
+
+/** 公开用户评论：任何已认证用户可对任何商品发布，发布后不可改删。 */
+export interface Comment {
+  id: Identifier
+  product_id: Identifier
+  user: UserPublic
+  /** 评论正文，1 至 500 个字符。 */
+  content: string
+  created_at: string
+}
+
+export interface CommentCreateRequest {
+  content: string
+}
+
+export type CommentPage = PageData<Comment>
 
 export type TradeRole = 'buyer' | 'seller'
 
